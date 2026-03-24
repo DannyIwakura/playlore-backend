@@ -28,7 +28,15 @@ import jakarta.persistence.TemporalType;
     @NamedQuery(name = "MensajePrivado.findAll", query = "SELECT m FROM MensajePrivado m")})
 public class MensajePrivado implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+    public int getEstado() {
+		return estado;
+	}
+
+	public void setEstado(int estado) {
+		this.estado = estado;
+	}
+
+	private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Basic(optional = false)
@@ -36,6 +44,8 @@ public class MensajePrivado implements Serializable {
     private Integer idMensaje;
     @Column(name = "contenido")
     private String contenido;
+    @Column(name = "estado")
+    private int estado;
     @Column(name = "fecha_envio")
     @Temporal(TemporalType.DATE)
     private Date fechaEnvio;
