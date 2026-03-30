@@ -19,22 +19,22 @@ public class MensajePrivadoServiceImpl implements IMensajePrivadoService {
 	private UsuarioRepositoryInterface usuarioRepository;
 
 	@Override
-	public List<MensajePrivado> mensajesRecibidos(Long idUsuario) {
+	public List<MensajePrivado> mensajesRecibidos(Integer idUsuario) {
 		return mensajePrivadoRepository.findByReceptorId_UserIdOrderByFechaEnvioDesc(idUsuario);
 	}
 
 	@Override
-	public List<MensajePrivado> mensajesEnviados(Long idUsuario) {
+	public List<MensajePrivado> mensajesEnviados(Integer idUsuario) {
 		return mensajePrivadoRepository.findByEmisorId_UserIdOrderByFechaEnvioDesc(idUsuario);
 	}
 
 	@Override
-	public List<MensajePrivado> obtenerMensajesNoLeidos(Long idUsuario) {
+	public List<MensajePrivado> obtenerMensajesNoLeidos(Integer idUsuario) {
 		return mensajePrivadoRepository.findByReceptorId_UserIdAndEstadoOrderByFechaEnvioDesc(idUsuario, 0);
 	}
 
 	@Override
-	public MensajePrivado enviarMensaje(Long idEmisor, Long idReceptor, String contenido) {
+	public MensajePrivado enviarMensaje(Integer idEmisor, Integer idReceptor, String contenido) {
 		//necesitamos obtener los ids del receptor y emisor
 		Usuario emisor = usuarioRepository.findById(idEmisor)
                 .orElseThrow(() -> new RuntimeException("Emisor no encontrado"));
@@ -53,12 +53,12 @@ public class MensajePrivadoServiceImpl implements IMensajePrivadoService {
 	}
 
 	@Override
-	public List<MensajePrivado> findByEstado(Long idUsuario, List<Integer> estados) {
+	public List<MensajePrivado> findByEstado(Integer idUsuario, List<Integer> estados) {
 		return mensajePrivadoRepository.findByReceptorId_UserIdAndEstadoInOrderByFechaEnvioDesc(idUsuario, estados);
 	}
 
 	@Override
-	public void marcarComoLeido(Long idMensaje) {
+	public void marcarComoLeido(Integer idMensaje) {
 		//buscamos el mensaje a marcar
 		MensajePrivado mensaje = mensajePrivadoRepository.findById(idMensaje)
                 .orElseThrow(() -> new RuntimeException("Mensaje no encontrado"));
@@ -69,7 +69,7 @@ public class MensajePrivadoServiceImpl implements IMensajePrivadoService {
 	}
 
 	@Override
-	public void eliminarMensaje(Long id) {
+	public void eliminarMensaje(Integer id) {
 		mensajePrivadoRepository.deleteById(id);
 	}
 }

@@ -28,14 +28,6 @@ import jakarta.persistence.TemporalType;
     @NamedQuery(name = "MensajePrivado.findAll", query = "SELECT m FROM MensajePrivado m")})
 public class MensajePrivado implements Serializable {
 
-    public int getEstado() {
-		return estado;
-	}
-
-	public void setEstado(int estado) {
-		this.estado = estado;
-	}
-
 	private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -102,6 +94,14 @@ public class MensajePrivado implements Serializable {
     public void setReceptorId(Usuario receptorId) {
         this.receptorId = receptorId;
     }
+    
+    public int getEstado() {
+		return estado;
+	}
+
+	public void setEstado(int estado) {
+		this.estado = estado;
+	}
 
     @Override
     public int hashCode() {

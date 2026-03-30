@@ -16,10 +16,6 @@ import jakarta.persistence.NamedQuery;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
-/**
- *
- * @author PC
- */
 @Entity
 @Table(name = "categorias")
 @NamedQueries({

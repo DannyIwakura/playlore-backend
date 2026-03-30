@@ -3,9 +3,13 @@ package com.playrole.model;
 import java.io.Serializable;
 import java.util.Date;
 
+import com.playrole.enums.EstadoSolicitud;
+
 import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -34,8 +38,9 @@ public class SolicitudAmistad implements Serializable {
     @Basic(optional = false)
     @Column(name = "id")
     private Integer id;
+    @Enumerated(EnumType.STRING)
     @Column(name = "estado")
-    private String estado;
+    private EstadoSolicitud estado;
     @Column(name = "fecha_peticion")
     @Temporal(TemporalType.DATE)
     private Date fechaPeticion;
@@ -64,11 +69,11 @@ public class SolicitudAmistad implements Serializable {
         this.id = id;
     }
 
-    public String getEstado() {
+    public EstadoSolicitud getEstado() {
         return estado;
     }
 
-    public void setEstado(String estado) {
+    public void setEstado(EstadoSolicitud estado) {
         this.estado = estado;
     }
 

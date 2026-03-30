@@ -18,7 +18,7 @@ public class UsuarioServiceImpl implements IUsuarioService {
 	}
 
 	@Override
-	public Usuario obtenerUsuario(Long id) {
+	public Usuario obtenerUsuario(Integer id) {
 		return usuarioRepositorio.findById(id)
         .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 	}
@@ -34,7 +34,7 @@ public class UsuarioServiceImpl implements IUsuarioService {
 	}
 
 	@Override
-	public void eliminarrUsuario(Long id) {
+	public void eliminarrUsuario(Integer id) {
 		usuarioRepositorio.deleteById(id);
 	}
 }

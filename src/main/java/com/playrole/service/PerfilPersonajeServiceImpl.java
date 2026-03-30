@@ -13,7 +13,7 @@ public class PerfilPersonajeServiceImpl implements IPerfilPersonajeService {
 	private PerfilPersonajeRepositoryInterface perfilPersonajeRepository;
 	
 	@Override
-	public List<PerfilPersonaje> obtenerPorUsuario(Long idUsuario) {
+	public List<PerfilPersonaje> obtenerPorUsuario(Integer idUsuario) {
 		return perfilPersonajeRepository.findByUserId_UserId(idUsuario);
 	}
 
@@ -28,7 +28,7 @@ public class PerfilPersonajeServiceImpl implements IPerfilPersonajeService {
 	}
 
 	@Override
-	public void eliminarPerfilPersonaje(Long id) {
+	public void eliminarPerfilPersonaje(Integer id) {
 		perfilPersonajeRepository.deleteById(id);
 	}
 

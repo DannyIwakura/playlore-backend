@@ -6,8 +6,8 @@ import com.playrole.model.PerfilPersonaje;
 
 public interface IPerfilPersonajeService {
 
-	List<PerfilPersonaje> obtenerPorUsuario(Long idUsuario);
+	List<PerfilPersonaje> obtenerPorUsuario(Integer idUsuario);
 	void crearPerfilPersonaje(PerfilPersonaje perfilPersonaje);
 	void modificarPerfilPersonaje(PerfilPersonaje perfilPersonaje);
-	void eliminarPerfilPersonaje(Long id);
+	void eliminarPerfilPersonaje(Integer id);
 }

@@ -6,9 +6,9 @@ import com.playrole.model.Usuario;
 
 public interface IUsuarioService {
 	
-	Usuario obtenerUsuario(Long id);
+	Usuario obtenerUsuario(Integer id);
 	List<Usuario> listarUsuarios();
 	void guardarUsuario(Usuario usuario);
 	void modificarUsuario(Usuario usuario);
-	void eliminarrUsuario(Long id);
+	void eliminarrUsuario(Integer id);
 }
