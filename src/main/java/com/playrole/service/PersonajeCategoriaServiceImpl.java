@@ -2,44 +2,75 @@ package com.playrole.service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
+import com.playrole.dto.PerfilPersonajeDTO;
+import com.playrole.dto.PersonajeCategoriaDTO;
+import com.playrole.model.PerfilPersonaje;
 import com.playrole.model.PersonajeCategoria;
+import com.playrole.model.Usuario;
+import com.playrole.repository.PerfilPersonajeRepositoryInterface;
 import com.playrole.repository.PersonajeCategoriaRepositoryInterface;
+import com.playrole.repository.UsuarioRepositoryInterface;
 
+@Service
 public class PersonajeCategoriaServiceImpl implements IPersonajeCategoriaService {
 
-	@Autowired
-	private PersonajeCategoriaRepositoryInterface personajeCategoriaRepository;
-	
-	@Override
-	public PersonajeCategoria guardar(PersonajeCategoria pc) {
-		return personajeCategoriaRepository.save(pc);
-	}
+ 	@Autowired
+    private PersonajeCategoriaRepositoryInterface personajeCategoriaRepository;
 
-	@Override
-	public Optional<PersonajeCategoria> obtenerPorId(Integer id) {
-		return personajeCategoriaRepository.findById(id);
-	}
+    @Autowired
+    private PerfilPersonajeRepositoryInterface perfilPersonajeRepository;
 
-	@Override
-	public void eliminarPorId(Integer id) {
-		personajeCategoriaRepository.deleteById(id);
-	}
+    @Override
+    public PersonajeCategoria guardar(PersonajeCategoria pc) {
+        return personajeCategoriaRepository.save(pc);
+    }
 
-	@Override
-	public List<PersonajeCategoria> obtenerTodos() {
-		return personajeCategoriaRepository.findAll();
-	}
+    @Override
+    public Optional<PersonajeCategoriaDTO> obtenerPorId(Integer id) {
+        return personajeCategoriaRepository.findById(id)
+                .map(PersonajeCategoriaDTO::fromEntity);
+    }
 
-	@Override
-	public List<PersonajeCategoria> obtenerPorPersonajeId(Integer idPersonaje) {
-		return personajeCategoriaRepository.findByIdPersonajeIdPersonaje(idPersonaje);
-	}
+    @Override
+    public void eliminarPorId(Integer id) {
+        if (!personajeCategoriaRepository.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "PersonajeCategoria no encontrada");
+        }
+        personajeCategoriaRepository.deleteById(id);
+    }
 
-	@Override
-	public List<PersonajeCategoria> obtenerPorCategoriaId(Integer idCategoria) {
-		return personajeCategoriaRepository.findByIdCategoriaIdCategoria(idCategoria);
-	}
+    @Override
+    public List<PersonajeCategoriaDTO> obtenerTodos() {
+        return personajeCategoriaRepository.findAll()
+                .stream()
+                .map(PersonajeCategoriaDTO::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<PersonajeCategoriaDTO> obtenerPorPersonajeId(Integer idPersonaje) {
+        // Verificamos que el personaje exista
+        PerfilPersonaje personaje = perfilPersonajeRepository.findById(idPersonaje)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Personaje no encontrado"));
+
+        return personajeCategoriaRepository.findByIdPersonajeIdPersonaje(idPersonaje)
+                .stream()
+                .map(PersonajeCategoriaDTO::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<PersonajeCategoriaDTO> obtenerPorCategoriaId(Integer idCategoria) {
+        return personajeCategoriaRepository.findByIdCategoriaIdCategoria(idCategoria)
+                .stream()
+                .map(PersonajeCategoriaDTO::fromEntity)
+                .collect(Collectors.toList());
+    }
 }

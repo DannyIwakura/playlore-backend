@@ -2,13 +2,13 @@ package com.playrole.service;
 
 import java.util.List;
 
-import com.playrole.model.Usuario;
+import com.playrole.dto.UsuarioDTO;
 
 public interface IUsuarioService {
 	
-	Usuario obtenerUsuario(Integer id);
-	List<Usuario> listarUsuarios();
-	void guardarUsuario(Usuario usuario);
-	void modificarUsuario(Usuario usuario);
-	void eliminarrUsuario(Integer id);
+	UsuarioDTO obtenerUsuario(Integer id);
+    List<UsuarioDTO> listarUsuarios();
+    UsuarioDTO guardarUsuario(UsuarioDTO usuarioDTO);
+    UsuarioDTO modificarUsuario(Integer id, UsuarioDTO usuarioDTO);
+    void eliminarUsuario(Integer id);
 }

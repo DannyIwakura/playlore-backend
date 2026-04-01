@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import com.playrole.enums.EstadoSolicitud;
 import com.playrole.model.SolicitudAmistad;
@@ -12,6 +13,7 @@ import com.playrole.model.Usuario;
 import com.playrole.repository.SolicitudAmistadRespositoryInterface;
 import com.playrole.repository.UsuarioRepositoryInterface;
 
+@Service
 public class SolicitudAmistadServiceImpl implements ISolicitudAmistadService {
 
 	@Autowired

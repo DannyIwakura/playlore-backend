@@ -2,12 +2,17 @@ package com.playrole.service;
 
 import java.util.List;
 
-import com.playrole.model.PerfilPersonaje;
+import com.playrole.dto.PerfilPersonajeDTO;
 
 public interface IPerfilPersonajeService {
 
-	List<PerfilPersonaje> obtenerPorUsuario(Integer idUsuario);
-	void crearPerfilPersonaje(PerfilPersonaje perfilPersonaje);
-	void modificarPerfilPersonaje(PerfilPersonaje perfilPersonaje);
-	void eliminarPerfilPersonaje(Integer id);
+	PerfilPersonajeDTO obtenerPersonaje(Integer id);
+
+    List<PerfilPersonajeDTO> listarPersonajes();
+
+    PerfilPersonajeDTO guardarPersonaje(PerfilPersonajeDTO personajeDTO);
+
+    PerfilPersonajeDTO modificarPersonaje(Integer id, PerfilPersonajeDTO personajeDTO);
+
+    void eliminarPersonaje(Integer id);
 }

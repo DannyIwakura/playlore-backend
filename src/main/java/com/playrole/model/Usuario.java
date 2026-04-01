@@ -19,10 +19,6 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 
-/**
- *
- * @author PC
- */
 @Entity
 @Table(name = "usuarios")
 @NamedQueries({
