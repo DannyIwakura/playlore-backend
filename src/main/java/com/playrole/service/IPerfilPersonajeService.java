@@ -9,6 +9,8 @@ public interface IPerfilPersonajeService {
 	PerfilPersonajeDTO obtenerPersonaje(Integer id);
 
     List<PerfilPersonajeDTO> listarPersonajes();
+    
+    List<PerfilPersonajeDTO> listarPersonajesPorUsuario(Integer userId);
 
     PerfilPersonajeDTO guardarPersonaje(PerfilPersonajeDTO personajeDTO);
 

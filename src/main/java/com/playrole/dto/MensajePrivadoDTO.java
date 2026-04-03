@@ -2,6 +2,7 @@ package com.playrole.dto;
 
 import java.util.Date;
 
+import com.playrole.enums.EstadoMensaje;
 import com.playrole.model.MensajePrivado;
 import com.playrole.model.Usuario;
 
@@ -10,7 +11,7 @@ public class MensajePrivadoDTO {
     private Integer emisorId;
     private Integer receptorId;
     private String contenido;
-    private Integer estado;
+    private EstadoMensaje estado;
     private Date fechaEnvio;
 
     public Integer getId() { return id; }
@@ -21,8 +22,8 @@ public class MensajePrivadoDTO {
     public void setReceptorId(Integer receptorId) { this.receptorId = receptorId; }
     public String getContenido() { return contenido; }
     public void setContenido(String contenido) { this.contenido = contenido; }
-    public Integer getEstado() { return estado; }
-    public void setEstado(Integer estado) { this.estado = estado; }
+    public EstadoMensaje getEstado() { return estado; }
+    public void setEstado(EstadoMensaje estado) { this.estado = estado; }
     public Date getFechaEnvio() { return fechaEnvio; }
     public void setFechaEnvio(Date fechaEnvio) { this.fechaEnvio = fechaEnvio; }
 
@@ -42,7 +43,7 @@ public class MensajePrivadoDTO {
         mensaje.setEmisorId(emisor);
         mensaje.setReceptorId(receptor);
         mensaje.setContenido(this.contenido);
-        mensaje.setEstado(this.estado != null ? this.estado : 0);
+        mensaje.setEstado(this.estado != null ? this.estado : EstadoMensaje.NO_LEIDO);
         mensaje.setFechaEnvio(this.fechaEnvio != null ? this.fechaEnvio : new Date());
         return mensaje;
     }

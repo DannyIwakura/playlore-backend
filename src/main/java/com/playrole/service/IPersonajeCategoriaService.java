@@ -10,8 +10,10 @@ public interface IPersonajeCategoriaService {
 	
 	PersonajeCategoria guardar(PersonajeCategoria pc);
     Optional<PersonajeCategoriaDTO> obtenerPorId(Integer id);
+    Optional<PersonajeCategoria> obtenerEntidadPorId(Integer id);
     void eliminarPorId(Integer id);
     List<PersonajeCategoriaDTO> obtenerTodos();
     List<PersonajeCategoriaDTO> obtenerPorPersonajeId(Integer idPersonaje);
     List<PersonajeCategoriaDTO> obtenerPorCategoriaId(Integer idCategoria);
+    boolean existePorCategoriaId(Integer idCategoria);
 }

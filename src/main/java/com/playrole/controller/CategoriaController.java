@@ -2,6 +2,7 @@ package com.playrole.controller;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -10,18 +11,23 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.playrole.dto.CategoriaDTO;
 import com.playrole.service.ICategoriaService;
+import com.playrole.service.IPersonajeCategoriaService;
 
 @RestController
 @RequestMapping("/categorias")
 public class CategoriaController {
 
 	private final ICategoriaService categoriaService;
+	private final IPersonajeCategoriaService personajeCategoriaService;
 
-    public CategoriaController(ICategoriaService categoriaService) {
+    public CategoriaController(ICategoriaService categoriaService,
+    		IPersonajeCategoriaService personajeCategoriaService) {
         this.categoriaService = categoriaService;
+        this.personajeCategoriaService = personajeCategoriaService;
     }
 
     @GetMapping
@@ -47,13 +53,13 @@ public class CategoriaController {
 
     @DeleteMapping("/{id}")
     public void eliminarCategoria(@PathVariable Integer id) {
-        categoriaService.eliminar(id);
-    }
+    	if (personajeCategoriaService.existePorCategoriaId(id)) {
+            throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "No se puede eliminar la categoría porque está asociada a personajes"
+            );
+        }
 
-    @GetMapping("/tipo/{tipo}")
-    public List<CategoriaDTO> obtenerPorTipo(@PathVariable String tipo) {
-        return categoriaService.obtenerPorTipo(tipo);
-    }
-	
-	
+        categoriaService.eliminar(id);
+    }	
 }

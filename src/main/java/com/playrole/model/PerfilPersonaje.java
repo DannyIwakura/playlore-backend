@@ -4,6 +4,8 @@ import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
 
+import com.playrole.enums.EstadoPersonaje;
+
 import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -41,7 +43,7 @@ public class PerfilPersonaje implements Serializable {
     @Column(name = "avatar")
     private String avatar;
     @Column(name = "estado")
-    private Integer estado;
+    private EstadoPersonaje estado;
     @Column(name = "trasfondo")
     private String trasfondo;
     @Column(name = "raza")
@@ -55,9 +57,9 @@ public class PerfilPersonaje implements Serializable {
     @Temporal(TemporalType.DATE)
     private Date fechaModificacion;
     @JoinColumn(name = "user_id", referencedColumnName = "user_id")
-    @ManyToOne(optional = false, fetch = FetchType.EAGER)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     private Usuario userId;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "idPersonaje", fetch = FetchType.EAGER)
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = "idPersonaje", fetch = FetchType.EAGER)
     private List<PersonajeCategoria> personajeCategoriaList;
 
     public PerfilPersonaje() {
@@ -104,11 +106,11 @@ public class PerfilPersonaje implements Serializable {
         this.avatar = avatar;
     }
 
-    public Integer getEstado() {
+    public EstadoPersonaje getEstado() {
         return estado;
     }
 
-    public void setEstado(Integer estado) {
+    public void setEstado(EstadoPersonaje estado) {
         this.estado = estado;
     }
 

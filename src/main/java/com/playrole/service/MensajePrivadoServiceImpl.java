@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.playrole.dto.MensajePrivadoDTO;
+import com.playrole.enums.EstadoMensaje;
 import com.playrole.model.MensajePrivado;
 import com.playrole.model.Usuario;
 import com.playrole.repository.MensajePrivadoRepositoryInterface;
@@ -61,7 +62,7 @@ public class MensajePrivadoServiceImpl implements IMensajePrivadoService {
         mensaje.setEmisorId(emisor);
         mensaje.setReceptorId(receptor);
         mensaje.setContenido(contenido);
-        mensaje.setEstado(0);
+        mensaje.setEstado(EstadoMensaje.NO_LEIDO);
         mensaje.setFechaEnvio(new Date());
 
         MensajePrivado guardado = mensajePrivadoRepository.save(mensaje);
@@ -80,7 +81,7 @@ public class MensajePrivadoServiceImpl implements IMensajePrivadoService {
     public void marcarComoLeido(Integer idMensaje) {
         MensajePrivado mensaje = mensajePrivadoRepository.findById(idMensaje)
                 .orElseThrow(() -> new RuntimeException("Mensaje no encontrado"));
-        mensaje.setEstado(1);
+        mensaje.setEstado(EstadoMensaje.LEIDO);
         mensajePrivadoRepository.save(mensaje);
     }
 

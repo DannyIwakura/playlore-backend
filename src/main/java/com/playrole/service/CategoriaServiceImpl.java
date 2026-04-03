@@ -43,12 +43,4 @@ public class CategoriaServiceImpl implements ICategoriaService {
     public void eliminar(Integer id) {
         categoriaRepository.deleteById(id);
     }
-
-    @Override
-    public List<CategoriaDTO> obtenerPorTipo(String tipo) {
-        return categoriaRepository.findDistinctByPersonajeCategoriaListTipo(tipo)
-                .stream()
-                .map(CategoriaDTO::fromEntity)
-                .collect(Collectors.toList());
-    }
 }

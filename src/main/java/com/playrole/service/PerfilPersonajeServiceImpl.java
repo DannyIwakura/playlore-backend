@@ -31,6 +31,21 @@ public class PerfilPersonajeServiceImpl implements IPerfilPersonajeService {
                 .map(PerfilPersonajeDTO::fromEntity)
                 .collect(Collectors.toList());
     }
+    
+    @Override
+    public List<PerfilPersonajeDTO> listarPersonajesPorUsuario(Integer userId) {
+        // Verificar que el usuario existe
+        Usuario usuario = usuarioRepository.findById(userId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+        // Obtener personajes del usuario
+        List<PerfilPersonaje> personajes = perfilPersonajeRepository.findByUserId_UserId(userId);
+
+        // Convertir a DTO
+        return personajes.stream()
+                .map(PerfilPersonajeDTO::fromEntity)
+                .collect(Collectors.toList());
+    }
 
     @Override
     public PerfilPersonajeDTO obtenerPersonaje(Integer id) {
@@ -69,11 +84,9 @@ public class PerfilPersonajeServiceImpl implements IPerfilPersonajeService {
     }
 
     @Override
-    public void eliminarPersonaje(Integer id) {
-        if (!perfilPersonajeRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Personaje no encontrado");
-        }
-        perfilPersonajeRepository.deleteById(id);
+    public void eliminarPersonaje(Integer idPersonaje) {
+    	perfilPersonajeRepository.deleteByIdDirect(idPersonaje);
+        System.out.println("Personaje eliminado con ID: " + idPersonaje);
     }
 
 }

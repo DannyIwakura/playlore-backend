@@ -11,5 +11,4 @@ public interface ICategoriaService {
     CategoriaDTO obtenerPorId(Integer id);
     CategoriaDTO guardar(CategoriaDTO categoriaDTO);
     void eliminar(Integer id);
-    List<CategoriaDTO> obtenerPorTipo(String tipo);
 }

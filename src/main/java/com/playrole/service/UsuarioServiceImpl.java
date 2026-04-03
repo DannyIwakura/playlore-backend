@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.playrole.dto.UsuarioCrearDTO;
 import com.playrole.dto.UsuarioDTO;
 import com.playrole.model.Usuario;
 import com.playrole.repository.UsuarioRepositoryInterface;
@@ -36,9 +37,9 @@ public class UsuarioServiceImpl implements IUsuarioService {
     }
 
     @Override
-    public UsuarioDTO guardarUsuario(UsuarioDTO usuarioDTO) {
+    public UsuarioDTO guardarUsuario(UsuarioCrearDTO usuarioCrearDTO) {
         // Convertir DTO a entidad y guardar
-        Usuario usuarioGuardado = usuarioRepositorio.save(usuarioDTO.toEntity());
+        Usuario usuarioGuardado = usuarioRepositorio.save(usuarioCrearDTO.toEntity());
         return UsuarioDTO.fromEntity(usuarioGuardado);
     }
 

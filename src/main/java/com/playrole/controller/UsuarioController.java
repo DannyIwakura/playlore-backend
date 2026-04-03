@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.playrole.dto.UsuarioCrearDTO;
 import com.playrole.dto.UsuarioDTO;
 import com.playrole.model.Usuario;
 import com.playrole.service.IUsuarioService;
@@ -39,8 +40,8 @@ public class UsuarioController {
     }
 
     @PostMapping
-    public UsuarioDTO crearUsuario(@RequestBody UsuarioDTO usuarioDTO) {
-        return usuarioService.guardarUsuario(usuarioDTO);
+    public UsuarioDTO crearUsuario(@RequestBody UsuarioCrearDTO usuarioCrearDTO) {
+        return usuarioService.guardarUsuario(usuarioCrearDTO);
     }
 
     @PutMapping("/{id}")

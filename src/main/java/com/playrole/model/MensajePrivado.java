@@ -3,9 +3,13 @@ package com.playrole.model;
 import java.io.Serializable;
 import java.util.Date;
 
+import com.playrole.enums.EstadoMensaje;
+
 import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -18,10 +22,6 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 
-/**
- *
- * @author PC
- */
 @Entity
 @Table(name = "mensajes_privados")
 @NamedQueries({
@@ -36,8 +36,9 @@ public class MensajePrivado implements Serializable {
     private Integer idMensaje;
     @Column(name = "contenido")
     private String contenido;
+    @Enumerated(EnumType.ORDINAL)
     @Column(name = "estado")
-    private int estado;
+    private EstadoMensaje estado;
     @Column(name = "fecha_envio")
     @Temporal(TemporalType.DATE)
     private Date fechaEnvio;
@@ -95,11 +96,11 @@ public class MensajePrivado implements Serializable {
         this.receptorId = receptorId;
     }
     
-    public int getEstado() {
+    public EstadoMensaje getEstado() {
 		return estado;
 	}
 
-	public void setEstado(int estado) {
+	public void setEstado(EstadoMensaje estado) {
 		this.estado = estado;
 	}
 

@@ -9,4 +9,5 @@ import com.playrole.model.PersonajeCategoria;
 public interface PersonajeCategoriaRepositoryInterface extends JpaRepository<PersonajeCategoria, Integer> {
     List<PersonajeCategoria> findByIdPersonajeIdPersonaje(Integer idPersonaje);
     List<PersonajeCategoria> findByIdCategoriaIdCategoria(Integer idCategoria);
+    boolean existsByIdCategoriaIdCategoria(Integer idCategoria);
 }

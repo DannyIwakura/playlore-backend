@@ -1,4 +1,4 @@
-package com.playrole.api;
+package com.playrole;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

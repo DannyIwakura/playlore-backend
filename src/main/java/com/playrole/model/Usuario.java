@@ -4,10 +4,14 @@ import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
 
+import com.playrole.enums.RolUsuario;
+
 import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -41,13 +45,13 @@ public class Usuario implements Serializable {
     @Column(name = "email")
     private String email;
     @Basic(optional = false)
-    @Column(name = "rol")
-    private String rol;
+    @Enumerated(EnumType.STRING)
+    private RolUsuario rol;
     @Basic(optional = false)
     @Column(name = "fecha_registro")
     @Temporal(TemporalType.DATE)
     private Date fechaRegistro;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "userId", fetch = FetchType.EAGER)
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "userId", fetch = FetchType.LAZY)
     private List<PerfilPersonaje> perfilPersonajeList;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "emisorId", fetch = FetchType.EAGER)
     private List<SolicitudAmistad> solicitudAmistadList;
@@ -65,7 +69,7 @@ public class Usuario implements Serializable {
         this.userId = userId;
     }
 
-    public Usuario(Integer userId, String nombre, String password, String email, String rol, Date fechaRegistro) {
+    public Usuario(Integer userId, String nombre, String password, String email, RolUsuario rol, Date fechaRegistro) {
         this.userId = userId;
         this.nombre = nombre;
         this.password = password;
@@ -106,11 +110,11 @@ public class Usuario implements Serializable {
         this.email = email;
     }
 
-    public String getRol() {
+    public RolUsuario getRol() {
         return rol;
     }
 
-    public void setRol(String rol) {
+    public void setRol(RolUsuario rol) {
         this.rol = rol;
     }
 

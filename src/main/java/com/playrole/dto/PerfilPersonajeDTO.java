@@ -2,6 +2,7 @@ package com.playrole.dto;
 
 import java.util.Date;
 
+import com.playrole.enums.EstadoPersonaje;
 import com.playrole.model.PerfilPersonaje;
 import com.playrole.model.PersonajeCategoria;
 import com.playrole.model.Usuario;
@@ -11,7 +12,7 @@ public class PerfilPersonajeDTO {
     private String nombre;
     private Integer edadPersonaje;
     private String avatar;
-    private Integer estado;
+    private EstadoPersonaje estado;
     private String trasfondo;
     private String raza;
     private String clase;
@@ -27,8 +28,8 @@ public class PerfilPersonajeDTO {
     public void setEdadPersonaje(Integer edadPersonaje) { this.edadPersonaje = edadPersonaje; }
     public String getAvatar() { return avatar; }
     public void setAvatar(String avatar) { this.avatar = avatar; }
-    public Integer getEstado() { return estado; }
-    public void setEstado(Integer estado) { this.estado = estado; }
+    public EstadoPersonaje getEstado() { return estado; }
+    public void setEstado(EstadoPersonaje estado) { this.estado = estado; }
     public String getTrasfondo() { return trasfondo; }
     public void setTrasfondo(String trasfondo) { this.trasfondo = trasfondo; }
     public String getRaza() { return raza; }

@@ -29,6 +29,11 @@ public class PerfilPersonajeController {
     public List<PerfilPersonajeDTO> listarPersonajes() {
         return personajeService.listarPersonajes();
     }
+    
+    @GetMapping("/usuario/{userId}")
+    public List<PerfilPersonajeDTO> listarPersonajesPorUsuario(@PathVariable Integer userId) {
+        return personajeService.listarPersonajesPorUsuario(userId);
+    }
 
     @GetMapping("/{id}")
     public PerfilPersonajeDTO obtenerPersonaje(@PathVariable Integer id) {

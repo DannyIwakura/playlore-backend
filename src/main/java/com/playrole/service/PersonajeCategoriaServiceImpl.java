@@ -37,13 +37,21 @@ public class PersonajeCategoriaServiceImpl implements IPersonajeCategoriaService
         return personajeCategoriaRepository.findById(id)
                 .map(PersonajeCategoriaDTO::fromEntity);
     }
+    
+    @Override
+    public Optional<PersonajeCategoria> obtenerEntidadPorId(Integer id) {
+        return personajeCategoriaRepository.findById(id);
+    }
 
     @Override
     public void eliminarPorId(Integer id) {
-        if (!personajeCategoriaRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "PersonajeCategoria no encontrada");
-        }
-        personajeCategoriaRepository.deleteById(id);
+    	PersonajeCategoria pc = personajeCategoriaRepository.findById(id)
+    	        .orElseThrow(() -> new ResponseStatusException(
+    	            HttpStatus.NOT_FOUND,
+    	            "PersonajeCategoria no encontrada"
+    	        ));
+
+    	    personajeCategoriaRepository.delete(pc);
     }
 
     @Override
@@ -72,5 +80,10 @@ public class PersonajeCategoriaServiceImpl implements IPersonajeCategoriaService
                 .stream()
                 .map(PersonajeCategoriaDTO::fromEntity)
                 .collect(Collectors.toList());
+    }
+    
+    @Override
+    public boolean existePorCategoriaId(Integer idCategoria) {
+        return personajeCategoriaRepository.existsByIdCategoriaIdCategoria(idCategoria);
     }
 }

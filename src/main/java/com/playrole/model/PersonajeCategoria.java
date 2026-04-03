@@ -36,10 +36,10 @@ public class PersonajeCategoria implements Serializable {
     @Temporal(TemporalType.DATE)
     private Date fechaAdicion;
     @JoinColumn(name = "id_categoria", referencedColumnName = "id_categoria")
-    @ManyToOne(optional = false, fetch = FetchType.EAGER)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     private Categoria idCategoria;
     @JoinColumn(name = "id_personaje", referencedColumnName = "id_personaje")
-    @ManyToOne(optional = false, fetch = FetchType.EAGER)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     private PerfilPersonaje idPersonaje;
 
     public PersonajeCategoria() {

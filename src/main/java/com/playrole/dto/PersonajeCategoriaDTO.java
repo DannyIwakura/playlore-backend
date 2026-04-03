@@ -2,6 +2,8 @@ package com.playrole.dto;
 
 import java.util.Date;
 
+import com.playrole.model.Categoria;
+import com.playrole.model.PerfilPersonaje;
 import com.playrole.model.PersonajeCategoria;
 
 public class PersonajeCategoriaDTO {
@@ -70,13 +72,14 @@ public class PersonajeCategoriaDTO {
         return dto;
     }
 
-    public PersonajeCategoria toEntity() {
-        PersonajeCategoria pc = new PersonajeCategoria();
-        pc.setId(this.id);
-        pc.setTipo(this.tipo);
-        pc.setFechaAdicion(this.fechaAdicion);
-
-        return pc;
+    public PersonajeCategoria toEntity(Categoria categoria, PerfilPersonaje personaje) {
+    	 PersonajeCategoria pc = new PersonajeCategoria();
+    	    pc.setId(this.id);
+    	    pc.setTipo(this.tipo);
+    	    pc.setFechaAdicion(this.fechaAdicion != null ? this.fechaAdicion : new Date());
+    	    pc.setIdCategoria(categoria);
+    	    pc.setIdPersonaje(personaje);
+    	    return pc;
     }
 
 }
