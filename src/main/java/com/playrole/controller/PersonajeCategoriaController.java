@@ -104,10 +104,7 @@ public class PersonajeCategoriaController {
         PersonajeCategoria existente = personajeCategoriaService.obtenerEntidadPorId(id)
                 .orElseThrow(() -> new RuntimeException("PersonajeCategoria no encontrada"));
 
-        //actualizar tipo y fecha si vienen
-        if (personajeCategoriaDTO.getTipo() != null) {
-            existente.setTipo(personajeCategoriaDTO.getTipo());
-        }
+        //actualizar fecha si viene
         if (personajeCategoriaDTO.getFechaAdicion() != null) {
             existente.setFechaAdicion(personajeCategoriaDTO.getFechaAdicion());
         }

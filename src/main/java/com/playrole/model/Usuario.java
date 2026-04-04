@@ -51,6 +51,10 @@ public class Usuario implements Serializable {
     @Column(name = "fecha_registro")
     @Temporal(TemporalType.DATE)
     private Date fechaRegistro;
+    @Temporal(TemporalType.DATE)
+    @Basic(optional = false)
+    @Column(name = "ultima_conexion")
+    private Date ultimaConexion;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "userId", fetch = FetchType.LAZY)
     private List<PerfilPersonaje> perfilPersonajeList;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "emisorId", fetch = FetchType.EAGER)
@@ -69,16 +73,18 @@ public class Usuario implements Serializable {
         this.userId = userId;
     }
 
-    public Usuario(Integer userId, String nombre, String password, String email, RolUsuario rol, Date fechaRegistro) {
+    public Usuario(Integer userId, String nombre, String password, String email, RolUsuario rol, Date fechaRegistro,
+    		Date ultimaConexion) {
         this.userId = userId;
         this.nombre = nombre;
         this.password = password;
         this.email = email;
         this.rol = rol;
         this.fechaRegistro = fechaRegistro;
+        this.ultimaConexion = ultimaConexion;
     }
 
-    public Integer getUserId() {
+	public Integer getUserId() {
         return userId;
     }
 
@@ -125,6 +131,14 @@ public class Usuario implements Serializable {
     public void setFechaRegistro(Date fechaRegistro) {
         this.fechaRegistro = fechaRegistro;
     }
+    
+    public Date getUltimaConexion() {
+		return ultimaConexion;
+	}
+
+	public void setUltimaConexion(Date ultimaConexion) {
+		this.ultimaConexion = ultimaConexion;
+	}
 
     public List<PerfilPersonaje> getPerfilPersonajeList() {
         return perfilPersonajeList;
@@ -175,7 +189,6 @@ public class Usuario implements Serializable {
 
     @Override
     public boolean equals(Object object) {
-        // TODO: Warning - this method won't work in the case the id fields are not set
         if (!(object instanceof Usuario)) {
             return false;
         }

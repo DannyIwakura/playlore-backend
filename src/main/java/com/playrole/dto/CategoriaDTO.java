@@ -7,16 +7,19 @@ public class CategoriaDTO {
 	private Integer idCategoria;
     private String nombre;
     private String descripcion;
+    private String tipo;
 
     public CategoriaDTO() {}
 
-    public CategoriaDTO(Integer idCategoria, String nombre, String descripcion) {
+    public CategoriaDTO(Integer idCategoria, String nombre, String descripcion,
+    		String tipo) {
         this.idCategoria = idCategoria;
         this.nombre = nombre;
         this.descripcion = descripcion;
+        this.tipo = tipo;
     }
 
-    public Integer getIdCategoria() {
+	public Integer getIdCategoria() {
         return idCategoria;
     }
 
@@ -40,11 +43,21 @@ public class CategoriaDTO {
         this.descripcion = descripcion;
     }
     
+    public String getTipo() {
+		return tipo;
+	}
+
+	public void setTipo(String tipo) {
+		this.tipo = tipo;
+	}
+
+    
     public static CategoriaDTO fromEntity(Categoria categoria) {
         return new CategoriaDTO(
             categoria.getIdCategoria(),
             categoria.getNombre(),
-            categoria.getDescripcion()
+            categoria.getDescripcion(),
+            categoria.getTipo()
         );
     }
 
@@ -55,5 +68,4 @@ public class CategoriaDTO {
         c.setDescripcion(this.descripcion);
         return c;
     }
-
 }

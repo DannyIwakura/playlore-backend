@@ -12,13 +12,16 @@ public class UsuarioDTO {
     private String email;
     private RolUsuario rol;
     private Date fechaRegistro;
+    private Date ultimaConexion;
     
-    public UsuarioDTO(Integer userId, String nombre, String email, RolUsuario rol, Date fechaRegistro) {
+    public UsuarioDTO(Integer userId, String nombre, String email, RolUsuario rol, Date fechaRegistro,
+    		Date ultimaConexion) {
         this.userId = userId;
         this.nombre = nombre;
         this.email = email;
         this.rol = rol;
         this.fechaRegistro = fechaRegistro;
+        this.ultimaConexion = ultimaConexion;
     }
 
     public Integer getUserId() { return userId; }
@@ -36,13 +39,18 @@ public class UsuarioDTO {
     public Date getFechaRegistro() { return fechaRegistro; }
     public void setFechaRegistro(Date fechaRegistro) { this.fechaRegistro = fechaRegistro; }
     
-    public static UsuarioDTO fromEntity(Usuario usuario) {
+    
+    public Date getUltimaConexion() { return ultimaConexion; }
+	public void setUltimaConexion(Date ultimaConexion) {this.ultimaConexion = ultimaConexion; }
+
+	public static UsuarioDTO fromEntity(Usuario usuario) {
         return new UsuarioDTO(
             usuario.getUserId(),
             usuario.getNombre(),
             usuario.getEmail(),
             usuario.getRol(),
-            usuario.getFechaRegistro()
+            usuario.getFechaRegistro(),
+            usuario.getUltimaConexion()
         );
     }
 
@@ -53,6 +61,7 @@ public class UsuarioDTO {
         u.setEmail(this.email);
         u.setRol(this.rol);
         u.setFechaRegistro(this.fechaRegistro);
+        u.setUltimaConexion(this.ultimaConexion);
         return u;
     }
 }

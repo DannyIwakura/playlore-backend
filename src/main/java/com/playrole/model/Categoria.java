@@ -32,10 +32,12 @@ public class Categoria implements Serializable {
     private String nombre;
     @Column(name = "descripcion")
     private String descripcion;
+    @Column(name = "tipo")
+    private String tipo;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "idCategoria", fetch = FetchType.EAGER)
     private List<PersonajeCategoria> personajeCategoriaList;
 
-    public Categoria() {
+	public Categoria() {
     }
 
     public Categoria(Integer idCategoria) {
@@ -65,6 +67,15 @@ public class Categoria implements Serializable {
     public void setDescripcion(String descripcion) {
         this.descripcion = descripcion;
     }
+    
+    public String getTipo() {
+		return tipo;
+	}
+
+	public void setTipo(String tipo) {
+		this.tipo = tipo;
+	}
+
 
     public List<PersonajeCategoria> getPersonajeCategoriaList() {
         return personajeCategoriaList;

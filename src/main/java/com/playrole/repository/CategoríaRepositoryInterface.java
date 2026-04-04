@@ -13,5 +13,4 @@ public interface CategoríaRepositoryInterface extends JpaRepository<Categoria, 
     Optional<Categoria> findByNombre(String nombre);
     List<Categoria> findByNombreContainingIgnoreCase(String texto);
     List<Categoria> findByPersonajeCategoriaListIsNotEmpty();
-    List<Categoria> findDistinctByPersonajeCategoriaListTipo(String tipo);
 }

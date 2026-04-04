@@ -30,8 +30,6 @@ public class PersonajeCategoria implements Serializable {
     @Basic(optional = false)
     @Column(name = "id")
     private Integer id;
-    @Column(name = "tipo")
-    private String tipo;
     @Column(name = "fecha_adicion")
     @Temporal(TemporalType.DATE)
     private Date fechaAdicion;
@@ -55,14 +53,6 @@ public class PersonajeCategoria implements Serializable {
 
     public void setId(Integer id) {
         this.id = id;
-    }
-
-    public String getTipo() {
-        return tipo;
-    }
-
-    public void setTipo(String tipo) {
-        this.tipo = tipo;
     }
 
     public Date getFechaAdicion() {

@@ -56,7 +56,6 @@ public class PersonajeCategoriaDTO {
     public static PersonajeCategoriaDTO fromEntity(PersonajeCategoria pc) {
         PersonajeCategoriaDTO dto = new PersonajeCategoriaDTO();
         dto.setId(pc.getId());
-        dto.setTipo(pc.getTipo());
         dto.setFechaAdicion(pc.getFechaAdicion());
 
         if (pc.getIdCategoria() != null) {
@@ -75,7 +74,6 @@ public class PersonajeCategoriaDTO {
     public PersonajeCategoria toEntity(Categoria categoria, PerfilPersonaje personaje) {
     	 PersonajeCategoria pc = new PersonajeCategoria();
     	    pc.setId(this.id);
-    	    pc.setTipo(this.tipo);
     	    pc.setFechaAdicion(this.fechaAdicion != null ? this.fechaAdicion : new Date());
     	    pc.setIdCategoria(categoria);
     	    pc.setIdPersonaje(personaje);
