@@ -6,4 +6,5 @@ import com.playrole.model.Usuario;
 
 public interface UsuarioRepositoryInterface extends JpaRepository<Usuario, Integer> {
 
+	boolean existsByEmail(String email);
 }

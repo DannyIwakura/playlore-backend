@@ -12,9 +12,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.playrole.dto.AmigoDTO;
+import com.playrole.dto.SolicitudAmistadDTO;
 import com.playrole.dto.UsuarioCrearDTO;
 import com.playrole.dto.UsuarioDTO;
 import com.playrole.model.Usuario;
+import com.playrole.service.ISolicitudAmistadService;
 import com.playrole.service.IUsuarioService;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,9 +27,12 @@ import java.util.stream.Collectors;
 public class UsuarioController {
 
 	private final IUsuarioService usuarioService;
+	private final ISolicitudAmistadService amistadService;
 
-    public UsuarioController(IUsuarioService usuarioService) {
+    public UsuarioController(IUsuarioService usuarioService,
+    		ISolicitudAmistadService amistadService) {
         this.usuarioService = usuarioService;
+        this.amistadService = amistadService;
     }
 
     @GetMapping
@@ -52,5 +58,16 @@ public class UsuarioController {
     @DeleteMapping("/{id}")
     public void eliminarUsuario(@PathVariable Integer id) {
         usuarioService.eliminarUsuario(id);
+    }
+    
+    @GetMapping("/{id}/amigos")
+    public List<AmigoDTO> obtenerAmigos(@PathVariable Integer id) {
+        return amistadService.obtenerAmigos(id);
+    }
+    
+    @DeleteMapping("{userId}/amigos/{amigoId}")
+    public void eliminarAmistad(@PathVariable Integer userId,
+                                @PathVariable Integer amigoId) {
+        amistadService.eliminarAmistadEntreUsuarios(userId, amigoId);
     }
 }

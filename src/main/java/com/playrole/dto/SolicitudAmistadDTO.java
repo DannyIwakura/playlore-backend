@@ -3,6 +3,8 @@ package com.playrole.dto;
 import java.util.Date;
 
 import com.playrole.enums.EstadoSolicitud;
+import com.playrole.model.SolicitudAmistad;
+import com.playrole.model.Usuario;
 
 public class SolicitudAmistadDTO {
 
@@ -53,4 +55,31 @@ public class SolicitudAmistadDTO {
     public String getReceptorNombre() { return receptorNombre; }
     public void setReceptorNombre(String receptorNombre) { this.receptorNombre = receptorNombre; }
 	
+    public static SolicitudAmistadDTO fromEntity(SolicitudAmistad solicitudAmistad) {
+    	
+    	SolicitudAmistadDTO dto = new SolicitudAmistadDTO();
+    	dto.setId(solicitudAmistad.getId());
+    	dto.setEstado(solicitudAmistad.getEstado());
+    	dto.setFechaPeticion(solicitudAmistad.getFechaPeticion());
+    	dto.setFechaRespuesta(solicitudAmistad.getFechaRespuesta());
+    	dto.setEmisorId(solicitudAmistad.getEmisorId().getUserId());
+    	dto.setEmisorNombre(solicitudAmistad.getEmisorId().getNombre());
+    	dto.setReceptorId(solicitudAmistad.getReceptorId().getUserId());
+    	dto.setReceptorNombre(solicitudAmistad.getReceptorId().getNombre());
+    	
+    	return dto;
+    }
+    
+    public SolicitudAmistad toEntity(Usuario emisor, Usuario receptor) {
+    	
+    	SolicitudAmistad solicitudAmistad = new SolicitudAmistad();
+    	solicitudAmistad.setEmisorId(emisor);
+    	solicitudAmistad.setReceptorId(receptor);
+    	solicitudAmistad.setEstado(this.estado);
+    	solicitudAmistad.setFechaPeticion(this.fechaPeticion);
+    	solicitudAmistad.setFechaRespuesta(this.fechaRespuesta);
+    	
+    	return solicitudAmistad;
+    }
+    
 }

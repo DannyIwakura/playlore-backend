@@ -3,25 +3,30 @@ package com.playrole.service;
 import java.util.List;
 import java.util.Optional;
 
-import com.playrole.model.SolicitudAmistad;
+import com.playrole.dto.AmigoDTO;
+import com.playrole.dto.SolicitudAmistadDTO;
 
 public interface ISolicitudAmistadService {
 
-    SolicitudAmistad enviarSolicitud(Integer emisorId, Integer receptorId);
+    SolicitudAmistadDTO enviarSolicitud(Integer emisorId, Integer receptorId);
 
-    List<SolicitudAmistad> obtenerSolicitudesEnviadas(Integer userId);
+    List<SolicitudAmistadDTO> obtenerSolicitudesPendientesRecibidas(Integer userId);
+    
+    List<SolicitudAmistadDTO> obtenerSolicitudesPendientesEnviadas(Integer userId);
 
-    List<SolicitudAmistad> obtenerSolicitudesRecibidas(Integer userId);
+    List<SolicitudAmistadDTO> obtenerSolicitudesPendientes(Integer userId);
 
-    List<SolicitudAmistad> obtenerSolicitudesPendientes(Integer userId);
+    SolicitudAmistadDTO aceptarSolicitud(Integer idSolicitud);
 
-    SolicitudAmistad aceptarSolicitud(Integer idSolicitud);
-
-    SolicitudAmistad rechazarSolicitud(Integer idSolicitud);
+    SolicitudAmistadDTO rechazarSolicitud(Integer idSolicitud);
 
     boolean existeSolicitud(Integer emisorId, Integer receptorId);
+    
+    public List<AmigoDTO> obtenerAmigos(Integer userId);
 
-    List<SolicitudAmistad> obtenerAmistades(Integer userId);
-
-    Optional<SolicitudAmistad> obtenerPorId(Integer id);
+    Optional<SolicitudAmistadDTO> obtenerPorId(Integer id);
+    
+    void eliminarSolicitud(Integer idSolicitud);
+    
+    public void eliminarAmistadEntreUsuarios(Integer userId1, Integer userId2);
 }

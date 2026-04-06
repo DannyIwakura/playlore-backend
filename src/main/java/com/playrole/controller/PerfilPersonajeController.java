@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.playrole.dto.PerfilPersonajeAdminDTO;
 import com.playrole.dto.PerfilPersonajeDTO;
 import com.playrole.model.PerfilPersonaje;
 import com.playrole.service.IPerfilPersonajeService;
@@ -48,6 +49,12 @@ public class PerfilPersonajeController {
     @PutMapping("/{id}")
     public PerfilPersonajeDTO actualizarPersonaje(@PathVariable Integer id, @RequestBody PerfilPersonajeDTO dto) {
         return personajeService.modificarPersonaje(id, dto);
+    }
+    
+    @PutMapping("/admin/{id}/estado")
+    public PerfilPersonajeDTO actualizarEstadoAdmin(@PathVariable Integer id, 
+                                                    @RequestBody PerfilPersonajeAdminDTO dto) {
+        return personajeService.modificarPersonajeAdmin(id, dto);
     }
 
     @DeleteMapping("/{id}")

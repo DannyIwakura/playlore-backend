@@ -2,6 +2,7 @@ package com.playrole.service;
 
 import java.util.List;
 
+import com.playrole.dto.PerfilPersonajeAdminDTO;
 import com.playrole.dto.PerfilPersonajeDTO;
 
 public interface IPerfilPersonajeService {
@@ -17,4 +18,6 @@ public interface IPerfilPersonajeService {
     PerfilPersonajeDTO modificarPersonaje(Integer id, PerfilPersonajeDTO personajeDTO);
 
     void eliminarPersonaje(Integer id);
+
+	PerfilPersonajeDTO modificarPersonajeAdmin(Integer id, PerfilPersonajeAdminDTO dto);
 }

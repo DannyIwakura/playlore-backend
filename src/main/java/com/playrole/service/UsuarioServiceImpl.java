@@ -1,5 +1,6 @@
 package com.playrole.service;
 
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -10,6 +11,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.playrole.dto.UsuarioCrearDTO;
 import com.playrole.dto.UsuarioDTO;
+import com.playrole.enums.RolUsuario;
 import com.playrole.model.Usuario;
 import com.playrole.repository.UsuarioRepositoryInterface;
 
@@ -38,8 +40,22 @@ public class UsuarioServiceImpl implements IUsuarioService {
 
     @Override
     public UsuarioDTO guardarUsuario(UsuarioCrearDTO usuarioCrearDTO) {
-        // Convertir DTO a entidad y guardar
-        Usuario usuarioGuardado = usuarioRepositorio.save(usuarioCrearDTO.toEntity());
+    	//comprobar si ya existe un usuario con ese email
+        boolean existe = usuarioRepositorio.existsByEmail(usuarioCrearDTO.getEmail());
+        if (existe) {
+            throw new IllegalArgumentException("Ya existe un usuario con este email");
+        }
+
+        //convertir DTO a entidad
+        Usuario usuario = usuarioCrearDTO.toEntity();
+
+        //asignar rol y fecha de registro
+        usuario.setRol(RolUsuario.USER);
+        usuario.setFechaRegistro(new Date());
+
+        //guardar en base de datos
+        Usuario usuarioGuardado = usuarioRepositorio.save(usuario);
+        //devolver DTO
         return UsuarioDTO.fromEntity(usuarioGuardado);
     }
 

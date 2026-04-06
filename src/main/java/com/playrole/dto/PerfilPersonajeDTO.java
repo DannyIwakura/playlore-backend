@@ -2,19 +2,31 @@ package com.playrole.dto;
 
 import java.util.Date;
 
+import org.hibernate.validator.constraints.URL;
+
 import com.playrole.enums.EstadoPersonaje;
 import com.playrole.model.PerfilPersonaje;
-import com.playrole.model.PersonajeCategoria;
 import com.playrole.model.Usuario;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 
 public class PerfilPersonajeDTO {
 	private Integer idPersonaje;
+	@NotBlank(message = "El nombre no puede estar vacío")
+    @Size(max = 50, message = "El nombre no puede superar 50 caracteres")
     private String nombre;
+	@Positive(message = "La edad debe ser un número positivo")
     private Integer edadPersonaje;
+	@URL(message = "El avatar debe ser una URL válida")
+	@Size(max = 2000, message = "El avatar no puede superar 2000 caracteres")
     private String avatar;
-    private EstadoPersonaje estado;
+	@Size(max = 10000, message = "El trasfondo no puede superar 10000 caracteres")
     private String trasfondo;
+	@Size(max = 50, message = "La raza no puede superar 50 caracteres")
     private String raza;
+	@Size(max = 50, message = "La clase no puede superar 50 caracteres")
     private String clase;
     private Date fechaCreacion;
     private Date fechaModificacion;
@@ -28,8 +40,6 @@ public class PerfilPersonajeDTO {
     public void setEdadPersonaje(Integer edadPersonaje) { this.edadPersonaje = edadPersonaje; }
     public String getAvatar() { return avatar; }
     public void setAvatar(String avatar) { this.avatar = avatar; }
-    public EstadoPersonaje getEstado() { return estado; }
-    public void setEstado(EstadoPersonaje estado) { this.estado = estado; }
     public String getTrasfondo() { return trasfondo; }
     public void setTrasfondo(String trasfondo) { this.trasfondo = trasfondo; }
     public String getRaza() { return raza; }
@@ -49,7 +59,6 @@ public class PerfilPersonajeDTO {
         dto.setNombre(personaje.getNombre());
         dto.setEdadPersonaje(personaje.getEdadPersonaje());
         dto.setAvatar(personaje.getAvatar());
-        dto.setEstado(personaje.getEstado());
         dto.setTrasfondo(personaje.getTrasfondo());
         dto.setRaza(personaje.getRaza());
         dto.setClase(personaje.getClase());
@@ -65,13 +74,13 @@ public class PerfilPersonajeDTO {
         personaje.setNombre(this.nombre);
         personaje.setEdadPersonaje(this.edadPersonaje);
         personaje.setAvatar(this.avatar);
-        personaje.setEstado(this.estado);
+        personaje.setEstado(EstadoPersonaje.ACTIVO);
         personaje.setTrasfondo(this.trasfondo);
         personaje.setRaza(this.raza);
         personaje.setClase(this.clase);
         personaje.setFechaCreacion(this.fechaCreacion != null ? this.fechaCreacion : new Date());
         personaje.setFechaModificacion(new Date());
-        personaje.setUserId(usuario); // pasar la entidad Usuario ya obtenida
+        personaje.setUserId(usuario);
         return personaje;
     }
 }
