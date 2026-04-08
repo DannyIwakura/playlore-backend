@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -15,11 +16,16 @@ import com.playrole.enums.RolUsuario;
 import com.playrole.model.Usuario;
 import com.playrole.repository.UsuarioRepositoryInterface;
 
+import jakarta.validation.Valid;
+
 @Service
 public class UsuarioServiceImpl implements IUsuarioService {
 
     @Autowired
     private UsuarioRepositoryInterface usuarioRepositorio;
+    
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Override
     public List<UsuarioDTO> listarUsuarios() {
@@ -39,7 +45,7 @@ public class UsuarioServiceImpl implements IUsuarioService {
     }
 
     @Override
-    public UsuarioDTO guardarUsuario(UsuarioCrearDTO usuarioCrearDTO) {
+    public UsuarioDTO guardarUsuario(@Valid UsuarioCrearDTO usuarioCrearDTO) {
     	//comprobar si ya existe un usuario con ese email
         boolean existe = usuarioRepositorio.existsByEmail(usuarioCrearDTO.getEmail());
         if (existe) {
@@ -49,12 +55,17 @@ public class UsuarioServiceImpl implements IUsuarioService {
         //convertir DTO a entidad
         Usuario usuario = usuarioCrearDTO.toEntity();
 
+        //cifrar la contraseña
+        usuario.setPassword(passwordEncoder.encode(usuarioCrearDTO.getPassword()));
+
         //asignar rol y fecha de registro
         usuario.setRol(RolUsuario.USER);
         usuario.setFechaRegistro(new Date());
+        usuario.setUltimaConexion(new Date());
 
         //guardar en base de datos
         Usuario usuarioGuardado = usuarioRepositorio.save(usuario);
+
         //devolver DTO
         return UsuarioDTO.fromEntity(usuarioGuardado);
     }

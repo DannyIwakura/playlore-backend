@@ -13,8 +13,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.playrole.dto.MensajePrivadoDTO;
+import com.playrole.enums.EstadoMensaje;
 import com.playrole.model.MensajePrivado;
 import com.playrole.service.IMensajePrivadoService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/mensajes")
@@ -26,6 +29,14 @@ public class MensajePrivadoController {
         this.mensajeService = mensajeService;
     }
     
+    @GetMapping("/{idMensaje}/{idUsuario}")
+    public MensajePrivadoDTO obtenerMensaje(
+            @PathVariable Integer idMensaje,
+            @PathVariable Integer idUsuario) {
+
+        return mensajeService.obtenerMensaje(idMensaje, idUsuario);
+    }
+
     @GetMapping("/recibidos/{idUsuario}")
     public List<MensajePrivadoDTO> mensajesRecibidos(@PathVariable Integer idUsuario) {
         return mensajeService.mensajesRecibidos(idUsuario);
@@ -38,33 +49,41 @@ public class MensajePrivadoController {
 
     @GetMapping("/no-leidos/{idUsuario}")
     public List<MensajePrivadoDTO> mensajesNoLeidos(@PathVariable Integer idUsuario) {
-        return mensajeService.obtenerMensajesNoLeidos(idUsuario);
+        return mensajeService.mensajesNoLeidos(idUsuario);
     }
 
     @PostMapping("/enviar")
-    public MensajePrivadoDTO enviarMensaje(
-            @RequestParam Integer idEmisor,
-            @RequestParam Integer idReceptor,
-            @RequestParam String contenido) {
-        return mensajeService.enviarMensaje(idEmisor, idReceptor, contenido);
+    public MensajePrivadoDTO enviarMensaje(@RequestBody @Valid MensajePrivadoDTO mensajeDTO) {
+        return mensajeService.enviarMensaje(mensajeDTO);
     }
 
-    @PostMapping("/filtrar-estado/{idUsuario}")
+    // NUEVO formato REST para filtrar
+    @GetMapping("/recibidos/{idUsuario}/filtrar")
     public List<MensajePrivadoDTO> filtrarPorEstado(
             @PathVariable Integer idUsuario,
-            @RequestBody List<Integer> estados) {
-        return mensajeService.findByEstado(idUsuario, estados);
+            @RequestParam List<EstadoMensaje> estados) {
+
+        return mensajeService.filtrarPorEstadoRecibidos(idUsuario, estados);
     }
 
-    @PutMapping("/marcar-leido/{idMensaje}")
-    public void marcarComoLeido(@PathVariable Integer idMensaje) {
-        mensajeService.marcarComoLeido(idMensaje);
+    @PutMapping("/marcar-leido/{idMensaje}/{idUsuario}")
+    public void marcarComoLeido(
+            @PathVariable Integer idMensaje,
+            @PathVariable Integer idUsuario) {
+
+        mensajeService.marcarComoLeido(idMensaje, idUsuario);
     }
 
-    @DeleteMapping("/{idMensaje}")
-    public void eliminarMensaje(@PathVariable Integer idMensaje) {
-        mensajeService.eliminarMensaje(idMensaje);
+    @GetMapping("/recibidos/{idUsuario}/count-no-leidos")
+    public Long contarNoLeidos(@PathVariable Integer idUsuario) {
+        return mensajeService.contarNoLeidos(idUsuario);
     }
-   
 
+    @DeleteMapping("/{idMensaje}/{idUsuario}")
+    public void eliminarMensaje(
+            @PathVariable Integer idMensaje,
+            @PathVariable Integer idUsuario) {
+
+        mensajeService.eliminarMensaje(idMensaje, idUsuario);
+    }
 }

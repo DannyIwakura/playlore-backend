@@ -1,18 +1,27 @@
 package com.playrole.dto;
 
+import com.playrole.enums.TipoCategoria;
 import com.playrole.model.Categoria;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 public class CategoriaDTO {
 	
 	private Integer idCategoria;
+	@NotBlank(message = "El nombre de la categoría es obligatorio")
+    @Size(max = 100, message = "El nombre no puede superar los 100 caracteres")
     private String nombre;
+	@Size(max = 500, message = "La descripción no puede superar los 500 caracteres")
     private String descripcion;
-    private String tipo;
+	@NotNull(message = "El tipo es obligatorio")
+	private TipoCategoria tipo;
 
     public CategoriaDTO() {}
 
     public CategoriaDTO(Integer idCategoria, String nombre, String descripcion,
-    		String tipo) {
+    		TipoCategoria tipo) {
         this.idCategoria = idCategoria;
         this.nombre = nombre;
         this.descripcion = descripcion;
@@ -43,11 +52,11 @@ public class CategoriaDTO {
         this.descripcion = descripcion;
     }
     
-    public String getTipo() {
+    public TipoCategoria getTipo() {
 		return tipo;
 	}
 
-	public void setTipo(String tipo) {
+	public void setTipo(TipoCategoria tipo) {
 		this.tipo = tipo;
 	}
 
@@ -66,6 +75,7 @@ public class CategoriaDTO {
         c.setIdCategoria(this.idCategoria);
         c.setNombre(this.nombre);
         c.setDescripcion(this.descripcion);
+        c.setTipo(this.tipo);
         return c;
     }
 }

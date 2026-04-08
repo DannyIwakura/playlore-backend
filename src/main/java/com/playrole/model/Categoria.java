@@ -3,10 +3,14 @@ package com.playrole.model;
 import java.io.Serializable;
 import java.util.List;
 
+import com.playrole.enums.TipoCategoria;
+
 import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -18,8 +22,6 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "categorias")
-@NamedQueries({
-    @NamedQuery(name = "Categoria.findAll", query = "SELECT c FROM Categoria c")})
 public class Categoria implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -28,13 +30,14 @@ public class Categoria implements Serializable {
     @Basic(optional = false)
     @Column(name = "id_categoria")
     private Integer idCategoria;
-    @Column(name = "nombre")
+    @Column(name = "nombre", nullable = false, length = 100)
     private String nombre;
-    @Column(name = "descripcion")
+    @Column(name = "descripcion", length = 500)
     private String descripcion;
-    @Column(name = "tipo")
-    private String tipo;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "idCategoria", fetch = FetchType.EAGER)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo", nullable = false, length = 50)
+    private TipoCategoria tipo;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "idCategoria", fetch = FetchType.LAZY)
     private List<PersonajeCategoria> personajeCategoriaList;
 
 	public Categoria() {
@@ -68,11 +71,11 @@ public class Categoria implements Serializable {
         this.descripcion = descripcion;
     }
     
-    public String getTipo() {
+    public TipoCategoria getTipo() {
 		return tipo;
 	}
 
-	public void setTipo(String tipo) {
+	public void setTipo(TipoCategoria tipo) {
 		this.tipo = tipo;
 	}
 

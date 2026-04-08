@@ -51,7 +51,7 @@ public class Usuario implements Serializable {
     @Column(name = "fecha_registro")
     @Temporal(TemporalType.DATE)
     private Date fechaRegistro;
-    @Temporal(TemporalType.DATE)
+    @Temporal(TemporalType.TIMESTAMP)
     @Basic(optional = false)
     @Column(name = "ultima_conexion")
     private Date ultimaConexion;

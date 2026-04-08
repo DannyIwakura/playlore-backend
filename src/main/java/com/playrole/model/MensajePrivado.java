@@ -24,27 +24,37 @@ import jakarta.persistence.TemporalType;
 
 @Entity
 @Table(name = "mensajes_privados")
-@NamedQueries({
-    @NamedQuery(name = "MensajePrivado.findAll", query = "SELECT m FROM MensajePrivado m")})
 public class MensajePrivado implements Serializable {
 
 	private static final long serialVersionUID = 1L;
-    @Id
+	@Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Basic(optional = false)
     @Column(name = "id_mensaje")
     private Integer idMensaje;
+	
+	@Column(nullable = false, length = 255)
+	private String titulo;
+
     @Column(name = "contenido")
     private String contenido;
+
     @Enumerated(EnumType.ORDINAL)
-    @Column(name = "estado")
-    private EstadoMensaje estado;
+    @Column(name = "estado_emisor")
+    private EstadoMensaje estadoEmisor = EstadoMensaje.NO_LEIDO;
+
+    @Enumerated(EnumType.ORDINAL)
+    @Column(name = "estado_receptor")
+    private EstadoMensaje estadoReceptor = EstadoMensaje.NO_LEIDO;
+
     @Column(name = "fecha_envio")
     @Temporal(TemporalType.DATE)
     private Date fechaEnvio;
+
     @JoinColumn(name = "emisor_id", referencedColumnName = "user_id")
     @ManyToOne(optional = false, fetch = FetchType.EAGER)
     private Usuario emisorId;
+
     @JoinColumn(name = "receptor_id", referencedColumnName = "user_id")
     @ManyToOne(optional = false, fetch = FetchType.EAGER)
     private Usuario receptorId;
@@ -71,6 +81,30 @@ public class MensajePrivado implements Serializable {
     public void setContenido(String contenido) {
         this.contenido = contenido;
     }
+    
+    public String getTitulo() {
+		return titulo;
+	}
+
+	public void setTitulo(String titulo) {
+		this.titulo = titulo;
+	}
+
+	public EstadoMensaje getEstadoEmisor() {
+		return estadoEmisor;
+	}
+
+	public void setEstadoEmisor(EstadoMensaje estadoEmisor) {
+		this.estadoEmisor = estadoEmisor;
+	}
+
+	public EstadoMensaje getEstadoReceptor() {
+		return estadoReceptor;
+	}
+
+	public void setEstadoReceptor(EstadoMensaje estadoReceptor) {
+		this.estadoReceptor = estadoReceptor;
+	}
 
     public Date getFechaEnvio() {
         return fechaEnvio;
@@ -96,15 +130,7 @@ public class MensajePrivado implements Serializable {
         this.receptorId = receptorId;
     }
     
-    public EstadoMensaje getEstado() {
-		return estado;
-	}
-
-	public void setEstado(EstadoMensaje estado) {
-		this.estado = estado;
-	}
-
-    @Override
+	@Override
     public int hashCode() {
         int hash = 0;
         hash += (idMensaje != null ? idMensaje.hashCode() : 0);
@@ -113,7 +139,6 @@ public class MensajePrivado implements Serializable {
 
     @Override
     public boolean equals(Object object) {
-        // TODO: Warning - this method won't work in the case the id fields are not set
         if (!(object instanceof MensajePrivado)) {
             return false;
         }

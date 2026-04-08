@@ -17,6 +17,8 @@ import com.playrole.dto.CategoriaDTO;
 import com.playrole.service.ICategoriaService;
 import com.playrole.service.IPersonajeCategoriaService;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/categorias")
 public class CategoriaController {
@@ -41,7 +43,7 @@ public class CategoriaController {
     }
 
     @PostMapping
-    public CategoriaDTO crearCategoria(@RequestBody CategoriaDTO categoriaDTO) {
+    public CategoriaDTO crearCategoria(@Valid @RequestBody CategoriaDTO categoriaDTO) {
         return categoriaService.guardar(categoriaDTO);
     }
 

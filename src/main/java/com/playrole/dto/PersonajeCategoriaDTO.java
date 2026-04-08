@@ -9,7 +9,6 @@ import com.playrole.model.PersonajeCategoria;
 public class PersonajeCategoriaDTO {
 
 	private Integer id;
-    private String tipo;
     private Date fechaAdicion;
 
     private Integer idCategoria;
@@ -20,11 +19,10 @@ public class PersonajeCategoriaDTO {
 
     public PersonajeCategoriaDTO() {}
 
-    public PersonajeCategoriaDTO(Integer id, String tipo, Date fechaAdicion,
+    public PersonajeCategoriaDTO(Integer id, Date fechaAdicion,
                                  Integer idCategoria, String nombreCategoria,
                                  Integer idPersonaje, String nombrePersonaje) {
         this.id = id;
-        this.tipo = tipo;
         this.fechaAdicion = fechaAdicion;
         this.idCategoria = idCategoria;
         this.nombreCategoria = nombreCategoria;
@@ -34,9 +32,6 @@ public class PersonajeCategoriaDTO {
 
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
-
-    public String getTipo() { return tipo; }
-    public void setTipo(String tipo) { this.tipo = tipo; }
 
     public Date getFechaAdicion() { return fechaAdicion; }
     public void setFechaAdicion(Date fechaAdicion) { this.fechaAdicion = fechaAdicion; }
