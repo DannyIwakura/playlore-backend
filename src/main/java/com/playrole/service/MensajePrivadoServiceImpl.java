@@ -9,9 +9,9 @@ import org.springframework.stereotype.Service;
 
 import com.playrole.dto.MensajePrivadoDTO;
 import com.playrole.enums.EstadoMensaje;
-import com.playrole.exeption.AccessDeniedException;
-import com.playrole.exeption.BadRequestException;
-import com.playrole.exeption.ResourceNotFoundException;
+import com.playrole.exception.AccessDeniedException;
+import com.playrole.exception.BadRequestException;
+import com.playrole.exception.ResourceNotFoundException;
 import com.playrole.model.MensajePrivado;
 import com.playrole.model.Usuario;
 import com.playrole.repository.MensajePrivadoRepositoryInterface;

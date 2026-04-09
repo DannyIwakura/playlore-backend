@@ -3,11 +3,13 @@ package com.playrole.controller;
 import java.util.List;
 
 import org.springframework.security.core.Authentication;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,8 +23,10 @@ import com.playrole.dto.AmigoDTO;
 import com.playrole.dto.LoginDTO;
 import com.playrole.dto.UsuarioCrearDTO;
 import com.playrole.dto.UsuarioDTO;
+import com.playrole.security.CustomUserDetails;
 import com.playrole.service.ISolicitudAmistadService;
 import com.playrole.service.IUsuarioService;
+import com.playrole.utils.JwtUtils;
 
 import jakarta.validation.Valid;
 
@@ -33,6 +37,8 @@ public class UsuarioController {
 	private final IUsuarioService usuarioService;
 	private final ISolicitudAmistadService amistadService;
 	private final AuthenticationManager authenticationManager;
+	@Autowired
+	private JwtUtils jwtUtils;
 
     public UsuarioController(IUsuarioService usuarioService,
     		ISolicitudAmistadService amistadService,
@@ -54,7 +60,8 @@ public class UsuarioController {
 
     @PostMapping
     public UsuarioDTO crearUsuario(@Valid @RequestBody UsuarioCrearDTO usuarioCrearDTO) {
-        return usuarioService.guardarUsuario(usuarioCrearDTO);
+    	System.out.println("POST /usuarios recibido: " + usuarioCrearDTO.getNombre());
+    	return usuarioService.guardarUsuario(usuarioCrearDTO);
     }
 
     @PutMapping("/{id}")
@@ -63,18 +70,27 @@ public class UsuarioController {
     }
     
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody LoginDTO loginDTO) {
-        try {
+    public ResponseEntity<String> login(@Valid @RequestBody LoginDTO loginDTO) {
+    	try {
+    		//comprobamos las credenciales
             Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                     loginDTO.getNombre(),
                     loginDTO.getPassword()
                 )
             );
-            // Esto solo prueba que las credenciales son correctas
-            return ResponseEntity.ok("Login exitoso: " + loginDTO.getNombre());
+            //cargamos los detalles del usuario, id, rol...
+            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+            
+            //generamos el token que contendra toda esa info desponible en el front
+            String token = jwtUtils.generarToken(userDetails);
+            
+            return ResponseEntity.ok(token);
+
         } catch (BadCredentialsException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Credenciales inválidas");
+
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Credenciales inválidas");
         }
     }
 

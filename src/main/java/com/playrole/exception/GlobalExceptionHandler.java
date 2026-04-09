@@ -1,4 +1,4 @@
-package com.playrole.exeption;
+package com.playrole.exception;
 
 import java.util.HashMap;
 import java.util.Map;

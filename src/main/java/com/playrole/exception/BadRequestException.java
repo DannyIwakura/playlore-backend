@@ -1,4 +1,4 @@
-package com.playrole.exeption;
+package com.playrole.exception;
 
 public class BadRequestException extends RuntimeException {
     public BadRequestException(String message) {
