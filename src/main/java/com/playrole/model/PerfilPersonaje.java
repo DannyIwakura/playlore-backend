@@ -38,6 +38,8 @@ public class PerfilPersonaje implements Serializable {
     @Basic(optional = false)
     @Column(name = "nombre")
     private String nombre;
+    @Column(name = "genero")
+    private String genero;
     @Column(name = "edad_personaje")
     private Integer edadPersonaje;
     @Column(name = "avatar")
@@ -89,8 +91,16 @@ public class PerfilPersonaje implements Serializable {
     public void setNombre(String nombre) {
         this.nombre = nombre;
     }
+    
+    public String getGenero() {
+		return genero;
+	}
 
-    public Integer getEdadPersonaje() {
+	public void setGenero(String genero) {
+		this.genero = genero;
+	}
+
+	public Integer getEdadPersonaje() {
         return edadPersonaje;
     }
 

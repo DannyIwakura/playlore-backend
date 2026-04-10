@@ -38,6 +38,8 @@ public class Usuario implements Serializable {
     @Basic(optional = false)
     @Column(name = "nombre")
     private String nombre;
+    @Column(name = "avatar")
+    private String avatar;
     @Basic(optional = false)
     @Column(name = "password")
     private String password;
@@ -73,10 +75,11 @@ public class Usuario implements Serializable {
         this.userId = userId;
     }
 
-    public Usuario(Integer userId, String nombre, String password, String email, RolUsuario rol, Date fechaRegistro,
+    public Usuario(Integer userId, String nombre, String avatar, String password, String email, RolUsuario rol, Date fechaRegistro,
     		Date ultimaConexion) {
         this.userId = userId;
         this.nombre = nombre;
+        this.avatar = avatar;
         this.password = password;
         this.email = email;
         this.rol = rol;
@@ -99,8 +102,16 @@ public class Usuario implements Serializable {
     public void setNombre(String nombre) {
         this.nombre = nombre;
     }
+    
+    public String getAvatar() {
+		return avatar;
+	}
 
-    public String getPassword() {
+	public void setAvatar(String avatar) {
+		this.avatar = avatar;
+	}
+
+	public String getPassword() {
         return password;
     }
 

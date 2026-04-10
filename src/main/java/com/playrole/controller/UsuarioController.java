@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.security.core.Authentication;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -17,7 +18,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.playrole.dto.AmigoDTO;
 import com.playrole.dto.LoginDTO;
@@ -58,10 +61,11 @@ public class UsuarioController {
         return usuarioService.obtenerUsuario(id);
     }
 
-    @PostMapping
-    public UsuarioDTO crearUsuario(@Valid @RequestBody UsuarioCrearDTO usuarioCrearDTO) {
-    	System.out.println("POST /usuarios recibido: " + usuarioCrearDTO.getNombre());
-    	return usuarioService.guardarUsuario(usuarioCrearDTO);
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public UsuarioDTO crearUsuario(
+            @RequestPart("usuario") @Valid UsuarioCrearDTO usuarioCrearDTO,
+            @RequestPart(value = "avatarFile", required = false) MultipartFile avatarFile) {
+        return usuarioService.guardarUsuario(usuarioCrearDTO, avatarFile);
     }
 
     @PutMapping("/{id}")

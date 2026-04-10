@@ -19,6 +19,8 @@ public class PerfilPersonajeDTO {
     private String nombre;
 	@Positive(message = "La edad debe ser un número positivo")
     private Integer edadPersonaje;
+	@NotBlank(message = "El genero del personaje no puede estar vacío")
+	private String genero;
 	@URL(message = "El avatar debe ser una URL válida")
 	@Size(max = 2000, message = "El avatar no puede superar 2000 caracteres")
     private String avatar;
@@ -37,7 +39,9 @@ public class PerfilPersonajeDTO {
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }
     public Integer getEdadPersonaje() { return edadPersonaje; }
-    public void setEdadPersonaje(Integer edadPersonaje) { this.edadPersonaje = edadPersonaje; }
+    public String getGenero() { return genero; }
+	public void setGenero(String genero) { this.genero = genero; }
+	public void setEdadPersonaje(Integer edadPersonaje) { this.edadPersonaje = edadPersonaje; }
     public String getAvatar() { return avatar; }
     public void setAvatar(String avatar) { this.avatar = avatar; }
     public String getTrasfondo() { return trasfondo; }
@@ -58,6 +62,7 @@ public class PerfilPersonajeDTO {
         dto.setIdPersonaje(personaje.getIdPersonaje());
         dto.setNombre(personaje.getNombre());
         dto.setEdadPersonaje(personaje.getEdadPersonaje());
+        dto.setGenero(personaje.getGenero());
         dto.setAvatar(personaje.getAvatar());
         dto.setTrasfondo(personaje.getTrasfondo());
         dto.setRaza(personaje.getRaza());
@@ -72,6 +77,7 @@ public class PerfilPersonajeDTO {
         PerfilPersonaje personaje = new PerfilPersonaje();
         personaje.setIdPersonaje(this.idPersonaje);
         personaje.setNombre(this.nombre);
+        personaje.setGenero(this.genero);
         personaje.setEdadPersonaje(this.edadPersonaje);
         personaje.setAvatar(this.avatar);
         personaje.setEstado(EstadoPersonaje.ACTIVO);

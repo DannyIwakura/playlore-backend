@@ -49,6 +49,26 @@ public class GlobalExceptionHandler {
         error.put("error", ex.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
     }
+    
+    //manejo de errores a la hora validr los tipos de archivo permititos
+    @ExceptionHandler(InvalidImageTypeException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidImageType(InvalidImageTypeException ex) {
+
+        Map<String, String> error = new HashMap<>();
+        error.put(ex.getField(), ex.getMessage());
+
+        return ResponseEntity.badRequest().body(error);
+    }
+    
+    //manejo de errores si la imagen no cumple el requisoto de tamaño
+    @ExceptionHandler(InvalidImageException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidImage(InvalidImageException ex) {
+
+        Map<String, String> error = new HashMap<>();
+        error.put(ex.getField(), ex.getMessage());
+
+        return ResponseEntity.badRequest().body(error);
+    }
 
     // Error generico
     @ExceptionHandler(Exception.class)
@@ -57,4 +77,6 @@ public class GlobalExceptionHandler {
         error.put("error", "Ha ocurrido un error inesperado");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
+    
+    
 }

@@ -35,6 +35,9 @@ public class SecurityConfig {
                 // endpoints públicos
                 .requestMatchers(HttpMethod.POST, "/usuarios").permitAll()
                 .requestMatchers(HttpMethod.POST, "/usuarios/login").permitAll()
+                //permitir la ruta de imagenes staticas
+                .requestMatchers("/images/**").permitAll()
+                .requestMatchers("/uploads/**").permitAll()
                 // todo lo demás requiere autenticación
                 .anyRequest().authenticated()
             )

@@ -28,6 +28,7 @@ public class JwtUtils {
                 .setSubject(userDetails.getUsuario().getNombre())
                 .claim("id", userDetails.getUsuario().getUserId())
                 .claim("role", userDetails.getUsuario().getRol().name())
+                .claim("avatar", userDetails.getUsuario().getAvatar())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
                 .signWith(key)
@@ -42,6 +43,15 @@ public class JwtUtils {
                 .parseClaimsJws(token)
                 .getBody()
                 .getSubject();
+    }
+    
+    public String obtenerAvatar(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get("avatar", String.class);
     }
     
     public boolean validarToken(String token) {

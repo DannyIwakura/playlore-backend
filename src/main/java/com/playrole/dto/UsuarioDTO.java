@@ -9,15 +9,17 @@ public class UsuarioDTO {
 	
 	private Integer userId;
     private String nombre;
+    private String avatar;
     private String email;
     private RolUsuario rol;
     private Date fechaRegistro;
     private Date ultimaConexion;
     
-    public UsuarioDTO(Integer userId, String nombre, String email, RolUsuario rol, Date fechaRegistro,
+    public UsuarioDTO(Integer userId, String nombre, String email, String avatar, RolUsuario rol, Date fechaRegistro,
     		Date ultimaConexion) {
         this.userId = userId;
         this.nombre = nombre;
+        this.avatar = avatar;
         this.email = email;
         this.rol = rol;
         this.fechaRegistro = fechaRegistro;
@@ -29,8 +31,11 @@ public class UsuarioDTO {
 
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }
+    
+    public String getAvatar() { return avatar; }
+	public void setAvatar(String avatar) { this.avatar = avatar; }
 
-    public String getEmail() { return email; }
+	public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
     
     public RolUsuario getRol() { return rol; }
@@ -44,20 +49,22 @@ public class UsuarioDTO {
 	public void setUltimaConexion(Date ultimaConexion) {this.ultimaConexion = ultimaConexion; }
 
 	public static UsuarioDTO fromEntity(Usuario usuario) {
-        return new UsuarioDTO(
-            usuario.getUserId(),
-            usuario.getNombre(),
-            usuario.getEmail(),
-            usuario.getRol(),
-            usuario.getFechaRegistro(),
-            usuario.getUltimaConexion()
-        );
+		return new UsuarioDTO(
+	        usuario.getUserId(),
+	        usuario.getNombre(),
+	        usuario.getEmail(),
+	        usuario.getAvatar(),
+	        usuario.getRol(),
+	        usuario.getFechaRegistro(),
+	        usuario.getUltimaConexion()
+	    );
     }
 
     public Usuario toEntity() {
         Usuario u = new Usuario();
         u.setUserId(this.userId);
         u.setNombre(this.nombre);
+        u.setAvatar(this.avatar);
         u.setEmail(this.email);
         u.setRol(this.rol);
         u.setFechaRegistro(this.fechaRegistro);
