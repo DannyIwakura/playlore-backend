@@ -1,17 +1,29 @@
 package com.playrole.service;
 
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
+
+import javax.imageio.ImageIO;
 
 import org.owasp.html.HtmlSanitizer;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.playrole.dto.PerfilPersonajeAdminDTO;
 import com.playrole.dto.PerfilPersonajeDTO;
+import com.playrole.exception.InvalidImageException;
+import com.playrole.exception.InvalidImageTypeException;
 import com.playrole.model.PerfilPersonaje;
 import com.playrole.model.Usuario;
 import com.playrole.repository.PerfilPersonajeRepositoryInterface;
@@ -26,6 +38,12 @@ public class PerfilPersonajeServiceImpl implements IPerfilPersonajeService {
 
     @Autowired
     private UsuarioRepositoryInterface usuarioRepository;
+    
+    private static final String DEFAULT_AVATAR =
+    	    "http://localhost:8080/api/images/AVATAR.png";
+    
+    @Value("${app.upload.dir}")
+    private String uploadsDir;
 
     @Override
     public List<PerfilPersonajeDTO> listarPersonajes() {
@@ -58,7 +76,7 @@ public class PerfilPersonajeServiceImpl implements IPerfilPersonajeService {
     }
 
     @Override
-    public PerfilPersonajeDTO guardarPersonaje(PerfilPersonajeDTO dto) {
+    public PerfilPersonajeDTO guardarPersonaje(PerfilPersonajeDTO dto, MultipartFile avatarFile) {
         Usuario usuario = usuarioRepository.findById(dto.getUserId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
         
@@ -70,22 +88,56 @@ public class PerfilPersonajeServiceImpl implements IPerfilPersonajeService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Edad inválida");
         }
 
-        if(dto.getAvatar() != null && !dto.getAvatar().matches("^https?://.*")) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Avatar debe ser una URL válida");
-        }
-
         // Sanitizar el trasfondo para evitar XSS
         if(dto.getTrasfondo() != null) {
         	dto.setTrasfondo(HtmlUtils.sanitize(dto.getTrasfondo()));
         }
         
         PerfilPersonaje personaje = dto.toEntity(usuario);
+        
+        if (avatarFile != null && !avatarFile.isEmpty()) {
+
+            validarDimensiones(avatarFile);
+            validarTipoImagen(avatarFile);
+
+            try {
+                Path uploadPath = Paths.get(
+                        System.getProperty("user.dir"),
+                        "uploads",
+                        "personajes"
+                );
+
+                if (!Files.exists(uploadPath)) {
+                    Files.createDirectories(uploadPath);
+                }
+
+                String filename = UUID.randomUUID() + "_" +
+                        avatarFile.getOriginalFilename();
+
+                Path destination = uploadPath.resolve(filename);
+
+                avatarFile.transferTo(destination.toFile());
+
+                String avatarUrl = "/uploads/personajes/" + filename;
+
+                personaje.setAvatar(avatarUrl);
+
+            } catch (Exception e) {
+                throw new RuntimeException("Error al subir el avatar", e);
+            }
+
+        } else {
+            personaje.setAvatar("/uploads/avatars/default.png");
+        }
+        
         PerfilPersonaje guardado = perfilPersonajeRepository.save(personaje);
+        
+        
         return PerfilPersonajeDTO.fromEntity(guardado);
     }
 
     @Override
-    public PerfilPersonajeDTO modificarPersonaje(Integer id, PerfilPersonajeDTO dto) {
+    public PerfilPersonajeDTO modificarPersonaje(Integer id, PerfilPersonajeDTO dto, MultipartFile avatarFile) {
     	PerfilPersonaje existente = perfilPersonajeRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Personaje no encontrado"));
     	
@@ -109,10 +161,40 @@ public class PerfilPersonajeServiceImpl implements IPerfilPersonajeService {
         // Actualizamos solo campos que el usuario puede modificar
         if (dto.getNombre() != null) existente.setNombre(dto.getNombre());
         if (dto.getEdadPersonaje() != null) existente.setEdadPersonaje(dto.getEdadPersonaje());
-        if (dto.getAvatar() != null) existente.setAvatar(dto.getAvatar());
         if (dto.getTrasfondo() != null) existente.setTrasfondo(dto.getTrasfondo());
         if (dto.getRaza() != null) existente.setRaza(dto.getRaza());
         if (dto.getClase() != null) existente.setClase(dto.getClase());
+        
+        if (avatarFile != null && !avatarFile.isEmpty()) {
+
+            validarDimensiones(avatarFile);
+            validarTipoImagen(avatarFile);
+
+            try {
+                Path uploadPath = Paths.get(
+                        System.getProperty("user.dir"),
+                        "uploads",
+                        "personajes"
+                );
+
+                if (!Files.exists(uploadPath)) {
+                    Files.createDirectories(uploadPath);
+                }
+
+                String filename = UUID.randomUUID() + "_" + avatarFile.getOriginalFilename();
+
+                Path destination = uploadPath.resolve(filename);
+
+                avatarFile.transferTo(destination.toFile());
+
+                String avatarUrl = "/uploads/personajes/" + filename;
+
+                existente.setAvatar(avatarUrl);
+
+            } catch (Exception e) {
+                throw new RuntimeException("Error al subir el avatar", e);
+            }
+        }
 
         // Siempre actualizamos la fecha de modificación
         existente.setFechaModificacion(new Date());
@@ -142,5 +224,49 @@ public class PerfilPersonajeServiceImpl implements IPerfilPersonajeService {
     	perfilPersonajeRepository.deleteByIdDirect(idPersonaje);
         System.out.println("Personaje eliminado con ID: " + idPersonaje);
     }
+    
+  //metodo para validad dimensiones para el avatar
+    private void validarDimensiones(MultipartFile file) {
 
+        try {
+            BufferedImage image = ImageIO.read(file.getInputStream());
+
+            if (image == null) {
+                throw new IllegalArgumentException("El archivo no es una imagen válida");
+            }
+
+            int width = image.getWidth();
+            int height = image.getHeight();
+
+            if (width > 400 || height > 400) {
+                throw new InvalidImageException(
+                	    "avatarFile",
+                	    "El avatar no puede superar 400x400 píxeles"
+                	);
+            }
+
+        } catch (IOException e) {
+            throw new RuntimeException("Error al leer la imagen", e);
+        }
+    }
+    
+    private void validarTipoImagen(MultipartFile file) {
+
+        String contentType = file.getContentType();
+
+        if (contentType == null) {
+            throw new IllegalArgumentException("No se puede determinar el tipo de archivo");
+        }
+
+        boolean valido = contentType.equals("image/jpeg")
+                      || contentType.equals("image/png")
+                      || contentType.equals("image/webp");
+
+        if (!valido) {
+            throw new InvalidImageTypeException(
+            	    "avatarFile",
+            	    "Formato no permitido. Solo JPG, PNG y WEBP"
+            	);
+        }
+    }
 }

@@ -2,6 +2,7 @@ package com.playrole.controller;
 
 import java.util.List;
 
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -9,7 +10,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.playrole.dto.PerfilPersonajeAdminDTO;
 import com.playrole.dto.PerfilPersonajeDTO;
@@ -41,14 +44,21 @@ public class PerfilPersonajeController {
         return personajeService.obtenerPersonaje(id);
     }
 
-    @PostMapping
-    public PerfilPersonajeDTO crearPersonaje(@RequestBody PerfilPersonajeDTO dto) {
-        return personajeService.guardarPersonaje(dto);
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public PerfilPersonajeDTO crearPersonaje(
+            @RequestPart("personaje") PerfilPersonajeDTO dto,
+            @RequestPart(value = "avatarFile", required = false) MultipartFile avatarFile) {
+
+        return personajeService.guardarPersonaje(dto, avatarFile);
     }
 
-    @PutMapping("/{id}")
-    public PerfilPersonajeDTO actualizarPersonaje(@PathVariable Integer id, @RequestBody PerfilPersonajeDTO dto) {
-        return personajeService.modificarPersonaje(id, dto);
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public PerfilPersonajeDTO actualizarPersonaje(
+            @PathVariable Integer id,
+            @RequestPart("personaje") PerfilPersonajeDTO dto,
+            @RequestPart(value = "avatarFile", required = false) MultipartFile avatarFile) {
+
+        return personajeService.modificarPersonaje(id, dto, avatarFile);
     }
     
     @PutMapping("/admin/{id}/estado")

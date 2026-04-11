@@ -2,6 +2,8 @@ package com.playrole.service;
 
 import java.util.List;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import com.playrole.dto.PerfilPersonajeAdminDTO;
 import com.playrole.dto.PerfilPersonajeDTO;
 
@@ -13,9 +15,9 @@ public interface IPerfilPersonajeService {
     
     List<PerfilPersonajeDTO> listarPersonajesPorUsuario(Integer userId);
 
-    PerfilPersonajeDTO guardarPersonaje(PerfilPersonajeDTO personajeDTO);
+    PerfilPersonajeDTO guardarPersonaje(PerfilPersonajeDTO personajeDTO, MultipartFile avatarFile);
 
-    PerfilPersonajeDTO modificarPersonaje(Integer id, PerfilPersonajeDTO personajeDTO);
+    PerfilPersonajeDTO modificarPersonaje(Integer id, PerfilPersonajeDTO personajeDTO, MultipartFile avatarFile);
 
     void eliminarPersonaje(Integer id);
 
