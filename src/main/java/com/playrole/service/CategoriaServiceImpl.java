@@ -31,6 +31,11 @@ public class CategoriaServiceImpl implements ICategoriaService {
                 .map(CategoriaDTO::fromEntity)
                 .orElse(null);
     }
+    
+    @Override
+    public Optional<Categoria> obtenerEntidadPorId(Integer id) {
+        return categoriaRepository.findById(id);
+    }
 
     @Override
     public CategoriaDTO guardar(CategoriaDTO categoriaDTO) {

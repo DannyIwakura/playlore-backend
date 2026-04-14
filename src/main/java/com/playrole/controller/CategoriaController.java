@@ -49,6 +49,9 @@ public class CategoriaController {
 
     @PutMapping("/{id}")
     public CategoriaDTO actualizarCategoria(@PathVariable Integer id, @RequestBody CategoriaDTO categoriaDTO) {
+        if (categoriaService.obtenerPorId(id) == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Categoría no encontrada");
+        }
         categoriaDTO.setIdCategoria(id);
         return categoriaService.guardar(categoriaDTO);
     }

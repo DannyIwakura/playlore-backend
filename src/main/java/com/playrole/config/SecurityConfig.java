@@ -37,6 +37,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/usuarios/login").permitAll()
                 // endpoints protegidos por rol
                 .requestMatchers("/categorias/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/categorias/**").authenticated()
                 .requestMatchers("/usuarios/**").hasRole("ADMIN")
                 
                 //permitir la ruta de imagenes staticas

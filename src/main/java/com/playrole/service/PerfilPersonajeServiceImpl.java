@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -73,6 +74,11 @@ public class PerfilPersonajeServiceImpl implements IPerfilPersonajeService {
         PerfilPersonaje personaje = perfilPersonajeRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Personaje no encontrado"));
         return PerfilPersonajeDTO.fromEntity(personaje);
+    }
+    
+    @Override
+    public Optional<PerfilPersonaje> obtenerEntidadPorId(Integer id) {
+        return perfilPersonajeRepository.findById(id);
     }
 
     @Override

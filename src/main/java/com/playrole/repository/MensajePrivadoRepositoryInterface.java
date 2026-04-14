@@ -1,57 +1,68 @@
 package com.playrole.repository;
 
 import java.util.List;
-
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-
-import com.playrole.enums.EstadoMensaje;
 import com.playrole.model.MensajePrivado;
-
 import jakarta.transaction.Transactional;
 
 public interface MensajePrivadoRepositoryInterface extends JpaRepository<MensajePrivado, Integer> {
-	//mensajes enviados por un usuario que no estén "eliminados" para el emisor
-    @Query("SELECT m FROM MensajePrivado m WHERE m.emisorId.userId = :userId AND m.estadoEmisor <> com.playrole.enums.EstadoMensaje.EN_PAPELERA ORDER BY m.fechaEnvio DESC")
+
+    // Bandeja de salida
+    @Query("SELECT m FROM MensajePrivado m WHERE m.emisorId.userId = :userId AND m.visibleEmisor = true AND m.archivadoEmisor = false ORDER BY m.fechaEnvio DESC")
     List<MensajePrivado> findMensajesEnviados(@Param("userId") Integer userId);
 
-    //mensajes recibidos por un usuario que no estén "eliminados" para el receptor
-    @Query("SELECT m FROM MensajePrivado m WHERE m.receptorId.userId = :userId AND m.estadoReceptor <> com.playrole.enums.EstadoMensaje.EN_PAPELERA ORDER BY m.fechaEnvio DESC")
+    // Bandeja de entrada
+    @Query("SELECT m FROM MensajePrivado m WHERE m.receptorId.userId = :userId AND m.visibleReceptor = true AND m.archivadoReceptor = false ORDER BY m.fechaEnvio DESC")
     List<MensajePrivado> findMensajesRecibidos(@Param("userId") Integer userId);
 
-    //mensajes no leídos por un usuario (receptor)
-    @Query("SELECT m FROM MensajePrivado m WHERE m.receptorId.userId = :userId AND m.estadoReceptor = com.playrole.enums.EstadoMensaje.NO_LEIDO ORDER BY m.fechaEnvio DESC")
+    // Mensajes archivados
+    @Query("SELECT m FROM MensajePrivado m WHERE " +
+           "(m.emisorId.userId = :userId AND m.archivadoEmisor = true AND m.visibleEmisor = true) OR " +
+           "(m.receptorId.userId = :userId AND m.archivadoReceptor = true AND m.visibleReceptor = true) " +
+           "ORDER BY m.fechaEnvio DESC")
+    List<MensajePrivado> findArchivados(@Param("userId") Integer userId);
+
+    // Mensajes no leídos
+    @Query("SELECT m FROM MensajePrivado m WHERE m.receptorId.userId = :userId AND m.leido = false AND m.visibleReceptor = true ORDER BY m.fechaEnvio DESC")
     List<MensajePrivado> findNoLeidos(@Param("userId") Integer userId);
 
-    @Query("""
-    		SELECT m FROM MensajePrivado m 
-    		WHERE m.receptorId.userId = :userId
-    		AND m.estadoReceptor IN :estados
-    		AND m.estadoReceptor <> com.playrole.enums.EstadoMensaje.EN_PAPELERA
-    		ORDER BY m.fechaEnvio DESC
-    		""")
-    		List<MensajePrivado> filtrarPorEstadoRecibidos(
-    		        @Param("userId") Integer userId,
-    		        @Param("estados") List<EstadoMensaje> estados);
-    
-    //contar mensajes no leídos
-    @Query("SELECT COUNT(m) FROM MensajePrivado m WHERE m.receptorId.userId = :userId AND m.estadoReceptor = com.playrole.enums.EstadoMensaje.NO_LEIDO")
+    // Contar no leídos
+    @Query("SELECT COUNT(m) FROM MensajePrivado m WHERE m.receptorId.userId = :userId AND m.leido = false AND m.visibleReceptor = true")
     Long contarNoLeidos(@Param("userId") Integer userId);
 
-    //marcar como leído para un receptor
+    // Marcar como leído (ESTA ES LA QUE DABA EL ERROR)
     @Modifying
     @Transactional
-    @Query("UPDATE MensajePrivado m SET m.estadoReceptor = com.playrole.enums.EstadoMensaje.LEIDO WHERE m.idMensaje = :id AND m.receptorId.userId = :userId")
+    @Query("UPDATE MensajePrivado m SET m.leido = true WHERE m.idMensaje = :id AND m.receptorId.userId = :userId")
     void marcarComoLeido(@Param("id") Integer id, @Param("userId") Integer userId);
 
-    //eliminar mensaje para un usuario (pone EN_PAPELERA en su estado)
+    // Archivar
     @Modifying
     @Transactional
-    @Query("UPDATE MensajePrivado m SET " +
-           "m.estadoEmisor = CASE WHEN m.emisorId.userId = :userId THEN com.playrole.enums.EstadoMensaje.EN_PAPELERA ELSE m.estadoEmisor END, " +
-           "m.estadoReceptor = CASE WHEN m.receptorId.userId = :userId THEN com.playrole.enums.EstadoMensaje.EN_PAPELERA ELSE m.estadoReceptor END " +
-           "WHERE m.idMensaje = :id")
-    void eliminarParaUsuario(@Param("id") Integer id, @Param("userId") Integer userId);
+    @Query("""
+           UPDATE MensajePrivado m SET 
+           m.archivadoEmisor = CASE WHEN m.emisorId.userId = :userId THEN true ELSE m.archivadoEmisor END,
+           m.archivadoReceptor = CASE WHEN m.receptorId.userId = :userId THEN true ELSE m.archivadoReceptor END
+           WHERE m.idMensaje = :id
+           """)
+    void archivarParaUsuario(@Param("id") Integer id, @Param("userId") Integer userId);
+
+    // Eliminar (Ocultar)
+    @Modifying
+    @Transactional
+    @Query("""
+           UPDATE MensajePrivado m SET 
+           m.visibleEmisor = CASE WHEN m.emisorId.userId = :userId THEN false ELSE m.visibleEmisor END,
+           m.visibleReceptor = CASE WHEN m.receptorId.userId = :userId THEN false ELSE m.visibleReceptor END
+           WHERE m.idMensaje = :id
+           """)
+    void ocultarParaUsuario(@Param("id") Integer id, @Param("userId") Integer userId);
+    
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM MensajePrivado m WHERE m.visibleEmisor = false AND m.visibleReceptor = false")
+    void eliminarMensajesHuerfanos();
 }

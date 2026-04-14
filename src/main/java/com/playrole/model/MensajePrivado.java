@@ -2,156 +2,99 @@ package com.playrole.model;
 
 import java.io.Serializable;
 import java.util.Date;
-
-import com.playrole.enums.EstadoMensaje;
-
-import jakarta.persistence.Basic;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.NamedQueries;
-import jakarta.persistence.NamedQuery;
-import jakarta.persistence.Table;
-import jakarta.persistence.Temporal;
-import jakarta.persistence.TemporalType;
+import jakarta.persistence.*;
 
 @Entity
-@Table(name = "mensajes_privados")
+@Table(name = "Mensajes_Privados")
 public class MensajePrivado implements Serializable {
 
-	private static final long serialVersionUID = 1L;
-	@Id
+    private static final long serialVersionUID = 1L;
+
+    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Basic(optional = false)
     @Column(name = "id_mensaje")
     private Integer idMensaje;
-	
-	@Column(nullable = false, length = 255)
-	private String titulo;
 
-    @Column(name = "contenido")
+    @Column(nullable = false, length = 255)
+    private String titulo;
+
+    @Lob
+    @Column(name = "contenido", columnDefinition = "LONGTEXT")
     private String contenido;
 
-    @Enumerated(EnumType.ORDINAL)
-    @Column(name = "estado_emisor")
-    private EstadoMensaje estadoEmisor = EstadoMensaje.NO_LEIDO;
+    @Column(name = "fecha_envio", nullable = false)
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date fechaEnvio = new Date();
+    
+    @Column(name = "leido", nullable = false)
+    private boolean leido = false;
 
-    @Enumerated(EnumType.ORDINAL)
-    @Column(name = "estado_receptor")
-    private EstadoMensaje estadoReceptor = EstadoMensaje.NO_LEIDO;
+    @Column(name = "visible_emisor", nullable = false)
+    private boolean visibleEmisor = true;
 
-    @Column(name = "fecha_envio")
-    @Temporal(TemporalType.DATE)
-    private Date fechaEnvio;
+    @Column(name = "visible_receptor", nullable = false)
+    private boolean visibleReceptor = true;
 
-    @JoinColumn(name = "emisor_id", referencedColumnName = "user_id")
+    @Column(name = "archivado_emisor", nullable = false)
+    private boolean archivadoEmisor = false;
+
+    @Column(name = "archivado_receptor", nullable = false)
+    private boolean archivadoReceptor = false;
+
     @ManyToOne(optional = false, fetch = FetchType.EAGER)
+    @JoinColumn(name = "emisor_id", referencedColumnName = "user_id")
     private Usuario emisorId;
 
-    @JoinColumn(name = "receptor_id", referencedColumnName = "user_id")
     @ManyToOne(optional = false, fetch = FetchType.EAGER)
+    @JoinColumn(name = "receptor_id", referencedColumnName = "user_id")
     private Usuario receptorId;
 
-    public MensajePrivado() {
-    }
+    public MensajePrivado() {}
 
-    public MensajePrivado(Integer idMensaje) {
-        this.idMensaje = idMensaje;
-    }
+    public Integer getIdMensaje() { return idMensaje; }
+    public void setIdMensaje(Integer idMensaje) { this.idMensaje = idMensaje; }
 
-    public Integer getIdMensaje() {
-        return idMensaje;
-    }
+    public String getTitulo() { return titulo; }
+    public void setTitulo(String titulo) { this.titulo = titulo; }
 
-    public void setIdMensaje(Integer idMensaje) {
-        this.idMensaje = idMensaje;
-    }
+    public String getContenido() { return contenido; }
+    public void setContenido(String contenido) { this.contenido = contenido; }
 
-    public String getContenido() {
-        return contenido;
-    }
+    public Date getFechaEnvio() { return fechaEnvio; }
+    public void setFechaEnvio(Date fechaEnvio) { this.fechaEnvio = fechaEnvio; }
 
-    public void setContenido(String contenido) {
-        this.contenido = contenido;
-    }
-    
-    public String getTitulo() {
-		return titulo;
-	}
+    public boolean isLeido() { return leido; }
+    public void setLeido(boolean leido) { this.leido = leido; }
 
-	public void setTitulo(String titulo) {
-		this.titulo = titulo;
-	}
+    public boolean isVisibleEmisor() { return visibleEmisor; }
+    public void setVisibleEmisor(boolean visibleEmisor) { this.visibleEmisor = visibleEmisor; }
 
-	public EstadoMensaje getEstadoEmisor() {
-		return estadoEmisor;
-	}
+    public boolean isVisibleReceptor() { return visibleReceptor; }
+    public void setVisibleReceptor(boolean visibleReceptor) { this.visibleReceptor = visibleReceptor; }
 
-	public void setEstadoEmisor(EstadoMensaje estadoEmisor) {
-		this.estadoEmisor = estadoEmisor;
-	}
+    public boolean isArchivadoEmisor() { return archivadoEmisor; }
+    public void setArchivadoEmisor(boolean archivadoEmisor) { this.archivadoEmisor = archivadoEmisor; }
 
-	public EstadoMensaje getEstadoReceptor() {
-		return estadoReceptor;
-	}
+    public boolean isArchivadoReceptor() { return archivadoReceptor; }
+    public void setArchivadoReceptor(boolean archivadoReceptor) { this.archivadoReceptor = archivadoReceptor; }
 
-	public void setEstadoReceptor(EstadoMensaje estadoReceptor) {
-		this.estadoReceptor = estadoReceptor;
-	}
+    public Usuario getEmisor() { return emisorId; }
+    public void setEmisor(Usuario emisor) { this.emisorId = emisor; }
 
-    public Date getFechaEnvio() {
-        return fechaEnvio;
-    }
+    public Usuario getReceptor() { return receptorId; }
+    public void setReceptor(Usuario receptor) { this.receptorId = receptor; }
 
-    public void setFechaEnvio(Date fechaEnvio) {
-        this.fechaEnvio = fechaEnvio;
-    }
-
-    public Usuario getEmisorId() {
-        return emisorId;
-    }
-
-    public void setEmisorId(Usuario emisorId) {
-        this.emisorId = emisorId;
-    }
-
-    public Usuario getReceptorId() {
-        return receptorId;
-    }
-
-    public void setReceptorId(Usuario receptorId) {
-        this.receptorId = receptorId;
-    }
-    
-	@Override
+    // hashCode, equals y toString (basados en idMensaje)
+    @Override
     public int hashCode() {
-        int hash = 0;
-        hash += (idMensaje != null ? idMensaje.hashCode() : 0);
-        return hash;
+        return (idMensaje != null ? idMensaje.hashCode() : 0);
     }
 
     @Override
     public boolean equals(Object object) {
-        if (!(object instanceof MensajePrivado)) {
-            return false;
-        }
+        if (!(object instanceof MensajePrivado)) return false;
         MensajePrivado other = (MensajePrivado) object;
-        if ((this.idMensaje == null && other.idMensaje != null) || (this.idMensaje != null && !this.idMensaje.equals(other.idMensaje))) {
-            return false;
-        }
-        return true;
+        return !((this.idMensaje == null && other.idMensaje != null) || 
+                 (this.idMensaje != null && !this.idMensaje.equals(other.idMensaje)));
     }
-
-    @Override
-    public String toString() {
-        return "joptionpane.dbplaylore.MensajePrivado[ idMensaje=" + idMensaje + " ]";
-    }
-    
 }

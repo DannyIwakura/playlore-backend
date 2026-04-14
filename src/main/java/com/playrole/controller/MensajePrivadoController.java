@@ -1,29 +1,16 @@
 package com.playrole.controller;
 
 import java.util.List;
-
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
+import org.springframework.web.bind.annotation.*;
 import com.playrole.dto.MensajePrivadoDTO;
-import com.playrole.enums.EstadoMensaje;
-import com.playrole.model.MensajePrivado;
 import com.playrole.service.IMensajePrivadoService;
-
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/mensajes")
 public class MensajePrivadoController {
-	
-	private final IMensajePrivadoService mensajeService;
+    
+    private final IMensajePrivadoService mensajeService;
 
     public MensajePrivadoController(IMensajePrivadoService mensajeService) {
         this.mensajeService = mensajeService;
@@ -33,7 +20,6 @@ public class MensajePrivadoController {
     public MensajePrivadoDTO obtenerMensaje(
             @PathVariable Integer idMensaje,
             @PathVariable Integer idUsuario) {
-
         return mensajeService.obtenerMensaje(idMensaje, idUsuario);
     }
 
@@ -47,6 +33,11 @@ public class MensajePrivadoController {
         return mensajeService.mensajesEnviados(idUsuario);
     }
 
+    @GetMapping("/archivados/{idUsuario}")
+    public List<MensajePrivadoDTO> mensajesArchivados(@PathVariable Integer idUsuario) {
+        return mensajeService.mensajesArchivados(idUsuario);
+    }
+
     @GetMapping("/no-leidos/{idUsuario}")
     public List<MensajePrivadoDTO> mensajesNoLeidos(@PathVariable Integer idUsuario) {
         return mensajeService.mensajesNoLeidos(idUsuario);
@@ -57,21 +48,27 @@ public class MensajePrivadoController {
         return mensajeService.enviarMensaje(mensajeDTO);
     }
 
-    // NUEVO formato REST para filtrar
+    // Filtrado simplificado basado en booleanos
     @GetMapping("/recibidos/{idUsuario}/filtrar")
-    public List<MensajePrivadoDTO> filtrarPorEstado(
+    public List<MensajePrivadoDTO> filtrar(
             @PathVariable Integer idUsuario,
-            @RequestParam List<EstadoMensaje> estados) {
-
-        return mensajeService.filtrarPorEstadoRecibidos(idUsuario, estados);
+            @RequestParam(defaultValue = "false") boolean soloLeidos,
+            @RequestParam(defaultValue = "false") boolean soloArchivados) {
+        return mensajeService.listarPorCriterio(idUsuario, soloLeidos, soloArchivados);
     }
 
     @PutMapping("/marcar-leido/{idMensaje}/{idUsuario}")
     public void marcarComoLeido(
             @PathVariable Integer idMensaje,
             @PathVariable Integer idUsuario) {
-
         mensajeService.marcarComoLeido(idMensaje, idUsuario);
+    }
+
+    @PutMapping("/archivar/{idMensaje}/{idUsuario}")
+    public void archivarMensaje(
+            @PathVariable Integer idMensaje,
+            @PathVariable Integer idUsuario) {
+        mensajeService.archivarMensaje(idMensaje, idUsuario);
     }
 
     @GetMapping("/recibidos/{idUsuario}/count-no-leidos")
@@ -83,7 +80,6 @@ public class MensajePrivadoController {
     public void eliminarMensaje(
             @PathVariable Integer idMensaje,
             @PathVariable Integer idUsuario) {
-
         mensajeService.eliminarMensaje(idMensaje, idUsuario);
     }
 }
