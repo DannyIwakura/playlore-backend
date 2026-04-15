@@ -27,21 +27,14 @@ public class SolicitudAmistadServiceImpl implements ISolicitudAmistadService {
 	@Override
 	public SolicitudAmistadDTO enviarSolicitud(Integer emisorId, Integer receptorId) {
 		
-		//vuscamos una solicitud que esté repetida o no
-		Optional<SolicitudAmistad> existente =
-		        solicitudAmistadRepository
-		        .findByEmisorIdUserIdAndReceptorIdUserIdOrEmisorIdUserIdAndReceptorIdUserId(
-		                emisorId, receptorId,
-		                receptorId, emisorId);
-		
 		//comprobamos si se está enviado a si mismo
 	    if (emisorId.equals(receptorId)) {
 	        throw new RuntimeException("No puedes enviarte una solicitud a ti mismo");
 	    }
 		
-		//si lo esta lo indicamos
-	    if (existente.isPresent()) {
-	        throw new RuntimeException("Ya existe una solicitud entre estos usuarios");
+		//buscamos una solicitud que esté repetida o no
+	    if (solicitudAmistadRepository.buscarSolicitudEntreUsuarios(emisorId, receptorId).isPresent()) {
+	        throw new RuntimeException("Ya existe una solicitud o amistad");
 	    }
 
 	    //recuperamos el usuario emidor
@@ -120,12 +113,9 @@ public class SolicitudAmistadServiceImpl implements ISolicitudAmistadService {
 
 	@Override
 	public boolean existeSolicitud(Integer emisorId, Integer receptorId) {
-		Optional<SolicitudAmistad> solicitud =
-				solicitudAmistadRepository.findByEmisorIdUserIdAndReceptorIdUserIdOrEmisorIdUserIdAndReceptorIdUserId(
-                        emisorId, receptorId,
-                        receptorId, emisorId);
-
-        return solicitud.isPresent();
+	    return solicitudAmistadRepository
+	           .buscarSolicitudEntreUsuarios(emisorId, receptorId)
+	           .isPresent();
 	}
 	
 	@Override

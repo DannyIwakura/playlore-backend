@@ -10,6 +10,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.Optional;
 
 import javax.imageio.ImageIO;
 
@@ -63,6 +64,12 @@ public class UsuarioServiceImpl implements IUsuarioService {
                 );
         return UsuarioDTO.fromEntity(usuario);
     }
+    
+    public Optional<UsuarioDTO> buscarPorNombre(String nombre) {
+        return usuarioRepositorio.findByNombre(nombre)
+            .map(UsuarioDTO::fromEntity);
+    }
+    
 
     @Override
     public UsuarioDTO guardarUsuario(@Valid UsuarioCrearDTO usuarioCrearDTO, MultipartFile avatarFile) {

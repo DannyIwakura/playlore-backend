@@ -20,9 +20,13 @@ public interface SolicitudAmistadRespositoryInterface extends JpaRepository<Soli
 	List<SolicitudAmistad> findByReceptorIdUserId(Integer userId);
 	Optional<SolicitudAmistad> findByEmisorIdUserIdAndReceptorIdUserId(Integer emisorId, Integer receptorId);
 	//metodo para comprobar la duplicidad de peticion en ambas direcciones
-	Optional<SolicitudAmistad> findByEmisorIdUserIdAndReceptorIdUserIdOrEmisorIdUserIdAndReceptorIdUserId(
-			Integer emisor1, Integer receptor1,
-			Integer emisor2, Integer receptor2);
+	@Query("SELECT s FROM SolicitudAmistad s WHERE " +
+		       "(s.emisorId.userId = :id1 AND s.receptorId.userId = :id2) OR " +
+		       "(s.emisorId.userId = :id2 AND s.receptorId.userId = :id1)")
+		Optional<SolicitudAmistad> buscarSolicitudEntreUsuarios(
+		    @Param("id1") Integer id1, 
+		    @Param("id2") Integer id2
+		);
 	List<SolicitudAmistad> findByReceptorIdUserIdAndEstado(Integer userId, EstadoSolicitud estado);
 	List<SolicitudAmistad> findByEmisorIdUserIdAndEstado(Integer userId, EstadoSolicitud estado);
 	//recuperar solicitudas aceptadas

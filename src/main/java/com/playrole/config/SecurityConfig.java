@@ -46,7 +46,7 @@ public class SecurityConfig {
                 // todo lo demás requiere autenticación
                 .anyRequest().authenticated()
             )
-            // Añade el filtro JWT después de los endpoints públicos
+            
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

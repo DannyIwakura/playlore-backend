@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -59,6 +60,13 @@ public class UsuarioController {
     @GetMapping("/{id}")
     public UsuarioDTO obtenerPorId(@PathVariable Integer id) {
         return usuarioService.obtenerUsuario(id);
+    }
+
+    @GetMapping("/buscar")
+    public ResponseEntity<UsuarioDTO> buscarPorNombre(@RequestParam String nombre) {
+        return usuarioService.buscarPorNombre(nombre)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

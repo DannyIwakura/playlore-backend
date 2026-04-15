@@ -17,6 +17,9 @@ public class MensajePrivadoDTO {
     
     private String emisorNombre;
     private String receptorNombre;
+    
+    private String emisorAvatar;
+    private String receptorAvatar;
 
     @NotNull(message = "El contenido no puede estar vacío")
     @Size(min = 1, max = 2000, message = "El contenido debe tener entre 1 y 2000 caracteres")
@@ -46,8 +49,14 @@ public class MensajePrivadoDTO {
     
     public String getReceptorNombre() { return receptorNombre; }
     public void setReceptorNombre(String receptorNombre) { this.receptorNombre = receptorNombre; }
-
-    public String getContenido() { return contenido; }
+    
+    public String getEmisorAvatar() { return emisorAvatar; }
+	public void setEmisorAvatar(String emisorAvatar) { this.emisorAvatar = emisorAvatar; }
+	
+	public String getReceptorAvatar() { return receptorAvatar; }
+	public void setReceptorAvatar(String receptorAvatar) { this.receptorAvatar = receptorAvatar; }
+	
+	public String getContenido() { return contenido; }
     public void setContenido(String contenido) { this.contenido = contenido; }
 
     public String getTitulo() { return titulo; }
@@ -75,6 +84,8 @@ public class MensajePrivadoDTO {
         dto.setReceptorId(mensaje.getReceptor().getUserId());
         dto.setEmisorNombre(mensaje.getEmisor().getNombre());
         dto.setReceptorNombre(mensaje.getReceptor().getNombre());
+        dto.setEmisorAvatar(mensaje.getEmisor().getAvatar());
+        dto.setReceptorAvatar(mensaje.getReceptor().getAvatar());
         dto.setContenido(mensaje.getContenido());
         dto.setTitulo(mensaje.getTitulo());
         dto.setFechaEnvio(mensaje.getFechaEnvio());

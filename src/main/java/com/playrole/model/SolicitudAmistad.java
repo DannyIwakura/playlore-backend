@@ -32,7 +32,7 @@ public class SolicitudAmistad implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Basic(optional = false)
-    @Column(name = "id")
+    @Column(name = "id_solicitud")
     private Integer id;
     @Enumerated(EnumType.STRING)
     @Column(name = "estado")
