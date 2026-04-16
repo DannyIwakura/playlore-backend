@@ -11,12 +11,14 @@ import jakarta.transaction.Transactional;
 public interface MensajePrivadoRepositoryInterface extends JpaRepository<MensajePrivado, Integer> {
 
     // Bandeja de salida
-    @Query("SELECT m FROM MensajePrivado m WHERE m.emisorId.userId = :userId AND m.visibleEmisor = true AND m.archivadoEmisor = false ORDER BY m.fechaEnvio DESC")
-    List<MensajePrivado> findMensajesEnviados(@Param("userId") Integer userId);
+	@Query("SELECT m FROM MensajePrivado m WHERE " +
+		       "m.emisorId.userId = :idUsuario AND m.visibleEmisor = true AND m.eliminadoEmisor = false")
+	List<MensajePrivado> findMensajesEnviados(@Param("idUsuario") Integer idUsuario);
 
     // Bandeja de entrada
-    @Query("SELECT m FROM MensajePrivado m WHERE m.receptorId.userId = :userId AND m.visibleReceptor = true AND m.archivadoReceptor = false ORDER BY m.fechaEnvio DESC")
-    List<MensajePrivado> findMensajesRecibidos(@Param("userId") Integer userId);
+    @Query("SELECT m FROM MensajePrivado m WHERE " +
+    	       "m.receptorId.userId = :idUsuario AND m.visibleReceptor = true AND m.eliminadoReceptor = false")
+	List<MensajePrivado> findMensajesRecibidos(@Param("idUsuario") Integer idUsuario);
 
     // Mensajes archivados
     @Query("SELECT m FROM MensajePrivado m WHERE " +
@@ -49,7 +51,13 @@ public interface MensajePrivadoRepositoryInterface extends JpaRepository<Mensaje
            WHERE m.idMensaje = :id
            """)
     void archivarParaUsuario(@Param("id") Integer id, @Param("userId") Integer userId);
-
+    
+    // Mensajes donde el usuario los eliminó (visible = false) pero existen en BD
+    @Query("SELECT m FROM MensajePrivado m WHERE " +
+    	       "(m.emisorId.userId = :idUsuario AND m.visibleEmisor = false AND m.eliminadoEmisor = false) OR " +
+    	       "(m.receptorId.userId = :idUsuario AND m.visibleReceptor = false AND m.eliminadoReceptor = false)")
+    	List<MensajePrivado> findPapelera(@Param("idUsuario") Integer idUsuario);
+    
     // Eliminar (Ocultar)
     @Modifying
     @Transactional

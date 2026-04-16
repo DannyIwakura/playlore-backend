@@ -38,6 +38,8 @@ public class SecurityConfig {
                 // endpoints protegidos por rol
                 .requestMatchers("/categorias/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/categorias/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/usuarios/buscar").authenticated()
+                .requestMatchers(HttpMethod.GET, "/usuarios/{id}").authenticated()
                 .requestMatchers("/usuarios/**").hasRole("ADMIN")
                 
                 //permitir la ruta de imagenes staticas

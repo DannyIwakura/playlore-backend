@@ -121,6 +121,35 @@ public class MensajePrivadoServiceImpl implements IMensajePrivadoService {
     public void eliminarMensaje(Integer idMensaje, Integer idUsuario) {
         mensajePrivadoRepository.ocultarParaUsuario(idMensaje, idUsuario);
     }
+    
+    @Override
+    @Transactional
+    public void eliminarDefinitivamente(Integer idMensaje, Integer idUsuario) {
+        MensajePrivado mensaje = mensajePrivadoRepository.findById(idMensaje)
+                .orElseThrow(() -> new ResourceNotFoundException("Mensaje no encontrado"));
+
+        boolean esEmisor = mensaje.getEmisor().getUserId().equals(idUsuario);
+
+        if (esEmisor) {
+            mensaje.setEliminadoEmisor(true);
+        } else {
+            mensaje.setEliminadoReceptor(true);
+        }
+        mensajePrivadoRepository.save(mensaje);
+
+        // Si ambos lo han eliminado → borrar de BD
+        if (mensaje.isEliminadoEmisor() && mensaje.isEliminadoReceptor()) {
+            mensajePrivadoRepository.delete(mensaje);
+        }
+    }
+    
+    @Override
+    public List<MensajePrivadoDTO> mensajesPapelera(Integer idUsuario) {
+        return mensajePrivadoRepository.findPapelera(idUsuario)
+                .stream()
+                .map(m -> MensajePrivadoDTO.fromEntity(m, idUsuario))
+                .collect(Collectors.toList());
+    }
 
     @Override
     public Long contarNoLeidos(Integer idUsuario) {

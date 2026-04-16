@@ -32,7 +32,13 @@ public interface IMensajePrivadoService {
 
     // Mueve el mensaje a archivado
     void archivarMensaje(Integer idMensaje, Integer idUsuario);
+    
+    // Mueve el mensaje a la papelera
+    List<MensajePrivadoDTO> mensajesPapelera(Integer idUsuario);
 
     // Cambia el flag de visibilidad a false para el usuario (Borrado lógico)
     void eliminarMensaje(Integer idMensaje, Integer idUsuario);
+    
+    //Eliminar si los el emisor y receptor los ha borrado de su papelera
+    void eliminarDefinitivamente(Integer idMensaje, Integer idUsuario);
 }

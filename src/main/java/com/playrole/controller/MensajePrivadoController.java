@@ -75,6 +75,18 @@ public class MensajePrivadoController {
     public Long contarNoLeidos(@PathVariable Integer idUsuario) {
         return mensajeService.contarNoLeidos(idUsuario);
     }
+    
+    @GetMapping("/papelera/{idUsuario}")
+    public List<MensajePrivadoDTO> mensajesPapelera(@PathVariable Integer idUsuario) {
+        return mensajeService.mensajesPapelera(idUsuario);
+    }
+    
+    @DeleteMapping("/definitivo/{idMensaje}/{idUsuario}")
+    public void eliminarDefinitivamente(
+            @PathVariable Integer idMensaje,
+            @PathVariable Integer idUsuario) {
+        mensajeService.eliminarDefinitivamente(idMensaje, idUsuario);
+    }
 
     @DeleteMapping("/{idMensaje}/{idUsuario}")
     public void eliminarMensaje(

@@ -40,6 +40,12 @@ public class MensajePrivado implements Serializable {
 
     @Column(name = "archivado_receptor", nullable = false)
     private boolean archivadoReceptor = false;
+    
+    @Column(name = "eliminado_emisor", nullable = false)
+    private boolean eliminadoEmisor = false;
+
+    @Column(name = "eliminado_receptor", nullable = false)
+    private boolean eliminadoReceptor = false;
 
     @ManyToOne(optional = false, fetch = FetchType.EAGER)
     @JoinColumn(name = "emisor_id", referencedColumnName = "user_id")
@@ -77,7 +83,14 @@ public class MensajePrivado implements Serializable {
 
     public boolean isArchivadoReceptor() { return archivadoReceptor; }
     public void setArchivadoReceptor(boolean archivadoReceptor) { this.archivadoReceptor = archivadoReceptor; }
+    
+    public boolean isEliminadoEmisor() { return eliminadoEmisor; }
+    public void setEliminadoEmisor(boolean eliminadoEmisor) { this.eliminadoEmisor = eliminadoEmisor; }
+    
+    public boolean isEliminadoReceptor() { return eliminadoReceptor; }
+    public void setEliminadoReceptor(boolean eliminadoReceptor) { this.eliminadoReceptor = eliminadoReceptor; }
 
+    
     public Usuario getEmisor() { return emisorId; }
     public void setEmisor(Usuario emisor) { this.emisorId = emisor; }
 
