@@ -18,15 +18,14 @@ public interface SolicitudAmistadRespositoryInterface extends JpaRepository<Soli
 
 	List<SolicitudAmistad> findByEmisorIdUserId(Integer userId);
 	List<SolicitudAmistad> findByReceptorIdUserId(Integer userId);
-	Optional<SolicitudAmistad> findByEmisorIdUserIdAndReceptorIdUserId(Integer emisorId, Integer receptorId);
 	//metodo para comprobar la duplicidad de peticion en ambas direcciones
 	@Query("SELECT s FROM SolicitudAmistad s WHERE " +
 		       "(s.emisorId.userId = :id1 AND s.receptorId.userId = :id2) OR " +
 		       "(s.emisorId.userId = :id2 AND s.receptorId.userId = :id1)")
-		Optional<SolicitudAmistad> buscarSolicitudEntreUsuarios(
-		    @Param("id1") Integer id1, 
-		    @Param("id2") Integer id2
-		);
+	Optional<SolicitudAmistad> buscarSolicitudEntreUsuarios(
+	    @Param("id1") Integer id1, 
+	    @Param("id2") Integer id2
+	);
 	List<SolicitudAmistad> findByReceptorIdUserIdAndEstado(Integer userId, EstadoSolicitud estado);
 	List<SolicitudAmistad> findByEmisorIdUserIdAndEstado(Integer userId, EstadoSolicitud estado);
 	//recuperar solicitudas aceptadas
@@ -35,11 +34,16 @@ public interface SolicitudAmistadRespositoryInterface extends JpaRepository<Soli
 	        EstadoSolicitud estado2, Integer userId2);
 	
 	//metodo con quuery para evitar que JPA haga consultas select al eliminar
+	@Transactional
+    @Modifying
+    @Query("DELETE FROM SolicitudAmistad s " +
+           "WHERE (s.emisorId.userId = :userId1 AND s.receptorId.userId = :userId2) " +
+           "   OR (s.emisorId.userId = :userId2 AND s.receptorId.userId = :userId1)")
+    void eliminarAmistadEntreUsuarios(@Param("userId1") Integer userId1,
+                                      @Param("userId2") Integer userId2);
+	 //cancelar
 	 @Transactional
-	    @Modifying
-	    @Query("DELETE FROM SolicitudAmistad s " +
-	           "WHERE (s.emisorId.userId = :userId1 AND s.receptorId.userId = :userId2) " +
-	           "   OR (s.emisorId.userId = :userId2 AND s.receptorId.userId = :userId1)")
-	    void eliminarAmistadEntreUsuarios(@Param("userId1") Integer userId1,
-	                                      @Param("userId2") Integer userId2);
+	 @Modifying
+	 @Query("DELETE FROM SolicitudAmistad s WHERE s.id = :id")
+	 void eliminarPorId(@Param("id") Integer id);
 }

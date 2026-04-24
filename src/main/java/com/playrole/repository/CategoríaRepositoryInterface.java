@@ -11,6 +11,4 @@ import com.playrole.model.Categoria;
 @Repository
 public interface CategoríaRepositoryInterface extends JpaRepository<Categoria, Integer> {
     Optional<Categoria> findByNombre(String nombre);
-    List<Categoria> findByNombreContainingIgnoreCase(String texto);
-    List<Categoria> findByPersonajeCategoriaListIsNotEmpty();
 }

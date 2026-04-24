@@ -47,11 +47,6 @@ public class SolicitudAmistadController {
         return amistadService.aceptarSolicitud(idSolicitud);
     }
 
-    @PutMapping("/rechazar/{idSolicitud}")
-    public SolicitudAmistadDTO rechazarSolicitud(@PathVariable Integer idSolicitud) {
-        return amistadService.rechazarSolicitud(idSolicitud);
-    }
-
     @GetMapping("/comprobar-existencia/{emisorId}/{receptorId}")
     public boolean solicitudExiste(@PathVariable Integer emisorId, @PathVariable Integer receptorId) {
         return amistadService.existeSolicitud(emisorId, receptorId);

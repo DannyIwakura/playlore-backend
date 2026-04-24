@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.playrole.dto.LoginDTO;
 import com.playrole.dto.UsuarioCrearDTO;
 import com.playrole.dto.UsuarioDTO;
 import com.playrole.enums.RolUsuario;
@@ -78,7 +79,7 @@ public class UsuarioServiceImpl implements IUsuarioService {
         if (existe) {
             throw new IllegalArgumentException("Ya existe un usuario con este email");
         }
-        test();
+        
         //convertir DTO a entidad
         Usuario usuario = usuarioCrearDTO.toEntity();
         
@@ -144,16 +145,55 @@ public class UsuarioServiceImpl implements IUsuarioService {
     }
 
     @Override
-    public UsuarioDTO modificarUsuario(Integer id, UsuarioDTO usuarioDTO) {
+    public UsuarioDTO modificarUsuario(Integer id, UsuarioDTO usuarioDTO, MultipartFile avatarFile) {
         Usuario usuarioExistente = usuarioRepositorio.findById(id)
                 .orElseThrow(() -> 
                     new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado")
                 );
+        
+        // Comprobar si el nuevo email ya está en uso por otro usuario
+        if (!usuarioExistente.getEmail().equals(usuarioDTO.getEmail()) 
+                && usuarioRepositorio.existsByEmail(usuarioDTO.getEmail())) {
+            throw new IllegalArgumentException("Ya existe un usuario con este email");
+        }
 
         // Actualizamos solo campos permitidos
         usuarioExistente.setNombre(usuarioDTO.getNombre());
         usuarioExistente.setEmail(usuarioDTO.getEmail());
         usuarioExistente.setRol(usuarioDTO.getRol());
+
+        // Actualizamos el avatar si se proporciona uno nuevo
+        if (avatarFile != null && !avatarFile.isEmpty()) {
+
+            validarDimensiones(avatarFile);
+            validarTipoImagen(avatarFile);
+
+            try {
+                Path uploadPath = Paths.get(
+                        System.getProperty("user.dir"),
+                        "uploads",
+                        "avatars"
+                );
+
+                if (!Files.exists(uploadPath)) {
+                    Files.createDirectories(uploadPath);
+                }
+
+                String filename = UUID.randomUUID() + "_" +
+                        avatarFile.getOriginalFilename();
+
+                Path destination = uploadPath.resolve(filename);
+                avatarFile.transferTo(destination.toFile());
+
+                String avatarUrl = "/uploads/avatars/" + filename;
+                usuarioExistente.setAvatar(avatarUrl);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new RuntimeException("Error al subir el avatar", e);
+            }
+        }
+        // Si no se proporciona avatar nuevo, se conserva el que ya tiene
 
         Usuario usuarioActualizado = usuarioRepositorio.save(usuarioExistente);
         return UsuarioDTO.fromEntity(usuarioActualizado);
@@ -212,8 +252,12 @@ public class UsuarioServiceImpl implements IUsuarioService {
         }
     }
     
-    @PostConstruct
-    public void test() {
-        System.out.println("UPLOAD DIR = " + uploadsDir);
+    public void actualizarUltimaConexion(LoginDTO loginDTO) {
+    	// Actualizamos la ultima conexion
+    	usuarioRepositorio.findByNombre(loginDTO.getNombre())
+        .ifPresent(usuario -> {
+            usuario.setUltimaConexion(new Date());
+            usuarioRepositorio.save(usuario);
+        });
     }
 }

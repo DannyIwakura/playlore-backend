@@ -98,20 +98,6 @@ public class SolicitudAmistadServiceImpl implements ISolicitudAmistadService {
 	}
 
 	@Override
-	public SolicitudAmistadDTO rechazarSolicitud(Integer idSolicitud) {
-		//recuperamos la solicitud
-		SolicitudAmistad solicitud = solicitudAmistadRepository.findById(idSolicitud)
-	            .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
-		//cambiamos el estado y fecha de respuesta
-	    solicitud.setEstado(EstadoSolicitud.RECHAZADA);
-	    solicitud.setFechaRespuesta(new Date());
-	    //la guardamos modificada
-		    SolicitudAmistad guardada = solicitudAmistadRepository.save(solicitud);
-
-		    return SolicitudAmistadDTO.fromEntity(guardada);
-}
-
-	@Override
 	public boolean existeSolicitud(Integer emisorId, Integer receptorId) {
 	    return solicitudAmistadRepository
 	           .buscarSolicitudEntreUsuarios(emisorId, receptorId)
@@ -133,12 +119,14 @@ public class SolicitudAmistadServiceImpl implements ISolicitudAmistadService {
 	                if (s.getEmisorId().getUserId().equals(userId)) {
 	                    return new AmigoDTO(
 	                        s.getReceptorId().getUserId(),
-	                        s.getReceptorId().getNombre()
+	                        s.getReceptorId().getNombre(),
+	                        s.getReceptorId().getAvatar()
 	                    );
 	                } else {
 	                    return new AmigoDTO(
 	                        s.getEmisorId().getUserId(),
-	                        s.getEmisorId().getNombre()
+	                        s.getEmisorId().getNombre(),
+	                        s.getEmisorId().getAvatar()
 	                    );
 	                }
 	            })
@@ -153,12 +141,10 @@ public class SolicitudAmistadServiceImpl implements ISolicitudAmistadService {
 	
 	@Override
 	public void eliminarSolicitud(Integer idSolicitud) {
-
-	    SolicitudAmistad solicitud = solicitudAmistadRepository
-	            .findById(idSolicitud)
-	            .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
-
-	    solicitudAmistadRepository.delete(solicitud);
+	    if (!solicitudAmistadRepository.existsById(idSolicitud)) {
+	        throw new RuntimeException("Solicitud no encontrada");
+	    }
+	    solicitudAmistadRepository.eliminarPorId(idSolicitud);
 	}
 	
 	@Override

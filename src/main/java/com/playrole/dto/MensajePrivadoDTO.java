@@ -25,6 +25,8 @@ public class MensajePrivadoDTO {
     @Size(min = 1, max = 2000, message = "El contenido debe tener entre 1 y 2000 caracteres")
     private String contenido;
     
+    @NotNull(message = "El contenido no puede estar vacío")
+    @Size(min = 1, max = 100, message = "El contenido debe tener entre 1 y 100 caracteres")
     private String titulo;
 
     private Date fechaEnvio;
@@ -32,7 +34,8 @@ public class MensajePrivadoDTO {
     // Campos simplificados para el Frontend
     private boolean leido;
     private boolean archivado;
-    private boolean esMio; // Útil para saber si el usuario actual es el emisor
+    // Útil para saber si el usuario actual es el emisor
+    private boolean esMio; 
 
     // Getters y Setters
     public Integer getId() { return id; }

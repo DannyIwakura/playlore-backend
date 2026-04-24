@@ -45,7 +45,7 @@ public class MensajePrivadoServiceImpl implements IMensajePrivadoService {
         // Si lo abre el receptor y no está leído, marcarlo
         if (esReceptor && !mensaje.isLeido()) {
             mensajePrivadoRepository.marcarComoLeido(idMensaje, idUsuario);
-            mensaje.setLeido(true); // Actualizamos la instancia para el DTO
+            mensaje.setLeido(true);
         }
 
         return MensajePrivadoDTO.fromEntity(mensaje, idUsuario);

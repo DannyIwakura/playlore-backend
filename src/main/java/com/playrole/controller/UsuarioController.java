@@ -76,9 +76,14 @@ public class UsuarioController {
         return usuarioService.guardarUsuario(usuarioCrearDTO, avatarFile);
     }
 
-    @PutMapping("/{id}")
-    public UsuarioDTO actualizarUsuario(@PathVariable Integer id, @RequestBody UsuarioDTO usuarioDTO) {
-        return usuarioService.modificarUsuario(id, usuarioDTO);
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<UsuarioDTO> modificarUsuario(
+            @PathVariable Integer id,
+            @RequestPart("usuario") UsuarioDTO usuarioDTO,
+            @RequestPart(value = "avatarFile", required = false) MultipartFile avatarFile) {
+
+        UsuarioDTO actualizado = usuarioService.modificarUsuario(id, usuarioDTO, avatarFile);
+        return ResponseEntity.ok(actualizado);
     }
     
     @PostMapping("/login")
@@ -96,6 +101,9 @@ public class UsuarioController {
             
             //generamos el token que contendra toda esa info desponible en el front
             String token = jwtUtils.generarToken(userDetails);
+            
+            //actilizamos la fecha de la ultima conexion
+            usuarioService.actualizarUltimaConexion(loginDTO);
             
             return ResponseEntity.ok(token);
 

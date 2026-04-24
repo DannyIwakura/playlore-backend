@@ -116,10 +116,10 @@ public class PersonajeCategoriaServiceImpl implements IPersonajeCategoriaService
 
     @Override
     public List<PersonajeCategoriaDTO> obtenerPorCategoriaId(Integer idCategoria) {
-        // 1. Buscamos en el repositorio usando el método que ya tienes definido
+        // Buscamos en el repositorio usando el método que ya tienes definido
         List<PersonajeCategoria> entidades = repository.findByIdCategoriaIdCategoria(idCategoria);
         
-        // 2. Convertimos la lista de entidades a una lista de DTOs
+        //Convertimos la lista de entidades a una lista de DTOs
         return entidades.stream()
                 .map(PersonajeCategoriaDTO::fromEntity)
                 .collect(Collectors.toList());

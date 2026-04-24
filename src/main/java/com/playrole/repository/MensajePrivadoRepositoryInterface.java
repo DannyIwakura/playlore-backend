@@ -35,7 +35,7 @@ public interface MensajePrivadoRepositoryInterface extends JpaRepository<Mensaje
     @Query("SELECT COUNT(m) FROM MensajePrivado m WHERE m.receptorId.userId = :userId AND m.leido = false AND m.visibleReceptor = true")
     Long contarNoLeidos(@Param("userId") Integer userId);
 
-    // Marcar como leído (ESTA ES LA QUE DABA EL ERROR)
+    // Marcar como leído
     @Modifying
     @Transactional
     @Query("UPDATE MensajePrivado m SET m.leido = true WHERE m.idMensaje = :id AND m.receptorId.userId = :userId")
@@ -52,13 +52,14 @@ public interface MensajePrivadoRepositoryInterface extends JpaRepository<Mensaje
            """)
     void archivarParaUsuario(@Param("id") Integer id, @Param("userId") Integer userId);
     
-    // Mensajes donde el usuario los eliminó (visible = false) pero existen en BD
+    // Mensajes donde el usuario los eliminó pero existen en BD softdeletes
     @Query("SELECT m FROM MensajePrivado m WHERE " +
     	       "(m.emisorId.userId = :idUsuario AND m.visibleEmisor = false AND m.eliminadoEmisor = false) OR " +
     	       "(m.receptorId.userId = :idUsuario AND m.visibleReceptor = false AND m.eliminadoReceptor = false)")
     	List<MensajePrivado> findPapelera(@Param("idUsuario") Integer idUsuario);
     
-    // Eliminar (Ocultar)
+    // Eliminar (ocultar para el usuario)
+    // Evita que un mensaje se elimine y la otra parte no puede acceder a él
     @Modifying
     @Transactional
     @Query("""
@@ -69,6 +70,7 @@ public interface MensajePrivadoRepositoryInterface extends JpaRepository<Mensaje
            """)
     void ocultarParaUsuario(@Param("id") Integer id, @Param("userId") Integer userId);
     
+    // Cuando dos usuarios eliminan el mensaje, se eliminan definivitavemnte de la bd
     @Modifying
     @Transactional
     @Query("DELETE FROM MensajePrivado m WHERE m.visibleEmisor = false AND m.visibleReceptor = false")

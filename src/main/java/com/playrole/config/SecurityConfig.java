@@ -29,24 +29,30 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
-            .cors(cors -> {}) // activa CORS
+            .cors(cors -> {})
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // endpoints públicos
-                .requestMatchers(HttpMethod.POST, "/usuarios").permitAll()
-                .requestMatchers(HttpMethod.POST, "/usuarios/login").permitAll()
-                // endpoints protegidos por rol
-                .requestMatchers("/categorias/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.GET, "/categorias/**").authenticated()
-                .requestMatchers(HttpMethod.GET, "/usuarios/buscar").authenticated()
-                .requestMatchers(HttpMethod.GET, "/usuarios/{id}").authenticated()
-                .requestMatchers("/usuarios/**").hasRole("ADMIN")
-                
-                //permitir la ruta de imagenes staticas
-                .requestMatchers("/images/**").permitAll()
-                .requestMatchers("/uploads/**").permitAll()
-                // todo lo demás requiere autenticación
-                .anyRequest().authenticated()
+        		// Endpoints públicos
+        	    .requestMatchers(HttpMethod.POST, "/usuarios").permitAll()
+        	    .requestMatchers(HttpMethod.POST, "/usuarios/login").permitAll()
+
+        	    // Recursos estáticos
+        	    .requestMatchers("/images/**").permitAll()
+        	    .requestMatchers("/uploads/**").permitAll()
+
+        	    // Categorías: GET para cualquier autenticado, el resto solo ADMIN
+        	    .requestMatchers(HttpMethod.GET, "/categorias/**").authenticated()
+        	    .requestMatchers("/categorias/**").hasRole("ADMIN")
+
+        	    // Usuarios: GETs específicos para autenticados, el resto solo ADMIN
+        	    .requestMatchers(HttpMethod.GET, "/usuarios/buscar").authenticated()
+        	    .requestMatchers(HttpMethod.GET, "/usuarios/{id}").authenticated()
+        	    .requestMatchers(HttpMethod.GET, "/usuarios/{id}/amigos").authenticated()
+        	    .requestMatchers(HttpMethod.DELETE, "/usuarios/{userId}/amigos/{amigoId}").authenticated() 
+        	    .requestMatchers("/usuarios/**").hasRole("ADMIN")
+
+        	    // Todo lo demás requiere autenticación
+        	    .anyRequest().authenticated()
             )
             
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -54,6 +60,7 @@ public class SecurityConfig {
         return http.build();
     }
 
+    //necesario para encriptar contraseñas
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
