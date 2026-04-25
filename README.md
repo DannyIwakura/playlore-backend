@@ -10,7 +10,7 @@ Este README describe cómo instalar y desplegar el proyecto en un entorno de des
 Antes de ejecutar el proyecto, asegúrate de tener instaladas las siguientes herramientas:
 
 - **Java JDK 24+**
-- **Maven 3.6+**
+  [Descarga el JDK Directamente aquí](https://adoptium.net/es/download?link=https%3A%2F%2Fgithub.com%2Fadoptium%2Ftemurin24-binaries%2Freleases%2Fdownload%2Fjdk-24.0.2%252B12%2FOpenJDK24U-jdk_x64_windows_hotspot_24.0.2_12.msi&vendor=Adoptium)
 - **MySQL 8+**
 - **Git**
 - IDE recomendado: **Eclipse**
