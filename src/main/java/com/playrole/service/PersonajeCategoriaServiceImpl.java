@@ -20,6 +20,7 @@ import com.playrole.repository.PersonajeCategoriaRepositoryInterface;
 import com.playrole.repository.UsuarioRepositoryInterface;
 
 import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 
 @Service
 public class PersonajeCategoriaServiceImpl implements IPersonajeCategoriaService {
@@ -62,7 +63,7 @@ public class PersonajeCategoriaServiceImpl implements IPersonajeCategoriaService
 
     @Override
     @Transactional
-    public PersonajeCategoriaDTO crear(PersonajeCategoriaDTO dto) {
+    public PersonajeCategoriaDTO crear(@Valid PersonajeCategoriaDTO dto) {
         // Obtenemos entidades reales para persistir la relación
         Categoria cat = categoriaService.obtenerEntidadPorId(dto.getIdCategoria())
                 .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
@@ -79,7 +80,7 @@ public class PersonajeCategoriaServiceImpl implements IPersonajeCategoriaService
 
     @Override
     @Transactional
-    public PersonajeCategoriaDTO actualizar(Integer id, PersonajeCategoriaDTO dto) {
+    public PersonajeCategoriaDTO actualizar(Integer id, @Valid PersonajeCategoriaDTO dto) {
         PersonajeCategoria existente = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Relación no encontrada"));
 

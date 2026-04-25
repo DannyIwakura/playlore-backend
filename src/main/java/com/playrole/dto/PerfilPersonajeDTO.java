@@ -15,7 +15,7 @@ import jakarta.validation.constraints.Size;
 public class PerfilPersonajeDTO {
 	private Integer idPersonaje;
 	@NotBlank(message = "El nombre no puede estar vacío")
-    @Size(max = 50, message = "El nombre no puede superar 50 caracteres")
+    @Size(min = 3,  max = 50, message = "El nombre debe de estar entre 3 y 50 caracteres")
     private String nombre;
 	@Positive(message = "La edad debe ser un número positivo")
     private Integer edadPersonaje;

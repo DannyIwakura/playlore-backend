@@ -64,8 +64,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidImageException.class)
     public ResponseEntity<Map<String, String>> handleInvalidImage(InvalidImageException ex) {
 
+    	ex.printStackTrace();
         Map<String, String> error = new HashMap<>();
-        error.put(ex.getField(), ex.getMessage());
+        error.put("message", ex.getMessage());
 
         return ResponseEntity.badRequest().body(error);
     }

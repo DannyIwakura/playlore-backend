@@ -140,7 +140,7 @@ public class UsuarioServiceImpl implements IUsuarioService {
     }
 
     @Override
-    public UsuarioDTO modificarUsuario(Integer id, UsuarioDTO usuarioDTO, MultipartFile avatarFile) {
+    public UsuarioDTO modificarUsuario(Integer id, @Valid UsuarioDTO usuarioDTO, MultipartFile avatarFile) {
         Usuario usuarioExistente = usuarioRepositorio.findById(id)
                 .orElseThrow(() -> 
                     new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado")

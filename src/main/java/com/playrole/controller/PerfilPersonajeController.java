@@ -19,6 +19,8 @@ import com.playrole.dto.PerfilPersonajeDTO;
 import com.playrole.model.PerfilPersonaje;
 import com.playrole.service.IPerfilPersonajeService;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/personajes")
 public class PerfilPersonajeController {
@@ -46,7 +48,7 @@ public class PerfilPersonajeController {
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public PerfilPersonajeDTO crearPersonaje(
-            @RequestPart("personaje") PerfilPersonajeDTO dto,
+            @RequestPart("personaje") @Valid PerfilPersonajeDTO dto,
             @RequestPart(value = "avatarFile", required = false) MultipartFile avatarFile) {
 
         return personajeService.guardarPersonaje(dto, avatarFile);
@@ -55,7 +57,7 @@ public class PerfilPersonajeController {
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public PerfilPersonajeDTO actualizarPersonaje(
             @PathVariable Integer id,
-            @RequestPart("personaje") PerfilPersonajeDTO dto,
+            @RequestPart("personaje") @Valid PerfilPersonajeDTO dto,
             @RequestPart(value = "avatarFile", required = false) MultipartFile avatarFile) {
 
         return personajeService.modificarPersonaje(id, dto, avatarFile);

@@ -31,6 +31,8 @@ import com.playrole.repository.PerfilPersonajeRepositoryInterface;
 import com.playrole.repository.UsuarioRepositoryInterface;
 import com.playrole.utils.HtmlUtils;
 
+import jakarta.validation.Valid;
+
 @Service
 public class PerfilPersonajeServiceImpl implements IPerfilPersonajeService {
 
@@ -85,14 +87,6 @@ public class PerfilPersonajeServiceImpl implements IPerfilPersonajeService {
     public PerfilPersonajeDTO guardarPersonaje(PerfilPersonajeDTO dto, MultipartFile avatarFile) {
         Usuario usuario = usuarioRepository.findById(dto.getUserId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
-        
-        if(dto.getNombre() == null || dto.getNombre().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El nombre es obligatorio");
-        }
-
-        if(dto.getEdadPersonaje() != null && dto.getEdadPersonaje() < 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Edad inválida");
-        }
 
         // Sanitizar el trasfondo para evitar XSS
         if(dto.getTrasfondo() != null) {
