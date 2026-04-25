@@ -120,13 +120,15 @@ public class SolicitudAmistadServiceImpl implements ISolicitudAmistadService {
 	                    return new AmigoDTO(
 	                        s.getReceptorId().getUserId(),
 	                        s.getReceptorId().getNombre(),
-	                        s.getReceptorId().getAvatar()
+	                        s.getReceptorId().getAvatar(),
+	                        s.getReceptorId().getUltimaConexion()
 	                    );
 	                } else {
 	                    return new AmigoDTO(
 	                        s.getEmisorId().getUserId(),
 	                        s.getEmisorId().getNombre(),
-	                        s.getEmisorId().getAvatar()
+	                        s.getEmisorId().getAvatar(),
+	                        s.getEmisorId().getUltimaConexion()
 	                    );
 	                }
 	            })

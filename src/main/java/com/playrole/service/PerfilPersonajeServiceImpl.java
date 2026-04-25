@@ -133,7 +133,7 @@ public class PerfilPersonajeServiceImpl implements IPerfilPersonajeService {
             }
 
         } else {
-            personaje.setAvatar("/uploads/avatars/default.png");
+            personaje.setAvatar(DEFAULT_AVATAR);
         }
         
         PerfilPersonaje guardado = perfilPersonajeRepository.save(personaje);

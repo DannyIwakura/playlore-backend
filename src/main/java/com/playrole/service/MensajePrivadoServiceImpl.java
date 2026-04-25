@@ -87,10 +87,10 @@ public class MensajePrivadoServiceImpl implements IMensajePrivadoService {
     @Transactional
     public MensajePrivadoDTO enviarMensaje(MensajePrivadoDTO dto) {
         Usuario emisor = usuarioRepository.findById(dto.getEmisorId())
-                .orElseThrow(() -> new ResourceNotFoundException("Emisor no encontrado"));
+                .orElseThrow(() -> new BadRequestException("El usuario emisor no existe"));
 
         Usuario receptor = usuarioRepository.findById(dto.getReceptorId())
-                .orElseThrow(() -> new ResourceNotFoundException("Receptor no encontrado"));
+                .orElseThrow(() -> new BadRequestException("El usuario receptor no existe"));
 
         validarMensaje(dto);
 

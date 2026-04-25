@@ -96,11 +96,6 @@ public class UsuarioServiceImpl implements IUsuarioService {
         	            "avatars"
         	    );
 
-        	    System.out.println("ABS PATH DIR: " + uploadPath.toAbsolutePath());
-        	    System.out.println("EXISTS DIR: " + Files.exists(uploadPath));
-        	    System.out.println("FILE SIZE: " + avatarFile.getSize());
-        	    System.out.println("ORIGINAL NAME: " + avatarFile.getOriginalFilename());
-
         	    // crear carpeta si no existe (SOLO PATH)
         	    if (!Files.exists(uploadPath)) {
         	        Files.createDirectories(uploadPath);
@@ -198,6 +193,15 @@ public class UsuarioServiceImpl implements IUsuarioService {
         Usuario usuarioActualizado = usuarioRepositorio.save(usuarioExistente);
         return UsuarioDTO.fromEntity(usuarioActualizado);
     }
+    
+    public void actualizarUltimaConexion(LoginDTO loginDTO) {
+    	// Actualizamos la ultima conexion
+    	usuarioRepositorio.findByNombre(loginDTO.getNombre())
+        .ifPresent(usuario -> {
+            usuario.setUltimaConexion(new Date());
+            usuarioRepositorio.save(usuario);
+        });
+    }
 
     @Override
     public void eliminarUsuario(Integer id) {
@@ -250,14 +254,5 @@ public class UsuarioServiceImpl implements IUsuarioService {
             	    "Formato no permitido. Solo JPG, PNG y WEBP"
             	);
         }
-    }
-    
-    public void actualizarUltimaConexion(LoginDTO loginDTO) {
-    	// Actualizamos la ultima conexion
-    	usuarioRepositorio.findByNombre(loginDTO.getNombre())
-        .ifPresent(usuario -> {
-            usuario.setUltimaConexion(new Date());
-            usuarioRepositorio.save(usuario);
-        });
     }
 }
