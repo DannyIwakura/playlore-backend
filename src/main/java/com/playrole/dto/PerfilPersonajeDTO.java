@@ -30,6 +30,7 @@ public class PerfilPersonajeDTO {
     private String raza;
 	@Size(max = 50, message = "La clase no puede superar 50 caracteres")
     private String clase;
+	private EstadoPersonaje estadoPersonaje;
     private Date fechaCreacion;
     private Date fechaModificacion;
     private Integer userId;
@@ -50,6 +51,8 @@ public class PerfilPersonajeDTO {
     public void setRaza(String raza) { this.raza = raza; }
     public String getClase() { return clase; }
     public void setClase(String clase) { this.clase = clase; }
+    public EstadoPersonaje getEstadoPersonaje() { return estadoPersonaje; }
+    public void setEstadoPersonaje(EstadoPersonaje estadoPersonaje) { this.estadoPersonaje = estadoPersonaje; }
     public Date getFechaCreacion() { return fechaCreacion; }
     public void setFechaCreacion(Date fechaCreacion) { this.fechaCreacion = fechaCreacion; }
     public Date getFechaModificacion() { return fechaModificacion; }
@@ -70,6 +73,7 @@ public class PerfilPersonajeDTO {
         dto.setFechaCreacion(personaje.getFechaCreacion());
         dto.setFechaModificacion(personaje.getFechaModificacion());
         dto.setUserId(personaje.getUserId() != null ? personaje.getUserId().getUserId() : null);
+        dto.setEstadoPersonaje(personaje.getEstado());
         return dto;
     }
 
