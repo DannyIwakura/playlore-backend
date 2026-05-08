@@ -2,6 +2,7 @@ package com.playrole.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -37,8 +39,26 @@ public class PerfilPersonajeController {
     }
     
     @GetMapping("/usuario/{userId}")
-    public List<PerfilPersonajeDTO> listarPersonajesPorUsuario(@PathVariable Integer userId) {
-        return personajeService.listarPersonajesPorUsuario(userId);
+    public Page<PerfilPersonajeDTO> listarPersonajesPorUsuario(
+            @PathVariable Integer userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "6") int size) {
+        return personajeService.listarPersonajesPorUsuario(userId, page, size);
+    }
+    
+    @GetMapping("/buscar")
+    public Page<PerfilPersonajeDTO> buscarPersonajes(
+            @RequestParam(required = false) String nombre,
+            @RequestParam(required = false) String genero,
+            @RequestParam(required = false) String raza,
+            @RequestParam(required = false) String clase,
+            @RequestParam(required = false) Integer edadMin,
+            @RequestParam(required = false) Integer edadMax,
+            @RequestParam(required = false) Integer categoriaId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "9") int size) {
+        return personajeService.buscarPersonajes(
+            nombre, genero, raza, clase, edadMin, edadMax, categoriaId, page, size);
     }
 
     @GetMapping("/{id}")

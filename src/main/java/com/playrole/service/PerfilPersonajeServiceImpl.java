@@ -16,6 +16,10 @@ import javax.imageio.ImageIO;
 import org.owasp.html.HtmlSanitizer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,6 +33,7 @@ import com.playrole.model.PerfilPersonaje;
 import com.playrole.model.Usuario;
 import com.playrole.repository.PerfilPersonajeRepositoryInterface;
 import com.playrole.repository.UsuarioRepositoryInterface;
+import com.playrole.specification.PerfilPersonajeSpec;
 import com.playrole.utils.HtmlUtils;
 
 import jakarta.validation.Valid;
@@ -57,18 +62,28 @@ public class PerfilPersonajeServiceImpl implements IPerfilPersonajeService {
     }
     
     @Override
-    public List<PerfilPersonajeDTO> listarPersonajesPorUsuario(Integer userId) {
-        // Verificar que el usuario existe
-        Usuario usuario = usuarioRepository.findById(userId)
+    public Page<PerfilPersonajeDTO> listarPersonajesPorUsuario(Integer userId, int page, int size) {
+        usuarioRepository.findById(userId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
-        // Obtener personajes del usuario
-        List<PerfilPersonaje> personajes = perfilPersonajeRepository.findByUserId_UserId(userId);
+        Pageable pageable = PageRequest.of(page, size);
 
-        // Convertir a DTO
-        return personajes.stream()
-                .map(PerfilPersonajeDTO::fromEntity)
-                .collect(Collectors.toList());
+        return perfilPersonajeRepository.findByUserId_UserId(userId, pageable)
+                .map(PerfilPersonajeDTO::fromEntity);
+    }
+    
+    @Override
+    public Page<PerfilPersonajeDTO> buscarPersonajes(
+            String nombre, String genero, String raza, String clase,
+            Integer edadMin, Integer edadMax, Integer categoriaId,
+            int page, int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        Specification<PerfilPersonaje> spec = PerfilPersonajeSpec.filtrar(
+            nombre, genero, raza, clase, edadMin, edadMax, categoriaId);
+        
+        return perfilPersonajeRepository.findAll(spec, pageable)
+                .map(PerfilPersonajeDTO::fromEntity);
     }
 
     @Override

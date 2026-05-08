@@ -26,7 +26,7 @@ public class PerfilPersonajeDTO {
     private String avatar;
 	@Size(max = 10000, message = "El trasfondo no puede superar 10000 caracteres")
     private String trasfondo;
-	@Size(max = 50, message = "La raza no puede superar 50 caracteres")
+	@Size(max = 10000, message = "La raza no puede superar 50 caracteres")
     private String raza;
 	@Size(max = 50, message = "La clase no puede superar 50 caracteres")
     private String clase;

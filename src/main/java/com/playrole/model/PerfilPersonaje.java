@@ -10,6 +10,8 @@ import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -44,9 +46,10 @@ public class PerfilPersonaje implements Serializable {
     private Integer edadPersonaje;
     @Column(name = "avatar")
     private String avatar;
+    @Enumerated(EnumType.STRING)
     @Column(name = "estado")
     private EstadoPersonaje estado;
-    @Column(name = "trasfondo")
+    @Column(name = "trasfondo", columnDefinition = "LONGTEXT")
     private String trasfondo;
     @Column(name = "raza")
     private String raza;
