@@ -65,3 +65,7 @@ Con la base de datos configurada y las tablas creadas, ya puedes iniciar el serv
 **Run As → Spring Boot App**
 
 La aplicación se iniciará y estará disponible por defecto en `http://localhost:8080`. Puedes verificarlo revisando la consola de Eclipse, donde debería aparecer el mensaje de arranque de Spring Boot.
+
+
+    PlayRole  © 2026 by Daniel is licensed under CC BY-SA 4.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-sa/4.0/
+
