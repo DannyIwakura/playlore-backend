@@ -29,8 +29,6 @@ git clone https://github.com/usuario/playlore-backend.git
 cd playlore-backend
 ```
 
-> ⚠️ **Nota:** Actualmente la API no está disponible; solo están los modelos que corresponden a las tablas de la versión actual del modelo ER. Está prevista su modificación próximamente.
-
 ### Paso 2 — Importar y actualizar el proyecto en Eclipse
 
 Una vez clonado el repositorio, importa el proyecto en Eclipse como proyecto Maven existente. Después, para asegurarte de que Eclipse descarga todas las dependencias correctamente, haz clic derecho sobre el proyecto en el explorador y selecciona:
