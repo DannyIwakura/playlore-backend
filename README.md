@@ -53,6 +53,7 @@ spring.datasource.password=TU_CONTRASEÑA
 Antes de arrancar la aplicación necesitas crear las tablas en la base de datos. Para ello ejecuta el siguiente script SQL:
 
 📄 [Script de creación de tablas](https://drive.google.com/file/d/1SJOrOLjz6ekFqb2XkORvxD4oUAERMY5d/view?usp=sharing)
+📄 [Colección de endpoints completos para perubas en Postman y similares ](https://drive.google.com/file/d/14tkFIexIoNUlyHAW_EiVtuQQVg2LjCUJ/view?usp=sharing)
 
 Puedes ejecutarlo desde MySQL Workbench, DBeaver, o directamente desde la consola de MySQL.
 
