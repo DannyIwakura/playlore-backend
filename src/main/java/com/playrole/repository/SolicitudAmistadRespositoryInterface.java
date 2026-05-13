@@ -46,4 +46,9 @@ public interface SolicitudAmistadRespositoryInterface extends JpaRepository<Soli
 	 @Modifying
 	 @Query("DELETE FROM SolicitudAmistad s WHERE s.id = :id")
 	 void eliminarPorId(@Param("id") Integer id);
+	 
+	 @Modifying
+	 @Transactional
+	 @Query("DELETE FROM SolicitudAmistad s WHERE s.emisorId.userId = :userId OR s.receptorId.userId = :userId")
+	 void deleteByUsuarioId(@Param("userId") Integer userId);
 }

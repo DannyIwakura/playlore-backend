@@ -32,9 +32,12 @@ import com.playrole.enums.RolUsuario;
 import com.playrole.exception.InvalidImageException;
 import com.playrole.exception.InvalidImageTypeException;
 import com.playrole.model.Usuario;
+import com.playrole.repository.MensajePrivadoRepositoryInterface;
+import com.playrole.repository.SolicitudAmistadRespositoryInterface;
 import com.playrole.repository.UsuarioRepositoryInterface;
 
 import jakarta.annotation.PostConstruct;
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 
 @Service
@@ -42,7 +45,10 @@ public class UsuarioServiceImpl implements IUsuarioService {
 
     @Autowired
     private UsuarioRepositoryInterface usuarioRepositorio;
-    
+    @Autowired
+    private MensajePrivadoRepositoryInterface mensajeRepositorio;
+    @Autowired
+    private SolicitudAmistadRespositoryInterface solicitudRepositorio;
     @Autowired
     private PasswordEncoder passwordEncoder;
     
@@ -206,10 +212,13 @@ public class UsuarioServiceImpl implements IUsuarioService {
     }
 
     @Override
+    @Transactional
     public void eliminarUsuario(Integer id) {
         if (!usuarioRepositorio.existsById(id)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado");
         }
+        mensajeRepositorio.deleteByUsuarioId(id);
+        solicitudRepositorio.deleteByUsuarioId(id);
         usuarioRepositorio.deleteById(id);
     }
     

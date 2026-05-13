@@ -75,4 +75,9 @@ public interface MensajePrivadoRepositoryInterface extends JpaRepository<Mensaje
     @Transactional
     @Query("DELETE FROM MensajePrivado m WHERE m.visibleEmisor = false AND m.visibleReceptor = false")
     void eliminarMensajesHuerfanos();
+    
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM MensajePrivado m WHERE m.emisorId.userId = :userId OR m.receptorId.userId = :userId")
+    void deleteByUsuarioId(@Param("userId") Integer userId);
 }

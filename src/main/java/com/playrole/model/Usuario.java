@@ -57,13 +57,13 @@ public class Usuario implements Serializable {
     private Date ultimaConexion;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "userId", fetch = FetchType.LAZY)
     private List<PerfilPersonaje> perfilPersonajeList;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "emisorId", fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "emisorId", fetch = FetchType.EAGER)
     private List<SolicitudAmistad> solicitudAmistadList;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "receptorId", fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "receptorId", fetch = FetchType.EAGER)
     private List<SolicitudAmistad> solicitudAmistadList1;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "emisorId", fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "emisorId", fetch = FetchType.EAGER)
     private List<MensajePrivado> mensajePrivadoList;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "receptorId", fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "receptorId", fetch = FetchType.EAGER)
     private List<MensajePrivado> mensajePrivadoList1;
 
     public Usuario() {
