@@ -29,8 +29,6 @@ git clone https://github.com/usuario/playlore-backend.git
 cd playlore-backend
 ```
 
-> ⚠️ **Nota:** Actualmente la API no está disponible; solo están los modelos que corresponden a las tablas de la versión actual del modelo ER. Está prevista su modificación próximamente.
-
 ### Paso 2 — Importar y actualizar el proyecto en Eclipse
 
 Una vez clonado el repositorio, importa el proyecto en Eclipse como proyecto Maven existente. Después, para asegurarte de que Eclipse descarga todas las dependencias correctamente, haz clic derecho sobre el proyecto en el explorador y selecciona:
@@ -54,7 +52,11 @@ spring.datasource.password=TU_CONTRASEÑA
 
 Antes de arrancar la aplicación necesitas crear las tablas en la base de datos. Para ello ejecuta el siguiente script SQL:
 
-📄 [Script de creación de tablas](https://drive.google.com/file/d/1SJOrOLjz6ekFqb2XkORvxD4oUAERMY5d/view?usp=sharing)
+📄 [Script de creación de tablas](https://drive.google.com/file/d/1Pou34ZBuwYnCPvdpEJ_Hk2oS9iGzCreP/view?usp=sharing)
+📄 [Script con datos de prueba](https://drive.google.com/file/d/1ZF3255JwrGhyxUKjMHnA1fdVaCjtVnxI/view?usp=sharing)
+📄 [Colección de endpoints completos para perubas en Postman y similares ](https://drive.google.com/file/d/14tkFIexIoNUlyHAW_EiVtuQQVg2LjCUJ/view?usp=sharing)
+> [!NOTE]
+> La contraseña para todos los usuarios es "password" sin comillas.
 
 Puedes ejecutarlo desde MySQL Workbench, DBeaver, o directamente desde la consola de MySQL.
 
@@ -65,3 +67,7 @@ Con la base de datos configurada y las tablas creadas, ya puedes iniciar el serv
 **Run As → Spring Boot App**
 
 La aplicación se iniciará y estará disponible por defecto en `http://localhost:8080`. Puedes verificarlo revisando la consola de Eclipse, donde debería aparecer el mensaje de arranque de Spring Boot.
+
+
+    PlayRole  © 2026 by Daniel is licensed under CC BY-SA 4.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-sa/4.0/
+
