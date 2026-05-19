@@ -17,6 +17,7 @@ public interface IUsuarioService {
 	Page<UsuarioDTO> listarUsuarios(int pagina, int size);
     UsuarioDTO guardarUsuario(UsuarioCrearDTO usuarioCrearDTO, MultipartFile avatarFile);
     UsuarioDTO modificarUsuario(Integer id, UsuarioDTO usuarioDTO, MultipartFile avatarFile);
+	UsuarioDTO cambiarRol(Integer id, String rol);
     void actualizarUltimaConexion(LoginDTO loginDTO);
     void eliminarUsuario(Integer id);
 }

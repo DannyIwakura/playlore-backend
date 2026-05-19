@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -55,9 +56,9 @@ public class UsuarioController {
 
     @GetMapping
     public Page<UsuarioDTO> obtenerTodos(
-    		@RequestParam(defaultValue = "0") int pagina,
+    		@RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size ) {
-        return usuarioService.listarUsuarios(pagina, size);
+        return usuarioService.listarUsuarios(page, size);
     }
 
     @GetMapping("/{id}")
@@ -86,6 +87,16 @@ public class UsuarioController {
             @RequestPart(value = "avatarFile", required = false) MultipartFile avatarFile) {
 
         UsuarioDTO actualizado = usuarioService.modificarUsuario(id, usuarioDTO, avatarFile);
+        return ResponseEntity.ok(actualizado);
+    }
+    
+    @PutMapping("/{id}/rol")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UsuarioDTO> cambiarRol(
+            @PathVariable Integer id,
+            @RequestParam String rol) {
+
+        UsuarioDTO actualizado = usuarioService.cambiarRol(id, rol);
         return ResponseEntity.ok(actualizado);
     }
     

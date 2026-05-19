@@ -49,6 +49,8 @@ public class SecurityConfig {
         	    .requestMatchers(HttpMethod.GET, "/usuarios/{id}").authenticated()
         	    .requestMatchers(HttpMethod.GET, "/usuarios/{id}/amigos").authenticated()
         	    .requestMatchers(HttpMethod.DELETE, "/usuarios/{userId}/amigos/{amigoId}").authenticated() 
+        	    .requestMatchers(HttpMethod.PUT, "/usuarios/{id}/rol").hasRole("ADMIN")
+        	    .requestMatchers(HttpMethod.PUT, "/usuarios/{id}").authenticated()
         	    .requestMatchers("/usuarios/**").hasRole("ADMIN")
 
         	    // Todo lo demás requiere autenticación

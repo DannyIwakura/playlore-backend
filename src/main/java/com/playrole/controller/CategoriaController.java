@@ -12,10 +12,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.data.domain.Page;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import com.playrole.dto.CategoriaDTO;
 import com.playrole.service.ICategoriaService;
 import com.playrole.service.IPersonajeCategoriaService;
+
 
 import jakarta.validation.Valid;
 
@@ -33,8 +36,11 @@ public class CategoriaController {
     }
 
     @GetMapping
-    public List<CategoriaDTO> obtenerTodas() {
-        return categoriaService.obtenerTodas();
+    public Page<CategoriaDTO> obtenerTodas(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        return categoriaService.obtenerTodas(page, size);
     }
 
     @GetMapping("/{id}")

@@ -10,6 +10,9 @@ import org.springframework.stereotype.Service;
 import com.playrole.dto.CategoriaDTO;
 import com.playrole.model.Categoria;
 import com.playrole.repository.CategoríaRepositoryInterface;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
 @Service
 public class CategoriaServiceImpl implements ICategoriaService {
@@ -17,13 +20,24 @@ public class CategoriaServiceImpl implements ICategoriaService {
 	@Autowired
     private CategoríaRepositoryInterface categoriaRepository;
 
-    @Override
-    public List<CategoriaDTO> obtenerTodas() {
-        return categoriaRepository.findAll()
-                .stream()
-                .map(CategoriaDTO::fromEntity)
-                .collect(Collectors.toList());
-    }
+	@Override
+	public Page<CategoriaDTO> obtenerTodas(int page, int size) {
+
+	    Page<Categoria> categoriasPage =
+	            categoriaRepository.findAll(PageRequest.of(page, size));
+
+	    List<CategoriaDTO> categoriasDTO =
+	            categoriasPage.getContent()
+	                    .stream()
+	                    .map(CategoriaDTO::fromEntity)
+	                    .collect(Collectors.toList());
+
+	    return new PageImpl<>(
+	            categoriasDTO,
+	            categoriasPage.getPageable(),
+	            categoriasPage.getTotalElements()
+	    );
+	}
 
     @Override
     public CategoriaDTO obtenerPorId(Integer id) {

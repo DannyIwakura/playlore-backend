@@ -163,7 +163,6 @@ public class UsuarioServiceImpl implements IUsuarioService {
         // Actualizamos solo campos permitidos
         usuarioExistente.setNombre(usuarioDTO.getNombre());
         usuarioExistente.setEmail(usuarioDTO.getEmail());
-        usuarioExistente.setRol(usuarioDTO.getRol());
 
         // Actualizamos el avatar si se proporciona uno nuevo
         if (avatarFile != null && !avatarFile.isEmpty()) {
@@ -200,6 +199,15 @@ public class UsuarioServiceImpl implements IUsuarioService {
 
         Usuario usuarioActualizado = usuarioRepositorio.save(usuarioExistente);
         return UsuarioDTO.fromEntity(usuarioActualizado);
+    }
+    
+    @Override
+    public UsuarioDTO cambiarRol(Integer id, String rol) {
+        Usuario usuario = usuarioRepositorio.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+        usuario.setRol(RolUsuario.valueOf(rol));
+        return UsuarioDTO.fromEntity(usuarioRepositorio.save(usuario));
     }
     
     public void actualizarUltimaConexion(LoginDTO loginDTO) {
