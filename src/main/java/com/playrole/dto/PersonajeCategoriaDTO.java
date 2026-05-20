@@ -16,6 +16,8 @@ public class PersonajeCategoriaDTO {
 
     private Integer idPersonaje;
     private String nombrePersonaje;
+    
+    private String descripcionCategoria;
 
     public PersonajeCategoriaDTO() {}
 
@@ -47,7 +49,11 @@ public class PersonajeCategoriaDTO {
 
     public String getNombrePersonaje() { return nombrePersonaje; }
     public void setNombrePersonaje(String nombrePersonaje) { this.nombrePersonaje = nombrePersonaje; }
+    
+    public String getDescripcionCategoria() { return descripcionCategoria; }
+    public void setDescripcionCategoria(String descripcionCategoria) { this.descripcionCategoria = descripcionCategoria; }
 
+    
     public static PersonajeCategoriaDTO fromEntity(PersonajeCategoria pc) {
         PersonajeCategoriaDTO dto = new PersonajeCategoriaDTO();
         dto.setId(pc.getId());
@@ -56,6 +62,7 @@ public class PersonajeCategoriaDTO {
         if (pc.getIdCategoria() != null) {
             dto.setIdCategoria(pc.getIdCategoria().getIdCategoria());
             dto.setNombreCategoria(pc.getIdCategoria().getNombre());
+            dto.setDescripcionCategoria(pc.getIdCategoria().getDescripcion());
         }
 
         if (pc.getIdPersonaje() != null) {
