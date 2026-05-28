@@ -53,7 +53,7 @@ public class UsuarioServiceImpl implements IUsuarioService {
     private PasswordEncoder passwordEncoder;
     
     private static final String DEFAULT_AVATAR =
-    	    "http://localhost:8080/api/images/AVATAR.png";
+    	    "/images/AVATAR.png";
     
     @Value("${app.upload.dir}")
     private String uploadsDir;

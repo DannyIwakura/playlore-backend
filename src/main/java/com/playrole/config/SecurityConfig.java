@@ -3,18 +3,20 @@ package com.playrole.config;
 import com.playrole.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.CorsFilter;
-import org.springframework.http.HttpMethod;
+import org.springframework.web.filter.OncePerRequestFilter;
 
 @Configuration
 public class SecurityConfig {
@@ -29,12 +31,15 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
-            .cors(cors -> {})
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
         		// Endpoints públicos
         	    .requestMatchers(HttpMethod.POST, "/usuarios").permitAll()
         	    .requestMatchers(HttpMethod.POST, "/usuarios/login").permitAll()
+
+        	    // CORS preflight para cualquier origen (PNA requests incluidos)
+        	    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
         	    // Recursos estáticos
         	    .requestMatchers("/images/**").permitAll()
@@ -57,7 +62,8 @@ public class SecurityConfig {
         	    .anyRequest().authenticated()
             )
             
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(pnaHeaderFilter(), BasicAuthenticationFilter.class);
 
         return http.build();
     }
@@ -73,9 +79,8 @@ public class SecurityConfig {
         return authConfig.getAuthenticationManager();
     }
 
-    // CORS global para cualquier origen (solo desarrollo)
     @Bean
-    public CorsFilter corsFilter() {
+    public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.addAllowedOriginPattern("*");
         config.addAllowedHeader("*");
@@ -84,7 +89,20 @@ public class SecurityConfig {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
+        return source;
+    }
 
-        return new CorsFilter(source);
+    @Bean
+    public OncePerRequestFilter pnaHeaderFilter() {
+        return new OncePerRequestFilter() {
+            @Override
+            protected void doFilterInternal(jakarta.servlet.http.HttpServletRequest request,
+                    jakarta.servlet.http.HttpServletResponse response,
+                    jakarta.servlet.FilterChain chain)
+                    throws jakarta.servlet.ServletException, IOException {
+                response.addHeader("Access-Control-Allow-Private-Network", "true");
+                chain.doFilter(request, response);
+            }
+        };
     }
 }
