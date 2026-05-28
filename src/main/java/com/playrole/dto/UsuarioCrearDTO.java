@@ -27,13 +27,16 @@ public class UsuarioCrearDTO {
     	    message = "La contraseña debe contener al menos una letra y un número"
     	)
     private String password;
+    @NotBlank(message = "El CAPTCHA es obligatorio")
+    private String captchaToken;
 
     public UsuarioCrearDTO() {}
 
-    public UsuarioCrearDTO(String nombre, String email, String password) {
+    public UsuarioCrearDTO(String nombre, String email, String password, String captchaToken) {
         this.nombre = nombre;
         this.email = email;
         this.password = password;
+        this.captchaToken = captchaToken;
     }
 
     public String getNombre() { return nombre; }
@@ -44,6 +47,9 @@ public class UsuarioCrearDTO {
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
+
+    public String getCaptchaToken() { return captchaToken; }
+    public void setCaptchaToken(String captchaToken) { this.captchaToken = captchaToken; }
 
     public Usuario toEntity() {
         Usuario u = new Usuario();

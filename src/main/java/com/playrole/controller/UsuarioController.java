@@ -30,6 +30,7 @@ import com.playrole.dto.LoginDTO;
 import com.playrole.dto.UsuarioCrearDTO;
 import com.playrole.dto.UsuarioDTO;
 import com.playrole.security.CustomUserDetails;
+import com.playrole.service.CaptchaService;
 import com.playrole.service.ISolicitudAmistadService;
 import com.playrole.service.IUsuarioService;
 import com.playrole.utils.JwtUtils;
@@ -43,15 +44,18 @@ public class UsuarioController {
 	private final IUsuarioService usuarioService;
 	private final ISolicitudAmistadService amistadService;
 	private final AuthenticationManager authenticationManager;
+	private final CaptchaService captchaService;
 	@Autowired
 	private JwtUtils jwtUtils;
 
     public UsuarioController(IUsuarioService usuarioService,
     		ISolicitudAmistadService amistadService,
-    		AuthenticationManager authenticationManager) {
+    		AuthenticationManager authenticationManager,
+    		CaptchaService captchaService) {
         this.usuarioService = usuarioService;
         this.amistadService = amistadService;
         this.authenticationManager = authenticationManager;
+        this.captchaService = captchaService;
     }
 
     @GetMapping
@@ -77,6 +81,7 @@ public class UsuarioController {
     public UsuarioDTO crearUsuario(
             @RequestPart("usuario") @Valid UsuarioCrearDTO usuarioCrearDTO,
             @RequestPart(value = "avatarFile", required = false) MultipartFile avatarFile) {
+        captchaService.verify(usuarioCrearDTO.getCaptchaToken());
         return usuarioService.guardarUsuario(usuarioCrearDTO, avatarFile);
     }
 
@@ -102,6 +107,7 @@ public class UsuarioController {
     
     @PostMapping("/login")
     public ResponseEntity<String> login(@Valid @RequestBody LoginDTO loginDTO) {
+        captchaService.verify(loginDTO.getCaptchaToken());
     	try {
     		//comprobamos las credenciales
             Authentication authentication = authenticationManager.authenticate(
