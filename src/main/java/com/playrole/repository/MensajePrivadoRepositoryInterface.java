@@ -12,12 +12,14 @@ public interface MensajePrivadoRepositoryInterface extends JpaRepository<Mensaje
 
     // Bandeja de salida
 	@Query("SELECT m FROM MensajePrivado m WHERE " +
-		       "m.emisorId.userId = :idUsuario AND m.visibleEmisor = true AND m.eliminadoEmisor = false")
+		       "m.emisorId.userId = :idUsuario AND m.visibleEmisor = true AND m.eliminadoEmisor = false " +
+		       "ORDER BY m.fechaEnvio DESC")
 	List<MensajePrivado> findMensajesEnviados(@Param("idUsuario") Integer idUsuario);
 
     // Bandeja de entrada
     @Query("SELECT m FROM MensajePrivado m WHERE " +
-    	       "m.receptorId.userId = :idUsuario AND m.visibleReceptor = true AND m.eliminadoReceptor = false")
+    	       "m.receptorId.userId = :idUsuario AND m.visibleReceptor = true AND m.eliminadoReceptor = false " +
+    	       "ORDER BY m.fechaEnvio DESC")
 	List<MensajePrivado> findMensajesRecibidos(@Param("idUsuario") Integer idUsuario);
 
     // Mensajes archivados
@@ -55,7 +57,8 @@ public interface MensajePrivadoRepositoryInterface extends JpaRepository<Mensaje
     // Mensajes donde el usuario los eliminó pero existen en BD softdeletes
     @Query("SELECT m FROM MensajePrivado m WHERE " +
     	       "(m.emisorId.userId = :idUsuario AND m.visibleEmisor = false AND m.eliminadoEmisor = false) OR " +
-    	       "(m.receptorId.userId = :idUsuario AND m.visibleReceptor = false AND m.eliminadoReceptor = false)")
+    	       "(m.receptorId.userId = :idUsuario AND m.visibleReceptor = false AND m.eliminadoReceptor = false) " +
+    	       "ORDER BY m.fechaEnvio DESC")
     	List<MensajePrivado> findPapelera(@Param("idUsuario") Integer idUsuario);
     
     // Eliminar (ocultar para el usuario)
