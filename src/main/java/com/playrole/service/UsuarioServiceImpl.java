@@ -220,6 +220,15 @@ public class UsuarioServiceImpl implements IUsuarioService {
     }
 
     @Override
+    public void actualizarUltimaConexion(Integer usuarioId) {
+        usuarioRepositorio.findById(usuarioId)
+            .ifPresent(usuario -> {
+                usuario.setUltimaConexion(new Date());
+                usuarioRepositorio.save(usuario);
+            });
+    }
+
+    @Override
     @Transactional
     public void eliminarUsuario(Integer id) {
         if (!usuarioRepositorio.existsById(id)) {

@@ -134,6 +134,11 @@ public class UsuarioController {
         }
     }
 
+    @PutMapping("/{id}/ultima-conexion")
+    public void actualizarUltimaConexion(@PathVariable Integer id) {
+        usuarioService.actualizarUltimaConexion(id);
+    }
+
     @DeleteMapping("/{id}")
     public void eliminarUsuario(@PathVariable Integer id) {
         usuarioService.eliminarUsuario(id);

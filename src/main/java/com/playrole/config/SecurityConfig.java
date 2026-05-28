@@ -17,6 +17,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.OncePerRequestFilter;
+import java.io.IOException;
 
 @Configuration
 public class SecurityConfig {
@@ -55,8 +56,9 @@ public class SecurityConfig {
         	    .requestMatchers(HttpMethod.GET, "/usuarios/{id}/amigos").authenticated()
         	    .requestMatchers(HttpMethod.DELETE, "/usuarios/{userId}/amigos/{amigoId}").authenticated() 
         	    .requestMatchers(HttpMethod.PUT, "/usuarios/{id}/rol").hasRole("ADMIN")
-        	    .requestMatchers(HttpMethod.PUT, "/usuarios/{id}").authenticated()
-        	    .requestMatchers("/usuarios/**").hasRole("ADMIN")
+         	    .requestMatchers(HttpMethod.PUT, "/usuarios/{id}").authenticated()
+         	    .requestMatchers(HttpMethod.PUT, "/usuarios/{id}/ultima-conexion").authenticated()
+         	    .requestMatchers("/usuarios/**").hasRole("ADMIN")
 
         	    // Todo lo demás requiere autenticación
         	    .anyRequest().authenticated()

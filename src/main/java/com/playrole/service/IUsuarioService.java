@@ -19,5 +19,6 @@ public interface IUsuarioService {
     UsuarioDTO modificarUsuario(Integer id, UsuarioDTO usuarioDTO, MultipartFile avatarFile);
 	UsuarioDTO cambiarRol(Integer id, String rol);
     void actualizarUltimaConexion(LoginDTO loginDTO);
+    void actualizarUltimaConexion(Integer usuarioId);
     void eliminarUsuario(Integer id);
 }
