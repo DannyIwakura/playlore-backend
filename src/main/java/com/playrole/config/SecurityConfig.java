@@ -1,5 +1,6 @@
 package com.playrole.config;
 
+import com.playrole.chat.auth.CharacterSessionFilter;
 import com.playrole.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,9 +24,12 @@ import java.io.IOException;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CharacterSessionFilter characterSessionFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                          CharacterSessionFilter characterSessionFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.characterSessionFilter = characterSessionFilter;
     }
 
     @Bean
@@ -46,6 +50,18 @@ public class SecurityConfig {
         	    .requestMatchers("/images/**").permitAll()
         	    .requestMatchers("/uploads/**").permitAll()
 
+        	    // WebSocket endpoint (autenticación vía JwtHandshakeInterceptor)
+        	    .requestMatchers("/ws/**").permitAll()
+
+        	    // Para iniciar sesión de personaje, se necesita el user JWT
+        	    .requestMatchers(HttpMethod.POST, "/personajes/sesion/iniciar").authenticated()
+
+        	    // Canales y chat requieren autenticación (user JWT o session JWT)
+        	    .requestMatchers("/canales/**").authenticated()
+        	    .requestMatchers("/chat/**").authenticated()
+        	    .requestMatchers("/personajes/sesion/**").authenticated()
+        	    .requestMatchers("/personajes/*/online").authenticated()
+
         	    // Categorías: GET para cualquier autenticado, el resto solo ADMIN
         	    .requestMatchers(HttpMethod.GET, "/categorias/**").authenticated()
         	    .requestMatchers("/categorias/**").hasRole("ADMIN")
@@ -56,15 +72,16 @@ public class SecurityConfig {
         	    .requestMatchers(HttpMethod.GET, "/usuarios/{id}/amigos").authenticated()
         	    .requestMatchers(HttpMethod.DELETE, "/usuarios/{userId}/amigos/{amigoId}").authenticated() 
         	    .requestMatchers(HttpMethod.PUT, "/usuarios/{id}/rol").hasRole("ADMIN")
-         	    .requestMatchers(HttpMethod.PUT, "/usuarios/{id}").authenticated()
-         	    .requestMatchers(HttpMethod.PUT, "/usuarios/{id}/ultima-conexion").authenticated()
-         	    .requestMatchers("/usuarios/**").hasRole("ADMIN")
+          	    .requestMatchers(HttpMethod.PUT, "/usuarios/{id}").authenticated()
+          	    .requestMatchers(HttpMethod.PUT, "/usuarios/{id}/ultima-conexion").authenticated()
+          	    .requestMatchers("/usuarios/**").hasRole("ADMIN")
 
         	    // Todo lo demás requiere autenticación
         	    .anyRequest().authenticated()
             )
             
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(characterSessionFilter, JwtAuthenticationFilter.class)
             .addFilterAfter(pnaHeaderFilter(), BasicAuthenticationFilter.class);
 
         return http.build();
