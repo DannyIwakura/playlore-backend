@@ -12,6 +12,7 @@ public class MiembroCanalDTO {
     private String rol;
     private Date fechaUnion;
     private boolean online;
+    private String status;
 
     public static MiembroCanalDTO fromEntity(MiembroCanal miembro) {
         MiembroCanalDTO dto = new MiembroCanalDTO();
@@ -44,4 +45,7 @@ public class MiembroCanalDTO {
 
     public boolean isOnline() { return online; }
     public void setOnline(boolean online) { this.online = online; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 }

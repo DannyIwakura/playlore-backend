@@ -111,6 +111,14 @@ public class CanalController {
         return ResponseEntity.ok(canalService.listarMiembros(id, personajeId, page, size));
     }
 
+    @GetMapping("/{id}/miembros/online")
+    public ResponseEntity<List<MiembroCanalDTO>> listarMiembrosOnline(
+            @PathVariable Integer id,
+            Authentication authentication) {
+        Integer personajeId = obtenerPersonajeId(authentication);
+        return ResponseEntity.ok(canalService.listarMiembrosOnline(id, personajeId));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> eliminarCanal(@PathVariable Integer id,
                                                               Authentication authentication) {

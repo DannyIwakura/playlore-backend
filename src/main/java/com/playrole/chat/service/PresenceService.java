@@ -14,6 +14,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public class PresenceService {
 
     private final Map<Integer, Set<String>> onlineCharacters = new ConcurrentHashMap<>();
+    private final Map<String, Integer> sessionIdToPersonajeId = new ConcurrentHashMap<>();
+    private final Map<String, String> stompSessionToCustomSession = new ConcurrentHashMap<>();
+    private final Map<Integer, String> characterStatus = new ConcurrentHashMap<>();
+    private final Map<Integer, Set<Integer>> userCharacters = new ConcurrentHashMap<>();
+    private final Map<Integer, Integer> personajeToUser = new ConcurrentHashMap<>();
     private final SimpMessagingTemplate messagingTemplate;
     private final MiembroCanalRepository miembroCanalRepository;
     private final PerfilPersonajeRepositoryInterface personajeRepository;
@@ -27,24 +32,112 @@ public class PresenceService {
     }
 
     public void onConnect(Integer personajeId, String sessionId) {
+        onConnect(personajeId, null, sessionId);
+    }
+
+    public void onConnect(Integer personajeId, Integer usuarioId, String sessionId) {
+        if (sessionId == null) return;
         onlineCharacters.computeIfAbsent(personajeId, k -> ConcurrentHashMap.newKeySet()).add(sessionId);
+        sessionIdToPersonajeId.put(sessionId, personajeId);
+        characterStatus.putIfAbsent(personajeId, "conectado");
+
+        if (usuarioId != null) {
+            personajeToUser.put(personajeId, usuarioId);
+            userCharacters.computeIfAbsent(usuarioId, k -> ConcurrentHashMap.newKeySet()).add(personajeId);
+        }
+
         broadcastPresence(personajeId, true);
+
+        // Re-broadcast all other characters from the same user as online
+        if (usuarioId != null) {
+            Set<Integer> userChars = userCharacters.get(usuarioId);
+            if (userChars != null) {
+                for (Integer otherId : userChars) {
+                    if (!otherId.equals(personajeId)) {
+                        broadcastPresence(otherId, true);
+                    }
+                }
+            }
+        }
     }
 
     public void onDisconnect(Integer personajeId, String sessionId) {
+        if (sessionId == null) return;
+        sessionIdToPersonajeId.remove(sessionId);
         Set<String> sessions = onlineCharacters.get(personajeId);
         if (sessions != null) {
             sessions.remove(sessionId);
             if (sessions.isEmpty()) {
                 onlineCharacters.remove(personajeId);
-                broadcastPresence(personajeId, false);
+                // Only broadcast offline if no other character from same user is online
+                Integer usuarioId = personajeToUser.get(personajeId);
+                boolean hasOtherConnected = false;
+                if (usuarioId != null) {
+                    Set<Integer> userChars = userCharacters.get(usuarioId);
+                    if (userChars != null) {
+                        for (Integer otherId : userChars) {
+                            if (!otherId.equals(personajeId)) {
+                                Set<String> otherSessions = onlineCharacters.get(otherId);
+                                if (otherSessions != null && !otherSessions.isEmpty()) {
+                                    hasOtherConnected = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                if (!hasOtherConnected) {
+                    broadcastPresence(personajeId, false);
+                }
             }
         }
     }
 
+    public void updateStatus(Integer personajeId, String status) {
+        if (personajeId == null || status == null) return;
+        characterStatus.put(personajeId, status);
+        broadcastPresence(personajeId, true);
+    }
+
+    public String getStatus(Integer personajeId) {
+        return characterStatus.getOrDefault(personajeId, "conectado");
+    }
+
+    public void onDisconnectBySessionId(String sessionId) {
+        Integer personajeId = sessionIdToPersonajeId.remove(sessionId);
+        if (personajeId != null) {
+            onDisconnect(personajeId, sessionId);
+        }
+    }
+
+    public void mapStompSessionToCustomSession(String stompSessionId, String customSessionId) {
+        if (stompSessionId != null && customSessionId != null) {
+            stompSessionToCustomSession.put(stompSessionId, customSessionId);
+        }
+    }
+
+    public String getCustomSessionIdByStompSessionId(String stompSessionId) {
+        return stompSessionToCustomSession.remove(stompSessionId);
+    }
+
     public boolean isOnline(Integer personajeId) {
         Set<String> sessions = onlineCharacters.get(personajeId);
-        return sessions != null && !sessions.isEmpty();
+        if (sessions != null && !sessions.isEmpty()) return true;
+
+        // Check if any other character from the same user is online
+        Integer usuarioId = personajeToUser.get(personajeId);
+        if (usuarioId != null) {
+            Set<Integer> userChars = userCharacters.get(usuarioId);
+            if (userChars != null) {
+                for (Integer otherId : userChars) {
+                    if (!otherId.equals(personajeId)) {
+                        Set<String> otherSessions = onlineCharacters.get(otherId);
+                        if (otherSessions != null && !otherSessions.isEmpty()) return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     public Map<Integer, Boolean> getOnlineStatusForCharacters(Set<Integer> personajeIds) {
@@ -57,6 +150,7 @@ public class PresenceService {
 
     private void broadcastPresence(Integer personajeId, boolean online) {
         PresenceDTO dto = new PresenceDTO(personajeId, online);
+        dto.setStatus(characterStatus.getOrDefault(personajeId, "conectado"));
 
         personajeRepository.findById(personajeId).ifPresent(p -> {
             dto.setPersonajeNombre(p.getNombre());

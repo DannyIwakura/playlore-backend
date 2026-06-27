@@ -22,28 +22,34 @@ public class WebSocketEventListener {
     public void handleSessionConnected(SessionConnectedEvent event) {
         StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
         var sessionAttributes = accessor.getSessionAttributes();
-
         if (sessionAttributes != null) {
             Integer personajeId = (Integer) sessionAttributes.get("personajeId");
-            String sessionId = accessor.getSessionId();
-
-            if (personajeId != null && sessionId != null) {
-                presenceService.onConnect(personajeId, sessionId);
+            String customSessionId = (String) sessionAttributes.get("customSessionId");
+            if (personajeId != null && customSessionId != null) {
+                Integer usuarioId = (Integer) sessionAttributes.get("usuarioId");
+                presenceService.onConnect(personajeId, usuarioId, customSessionId);
+                String stompSessionId = accessor.getSessionId();
+                if (stompSessionId != null) {
+                    presenceService.mapStompSessionToCustomSession(stompSessionId, customSessionId);
+                }
             }
         }
     }
 
     @EventListener
     public void handleSessionDisconnect(SessionDisconnectEvent event) {
-        StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
-        var sessionAttributes = accessor.getSessionAttributes();
+        String stompSessionId = event.getSessionId();
+        if (stompSessionId == null) {
+            StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
+            stompSessionId = accessor.getSessionId();
+        }
 
-        if (sessionAttributes != null) {
-            Integer personajeId = (Integer) sessionAttributes.get("personajeId");
-            String sessionId = accessor.getSessionId();
-
-            if (personajeId != null && sessionId != null) {
-                presenceService.onDisconnect(personajeId, sessionId);
+        if (stompSessionId != null) {
+            String customSessionId = presenceService.getCustomSessionIdByStompSessionId(stompSessionId);
+            if (customSessionId != null) {
+                presenceService.onDisconnectBySessionId(customSessionId);
+            } else {
+                presenceService.onDisconnectBySessionId(stompSessionId);
             }
         }
     }

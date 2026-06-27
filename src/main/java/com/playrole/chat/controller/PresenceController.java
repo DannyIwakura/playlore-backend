@@ -19,4 +19,14 @@ public class PresenceController {
     public ResponseEntity<Map<String, Boolean>> checkOnline(@PathVariable Integer id) {
         return ResponseEntity.ok(Map.of("online", presenceService.isOnline(id)));
     }
+
+    @PutMapping("/{id}/status")
+    public ResponseEntity<Void> updateStatus(@PathVariable Integer id, @RequestBody Map<String, String> body) {
+        String status = body.get("status");
+        if (status == null || status.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        presenceService.updateStatus(id, status);
+        return ResponseEntity.ok().build();
+    }
 }

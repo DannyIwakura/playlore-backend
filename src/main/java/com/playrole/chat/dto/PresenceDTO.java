@@ -6,6 +6,7 @@ public class PresenceDTO {
     private String personajeNombre;
     private String personajeAvatar;
     private boolean online;
+    private String status;
 
     public PresenceDTO() {}
 
@@ -25,4 +26,7 @@ public class PresenceDTO {
 
     public boolean isOnline() { return online; }
     public void setOnline(boolean online) { this.online = online; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 }

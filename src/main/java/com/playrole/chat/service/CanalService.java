@@ -32,15 +32,18 @@ public class CanalService {
     private final MiembroCanalRepository miembroRepository;
     private final PerfilPersonajeRepositoryInterface personajeRepository;
     private final CanalPermissionService permissionService;
+    private final PresenceService presenceService;
 
     public CanalService(CanalRepository canalRepository,
                         MiembroCanalRepository miembroRepository,
                         PerfilPersonajeRepositoryInterface personajeRepository,
-                        CanalPermissionService permissionService) {
+                        CanalPermissionService permissionService,
+                        PresenceService presenceService) {
         this.canalRepository = canalRepository;
         this.miembroRepository = miembroRepository;
         this.personajeRepository = personajeRepository;
         this.permissionService = permissionService;
+        this.presenceService = presenceService;
     }
 
     public List<CanalDTO> listarCanalesDisponibles(Integer personajeId) {
@@ -223,7 +226,26 @@ public class CanalService {
         permissionService.verificarPermiso(canalId, personajeId, PermisoCanal.LEER_MENSAJES);
 
         return miembroRepository.findByCanalIdCanal(canalId, PageRequest.of(page, size))
-                .map(MiembroCanalDTO::fromEntity);
+                .map(m -> {
+                    MiembroCanalDTO dto = MiembroCanalDTO.fromEntity(m);
+                    Integer pid = m.getPersonaje().getIdPersonaje();
+                    dto.setOnline(presenceService.isOnline(pid));
+                    dto.setStatus(presenceService.getStatus(pid));
+                    return dto;
+                });
+    }
+
+    public List<MiembroCanalDTO> listarMiembrosOnline(Integer canalId, Integer personajeId) {
+        permissionService.verificarPermiso(canalId, personajeId, PermisoCanal.LEER_MENSAJES);
+
+        return miembroRepository.findByCanalIdCanal(canalId).stream()
+                .filter(m -> presenceService.isOnline(m.getPersonaje().getIdPersonaje()))
+                .map(m -> {
+                    MiembroCanalDTO dto = MiembroCanalDTO.fromEntity(m);
+                    dto.setOnline(true);
+                    return dto;
+                })
+                .collect(Collectors.toList());
     }
 
     @Transactional

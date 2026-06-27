@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.HandshakeInterceptor;
 import java.util.Map;
+import java.util.UUID;
 
 @Component
 public class JwtHandshakeInterceptor implements HandshakeInterceptor {
@@ -36,6 +37,7 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
                     attributes.put("usuarioId", sesion.getUsuario().getUserId());
                     attributes.put("sesionId", sesion.getIdSesion());
                     attributes.put("token", token);
+                    attributes.put("customSessionId", UUID.randomUUID().toString());
                     return true;
                 }
             }

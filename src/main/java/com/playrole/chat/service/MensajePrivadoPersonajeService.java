@@ -55,9 +55,8 @@ public class MensajePrivadoPersonajeService {
 
         MensajePrivadoPersonajeDTO dto = MensajePrivadoPersonajeDTO.fromEntity(mensaje, emisorId);
 
-        messagingTemplate.convertAndSendToUser(
-                receptorId.toString(),
-                "/queue/privado",
+        messagingTemplate.convertAndSend(
+                "/topic/privado." + receptorId,
                 dto);
 
         return dto;
