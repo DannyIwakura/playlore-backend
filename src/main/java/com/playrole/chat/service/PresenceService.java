@@ -48,13 +48,15 @@ public class PresenceService {
 
         broadcastPresence(personajeId, true);
 
-        // Re-broadcast all other characters from the same user as online
+        // Re-broadcast actual status of all other characters from the same user
         if (usuarioId != null) {
             Set<Integer> userChars = userCharacters.get(usuarioId);
             if (userChars != null) {
                 for (Integer otherId : userChars) {
                     if (!otherId.equals(personajeId)) {
-                        broadcastPresence(otherId, true);
+                        Set<String> otherSessions = onlineCharacters.get(otherId);
+                        boolean otherOnline = otherSessions != null && !otherSessions.isEmpty();
+                        broadcastPresence(otherId, otherOnline);
                     }
                 }
             }
@@ -69,26 +71,7 @@ public class PresenceService {
             sessions.remove(sessionId);
             if (sessions.isEmpty()) {
                 onlineCharacters.remove(personajeId);
-                // Only broadcast offline if no other character from same user is online
-                Integer usuarioId = personajeToUser.get(personajeId);
-                boolean hasOtherConnected = false;
-                if (usuarioId != null) {
-                    Set<Integer> userChars = userCharacters.get(usuarioId);
-                    if (userChars != null) {
-                        for (Integer otherId : userChars) {
-                            if (!otherId.equals(personajeId)) {
-                                Set<String> otherSessions = onlineCharacters.get(otherId);
-                                if (otherSessions != null && !otherSessions.isEmpty()) {
-                                    hasOtherConnected = true;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-                if (!hasOtherConnected) {
-                    broadcastPresence(personajeId, false);
-                }
+                broadcastPresence(personajeId, false);
             }
         }
     }
@@ -138,6 +121,11 @@ public class PresenceService {
             }
         }
         return false;
+    }
+
+    public boolean isOnlineStrict(Integer personajeId) {
+        Set<String> sessions = onlineCharacters.get(personajeId);
+        return sessions != null && !sessions.isEmpty();
     }
 
     public Map<Integer, Boolean> getOnlineStatusForCharacters(Set<Integer> personajeIds) {

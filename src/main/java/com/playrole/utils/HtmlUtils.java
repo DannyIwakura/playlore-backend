@@ -7,25 +7,26 @@ import java.util.regex.Pattern;
 import org.owasp.html.CssSchema;
 import org.owasp.html.HtmlPolicyBuilder;
 import org.owasp.html.PolicyFactory;
-import org.owasp.html.Sanitizers;
 
 public class HtmlUtils {
 	//filtro de eituetas de estilo
     private static final CssSchema CSS_POLICY = CssSchema.withProperties(
-        Set.of("font-size", "text-align", "color")
+        Set.of("font-size", "text-align", "color", "font-weight", "font-style", "text-decoration")
     );
     //polita de etiquetas HTML
     private static final PolicyFactory POLICY = new HtmlPolicyBuilder()
-        .allowElements("p", "br", "span", "strong", "em", "ul", "ol", "li",
-                       "h1", "h2", "h3", "a", "img")
-        .allowAttributes("style").onElements("p", "span", "strong", "em",
-                                             "li", "h1", "h2", "h3")
+        .allowElements("p", "br", "span", "strong", "em", "b", "i", "u", "s",
+                       "strike", "del", "ul", "ol", "li",
+                       "h1", "h2", "h3", "h4", "a", "img",
+                       "blockquote", "details", "summary")
+        .allowAttributes("style").onElements("p", "span", "strong", "em", "b", "i", "u", "s",
+                                              "li", "h1", "h2", "h3", "h4", "blockquote")
         .allowAttributes("src", "alt", "width", "height").onElements("img")
         .allowStandardUrlProtocols()
+        .allowUrlProtocols("profile")
         .allowAttributes("href").onElements("a")
         .allowStyling(CSS_POLICY)
-        .toFactory()
-        .and(Sanitizers.LINKS);
+        .toFactory();
     //santizar el html para asegurarnos que solo nos quedamos con las etiquetas aceptadas
     public static String sanitize(String html) {
         if (html == null) return null;

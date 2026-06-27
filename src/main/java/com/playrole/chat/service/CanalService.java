@@ -229,7 +229,7 @@ public class CanalService {
                 .map(m -> {
                     MiembroCanalDTO dto = MiembroCanalDTO.fromEntity(m);
                     Integer pid = m.getPersonaje().getIdPersonaje();
-                    dto.setOnline(presenceService.isOnline(pid));
+                    dto.setOnline(presenceService.isOnlineStrict(pid));
                     dto.setStatus(presenceService.getStatus(pid));
                     return dto;
                 });
