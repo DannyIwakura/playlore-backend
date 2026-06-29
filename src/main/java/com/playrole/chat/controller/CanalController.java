@@ -90,6 +90,17 @@ public class CanalController {
         return ResponseEntity.ok(Map.of("mensaje", "Miembro expulsado"));
     }
 
+    @PostMapping("/{id}/miembros/{personajeId}/ban")
+    public ResponseEntity<Map<String, String>> banear(@PathVariable Integer id,
+                                                       @PathVariable Integer personajeId,
+                                                       @RequestBody Map<String, String> body,
+                                                       Authentication authentication) {
+        Integer solicitanteId = obtenerPersonajeId(authentication);
+        String duracion = body.get("duracion");
+        canalService.banearMiembro(id, personajeId, solicitanteId, duracion);
+        return ResponseEntity.ok(Map.of("mensaje", "Personaje baneado del canal"));
+    }
+
     @PutMapping("/{id}/miembros/{personajeId}/rol")
     public ResponseEntity<Map<String, String>> cambiarRol(@PathVariable Integer id,
                                                            @PathVariable Integer personajeId,
