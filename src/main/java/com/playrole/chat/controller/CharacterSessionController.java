@@ -41,9 +41,29 @@ public class CharacterSessionController {
 
     @PostMapping("/cerrar")
     public ResponseEntity<Map<String, String>> cerrarSesion(
-            @RequestHeader("Authorization") String authHeader) {
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestBody(required = false) Map<String, String> body) {
 
-        String token = authHeader.replace("Bearer ", "");
+        String token = null;
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.replace("Bearer ", "");
+        } else if (body != null && body.containsKey("token")) {
+            token = body.get("token");
+        }
+        if (token == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        sesionService.cerrarSesion(token);
+        return ResponseEntity.ok(Map.of("mensaje", "Sesión cerrada correctamente"));
+    }
+
+    @PostMapping("/cerrar-beacon")
+    public ResponseEntity<Map<String, String>> cerrarSesionBeacon(
+            @RequestBody Map<String, String> body) {
+        String token = body.get("token");
+        if (token == null || token.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
         sesionService.cerrarSesion(token);
         return ResponseEntity.ok(Map.of("mensaje", "Sesión cerrada correctamente"));
     }

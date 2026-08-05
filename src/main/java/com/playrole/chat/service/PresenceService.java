@@ -22,13 +22,16 @@ public class PresenceService {
     private final SimpMessagingTemplate messagingTemplate;
     private final MiembroCanalRepository miembroCanalRepository;
     private final PerfilPersonajeRepositoryInterface personajeRepository;
+    private final SesionPersonajeService sesionPersonajeService;
 
     public PresenceService(SimpMessagingTemplate messagingTemplate,
                            MiembroCanalRepository miembroCanalRepository,
-                           PerfilPersonajeRepositoryInterface personajeRepository) {
+                           PerfilPersonajeRepositoryInterface personajeRepository,
+                           SesionPersonajeService sesionPersonajeService) {
         this.messagingTemplate = messagingTemplate;
         this.miembroCanalRepository = miembroCanalRepository;
         this.personajeRepository = personajeRepository;
+        this.sesionPersonajeService = sesionPersonajeService;
     }
 
     public void onConnect(Integer personajeId, String sessionId) {
@@ -54,9 +57,7 @@ public class PresenceService {
             if (userChars != null) {
                 for (Integer otherId : userChars) {
                     if (!otherId.equals(personajeId)) {
-                        Set<String> otherSessions = onlineCharacters.get(otherId);
-                        boolean otherOnline = otherSessions != null && !otherSessions.isEmpty();
-                        broadcastPresence(otherId, otherOnline);
+                        broadcastPresence(otherId, isOnline(otherId));
                     }
                 }
             }
@@ -72,6 +73,19 @@ public class PresenceService {
             if (sessions.isEmpty()) {
                 onlineCharacters.remove(personajeId);
                 broadcastPresence(personajeId, false);
+
+                // Re-broadcast other characters from the same user so they remain visible as online
+                Integer usuarioId = personajeToUser.get(personajeId);
+                if (usuarioId != null) {
+                    Set<Integer> userChars = userCharacters.get(usuarioId);
+                    if (userChars != null) {
+                        for (Integer otherId : userChars) {
+                            if (!otherId.equals(personajeId)) {
+                                broadcastPresence(otherId, isOnline(otherId));
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -107,16 +121,20 @@ public class PresenceService {
         Set<String> sessions = onlineCharacters.get(personajeId);
         if (sessions != null && !sessions.isEmpty()) return true;
 
-        // Check if any other character from the same user is online
+        // Multi-character support: a background character appears online while the
+        // user has another character's WS active, but only if this character still
+        // has an active session. A disconnected character must not inherit online
+        // status from other characters of the same user.
         Integer usuarioId = personajeToUser.get(personajeId);
-        if (usuarioId != null) {
-            Set<Integer> userChars = userCharacters.get(usuarioId);
-            if (userChars != null) {
-                for (Integer otherId : userChars) {
-                    if (!otherId.equals(personajeId)) {
-                        Set<String> otherSessions = onlineCharacters.get(otherId);
-                        if (otherSessions != null && !otherSessions.isEmpty()) return true;
-                    }
+        if (usuarioId == null) return false;
+        if (!sesionPersonajeService.tieneSesionActivaValida(personajeId)) return false;
+
+        Set<Integer> userChars = userCharacters.get(usuarioId);
+        if (userChars != null) {
+            for (Integer otherId : userChars) {
+                if (!otherId.equals(personajeId)) {
+                    Set<String> otherSessions = onlineCharacters.get(otherId);
+                    if (otherSessions != null && !otherSessions.isEmpty()) return true;
                 }
             }
         }

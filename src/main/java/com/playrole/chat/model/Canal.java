@@ -43,6 +43,9 @@ public class Canal implements Serializable {
     @JoinColumn(name = "creador_id", referencedColumnName = "id_personaje")
     private PerfilPersonaje creador;
 
+    @Column(name = "imagen_url")
+    private String imagenUrl;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "creado_por_usuario", referencedColumnName = "user_id")
     private Usuario creadoPorUsuario;
@@ -76,6 +79,9 @@ public class Canal implements Serializable {
 
     public PerfilPersonaje getCreador() { return creador; }
     public void setCreador(PerfilPersonaje creador) { this.creador = creador; }
+
+    public String getImagenUrl() { return imagenUrl; }
+    public void setImagenUrl(String imagenUrl) { this.imagenUrl = imagenUrl; }
 
     public Usuario getCreadoPorUsuario() { return creadoPorUsuario; }
     public void setCreadoPorUsuario(Usuario creadoPorUsuario) { this.creadoPorUsuario = creadoPorUsuario; }

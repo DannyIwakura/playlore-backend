@@ -84,6 +84,19 @@ public class MensajePrivadoPersonajeService {
         return mensajeRepository.countNoLeidos(personajeId);
     }
 
+    @Transactional
+    public void eliminarConversacion(Integer personajeId, Integer otroPersonajeId) {
+        List<MensajePrivadoPersonaje> mensajes = mensajeRepository.findConversacionEntre(personajeId, otroPersonajeId);
+        for (MensajePrivadoPersonaje mensaje : mensajes) {
+            if (mensaje.getEmisor().getIdPersonaje().equals(personajeId)) {
+                mensaje.setEliminadoEmisor(true);
+            } else {
+                mensaje.setEliminadoReceptor(true);
+            }
+            mensajeRepository.save(mensaje);
+        }
+    }
+
     public List<Integer> obtenerContactos(Integer personajeId) {
         return mensajeRepository.findContactIds(personajeId);
     }

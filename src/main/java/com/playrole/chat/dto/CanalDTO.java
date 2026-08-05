@@ -16,6 +16,7 @@ public class CanalDTO {
     private Integer creadorId;
     private String creadorNombre;
     private String creadorAvatar;
+    private String imagenUrl;
     private Integer miembroCount;
     private String miRol;
 
@@ -27,6 +28,7 @@ public class CanalDTO {
         dto.setTipo(canal.getTipo().name());
         dto.setPrivado(canal.isPrivado());
         dto.setVisible(canal.isVisible());
+        dto.setImagenUrl(canal.getImagenUrl());
         dto.setFechaCreacion(canal.getFechaCreacion());
         if (canal.getCreador() != null) {
             dto.setCreadorId(canal.getCreador().getIdPersonaje());
@@ -53,6 +55,9 @@ public class CanalDTO {
 
     public boolean isVisible() { return visible; }
     public void setVisible(boolean visible) { this.visible = visible; }
+
+    public String getImagenUrl() { return imagenUrl; }
+    public void setImagenUrl(String imagenUrl) { this.imagenUrl = imagenUrl; }
 
     public Date getFechaCreacion() { return fechaCreacion; }
     public void setFechaCreacion(Date fechaCreacion) { this.fechaCreacion = fechaCreacion; }

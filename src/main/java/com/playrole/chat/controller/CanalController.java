@@ -3,6 +3,7 @@ package com.playrole.chat.controller;
 import com.playrole.chat.auth.CharacterSessionPrincipal;
 import com.playrole.chat.dto.CanalDTO;
 import com.playrole.chat.dto.CrearCanalDTO;
+import com.playrole.chat.dto.EditarCanalDTO;
 import com.playrole.chat.dto.MiembroCanalDTO;
 import com.playrole.chat.enums.RolCanal;
 import com.playrole.chat.service.CanalService;
@@ -11,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.Map;
 
@@ -54,6 +56,14 @@ public class CanalController {
         Integer personajeId = obtenerPersonajeId(authentication);
         boolean esAdmin = esAdmin(authentication);
         return ResponseEntity.ok(canalService.crearCanal(dto, personajeId, esAdmin));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<CanalDTO> editarCanal(@PathVariable Integer id,
+                                                 @RequestBody @Valid EditarCanalDTO dto,
+                                                 Authentication authentication) {
+        Integer personajeId = obtenerPersonajeId(authentication);
+        return ResponseEntity.ok(canalService.editarCanal(id, dto, personajeId));
     }
 
     @PostMapping("/{id}/unirse")
@@ -132,10 +142,27 @@ public class CanalController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> eliminarCanal(@PathVariable Integer id,
+                                                              @RequestBody(required = false) Map<String, String> body,
                                                               Authentication authentication) {
         Integer personajeId = obtenerPersonajeId(authentication);
-        canalService.eliminarCanal(id, personajeId);
+        String password = body == null ? null : body.get("password");
+        canalService.eliminarCanal(id, personajeId, password);
         return ResponseEntity.ok(Map.of("mensaje", "Canal eliminado"));
+    }
+
+    @PutMapping("/{id}/imagen")
+    public ResponseEntity<CanalDTO> actualizarImagen(@PathVariable Integer id,
+                                                      @RequestPart("imagenFile") MultipartFile imagenFile,
+                                                      Authentication authentication) {
+        Integer personajeId = obtenerPersonajeId(authentication);
+        return ResponseEntity.ok(canalService.actualizarImagen(id, imagenFile, personajeId));
+    }
+
+    @DeleteMapping("/{id}/imagen")
+    public ResponseEntity<CanalDTO> eliminarImagen(@PathVariable Integer id,
+                                                    Authentication authentication) {
+        Integer personajeId = obtenerPersonajeId(authentication);
+        return ResponseEntity.ok(canalService.eliminarImagen(id, personajeId));
     }
 
     private Integer obtenerPersonajeId(Authentication authentication) {

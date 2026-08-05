@@ -2,8 +2,10 @@ package com.playrole.chat.repository;
 
 import com.playrole.chat.model.BaneoCanal;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import jakarta.transaction.Transactional;
 import java.util.Optional;
 
 public interface BaneoCanalRepository extends JpaRepository<BaneoCanal, Integer> {
@@ -17,4 +19,9 @@ public interface BaneoCanalRepository extends JpaRepository<BaneoCanal, Integer>
                                             @Param("personajeId") Integer personajeId);
 
     boolean existsByCanalIdCanalAndPersonajeIdPersonaje(Integer canalId, Integer personajeId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM BaneoCanal b WHERE b.canal.idCanal = :canalId")
+    void deleteByCanalId(@Param("canalId") Integer canalId);
 }

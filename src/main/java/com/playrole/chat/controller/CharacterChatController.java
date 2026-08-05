@@ -56,6 +56,15 @@ public class CharacterChatController {
         return ResponseEntity.ok(Map.of("count", count));
     }
 
+    @DeleteMapping("/conversaciones/{otroPersonajeId}")
+    public ResponseEntity<Map<String, String>> eliminarConversacion(
+            @PathVariable Integer otroPersonajeId,
+            Authentication authentication) {
+        Integer personajeId = obtenerPersonajeId(authentication);
+        mensajeService.eliminarConversacion(personajeId, otroPersonajeId);
+        return ResponseEntity.ok(Map.of("mensaje", "Conversación eliminada"));
+    }
+
     private Integer obtenerPersonajeId(Authentication authentication) {
         if (authentication == null) return null;
         Object principal = authentication.getPrincipal();

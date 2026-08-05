@@ -56,6 +56,9 @@ public class SecurityConfig {
         	    // Para iniciar sesión de personaje, se necesita el user JWT
         	    .requestMatchers(HttpMethod.POST, "/personajes/sesion/iniciar").authenticated()
 
+        	    // Cerrar sesión via beacon (sin headers de auth, el token va en el body)
+        	    .requestMatchers(HttpMethod.POST, "/personajes/sesion/cerrar-beacon").permitAll()
+
         	    // Canales y chat requieren autenticación (user JWT o session JWT)
         	    .requestMatchers("/canales/**").authenticated()
         	    .requestMatchers("/chat/**").authenticated()

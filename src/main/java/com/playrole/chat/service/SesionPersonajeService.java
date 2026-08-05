@@ -48,8 +48,20 @@ public class SesionPersonajeService {
             throw new BadRequestException("Este personaje no te pertenece");
         }
 
-        long sesionesActivas = sesionRepository.countActivasByUsuario(usuarioId);
-        if (sesionesActivas >= MAX_SESIONES_ACTIVAS) {
+        // Limpiar sesiones expiradas antes de contar
+        List<SesionPersonaje> activas = sesionRepository.findActivasByUsuario(usuarioId);
+        List<SesionPersonaje> expiradas = activas.stream()
+                .filter(s -> !sessionJwtUtils.validarToken(s.getTokenJwt()))
+                .toList();
+        if (!expiradas.isEmpty()) {
+            expiradas.forEach(s -> s.setActiva(false));
+            sesionRepository.saveAll(expiradas);
+            activas = activas.stream()
+                    .filter(s -> sessionJwtUtils.validarToken(s.getTokenJwt()))
+                    .toList();
+        }
+
+        if (activas.size() >= MAX_SESIONES_ACTIVAS) {
             throw new BadRequestException("Has alcanzado el límite de " + MAX_SESIONES_ACTIVAS
                     + " sesiones activas. Cierra otra sesión primero.");
         }
@@ -74,8 +86,11 @@ public class SesionPersonajeService {
     @Transactional
     public void cerrarSesion(String tokenJwt) {
         SesionPersonaje sesion = sesionRepository.findByTokenJwtAndActivaTrue(tokenJwt)
-                .orElseThrow(() -> new ResourceNotFoundException("Sesión no encontrada"));
-
+                .orElse(null);
+        if (sesion == null) {
+            // Token no encontrado o ya inactiva - buscar por token sin filtro de activa
+            return;
+        }
         sesion.setActiva(false);
         sesionRepository.save(sesion);
     }
@@ -89,8 +104,27 @@ public class SesionPersonajeService {
         sesionRepository.saveAll(sesiones);
     }
 
+    public boolean tieneSesionActivaValida(Integer personajeId) {
+        return sesionRepository.findActivasByPersonaje(personajeId).stream()
+                .anyMatch(s -> sessionJwtUtils.validarToken(s.getTokenJwt()));
+    }
+
     public List<SesionPersonajeDTO> sesionesActivas(Integer usuarioId) {
-        return sesionRepository.findActivasByUsuario(usuarioId).stream()
+        List<SesionPersonaje> sesiones = sesionRepository.findActivasByUsuario(usuarioId);
+        
+        // Limpiar sesiones con JWT expirado
+        List<SesionPersonaje> expiradas = sesiones.stream()
+                .filter(s -> !sessionJwtUtils.validarToken(s.getTokenJwt()))
+                .toList();
+        if (!expiradas.isEmpty()) {
+            expiradas.forEach(s -> s.setActiva(false));
+            sesionRepository.saveAll(expiradas);
+            sesiones = sesiones.stream()
+                    .filter(s -> sessionJwtUtils.validarToken(s.getTokenJwt()))
+                    .toList();
+        }
+        
+        return sesiones.stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }

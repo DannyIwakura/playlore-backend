@@ -19,11 +19,13 @@ public class CanalPermissionService {
                     PermisoCanal.LEER_MENSAJES, PermisoCanal.ENVIAR_MENSAJES,
                     PermisoCanal.EDITAR_MENSAJES_PROPIOS, PermisoCanal.ELIMINAR_MENSAJES_PROPIOS,
                     PermisoCanal.ELIMINAR_MENSAJES_AJENOS, PermisoCanal.GESTIONAR_MIEMBROS,
-                    PermisoCanal.GESTIONAR_ROLES, PermisoCanal.SILENCIAR),
+                    PermisoCanal.GESTIONAR_ROLES, PermisoCanal.SILENCIAR,
+                    PermisoCanal.EDITAR_CANAL),
             RolCanal.MOD, EnumSet.of(
                     PermisoCanal.LEER_MENSAJES, PermisoCanal.ENVIAR_MENSAJES,
                     PermisoCanal.EDITAR_MENSAJES_PROPIOS, PermisoCanal.ELIMINAR_MENSAJES_PROPIOS,
-                    PermisoCanal.ELIMINAR_MENSAJES_AJENOS, PermisoCanal.SILENCIAR),
+                    PermisoCanal.ELIMINAR_MENSAJES_AJENOS, PermisoCanal.GESTIONAR_MIEMBROS,
+                    PermisoCanal.SILENCIAR),
             RolCanal.MEMBER, EnumSet.of(
                     PermisoCanal.LEER_MENSAJES, PermisoCanal.ENVIAR_MENSAJES,
                     PermisoCanal.EDITAR_MENSAJES_PROPIOS, PermisoCanal.ELIMINAR_MENSAJES_PROPIOS));

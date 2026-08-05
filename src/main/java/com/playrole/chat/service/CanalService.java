@@ -2,6 +2,7 @@ package com.playrole.chat.service;
 
 import com.playrole.chat.dto.CanalDTO;
 import com.playrole.chat.dto.CrearCanalDTO;
+import com.playrole.chat.dto.EditarCanalDTO;
 import com.playrole.chat.dto.MiembroCanalDTO;
 import com.playrole.chat.enums.PermisoCanal;
 import com.playrole.chat.enums.RolCanal;
@@ -11,9 +12,12 @@ import com.playrole.chat.model.Canal;
 import com.playrole.chat.model.MiembroCanal;
 import com.playrole.chat.repository.BaneoCanalRepository;
 import com.playrole.chat.repository.CanalRepository;
+import com.playrole.chat.repository.MensajeCanalRepository;
 import com.playrole.chat.repository.MiembroCanalRepository;
 import com.playrole.exception.AccessDeniedException;
 import com.playrole.exception.BadRequestException;
+import com.playrole.exception.InvalidImageException;
+import com.playrole.exception.InvalidImageTypeException;
 import com.playrole.exception.ResourceNotFoundException;
 import com.playrole.model.PerfilPersonaje;
 import com.playrole.repository.PerfilPersonajeRepositoryInterface;
@@ -21,10 +25,19 @@ import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,25 +48,31 @@ public class CanalService {
     private final CanalRepository canalRepository;
     private final MiembroCanalRepository miembroRepository;
     private final BaneoCanalRepository baneoRepository;
+    private final MensajeCanalRepository mensajeRepository;
     private final PerfilPersonajeRepositoryInterface personajeRepository;
     private final CanalPermissionService permissionService;
     private final PresenceService presenceService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final PasswordEncoder passwordEncoder;
 
     public CanalService(CanalRepository canalRepository,
                         MiembroCanalRepository miembroRepository,
                         BaneoCanalRepository baneoRepository,
+                        MensajeCanalRepository mensajeRepository,
                         PerfilPersonajeRepositoryInterface personajeRepository,
                         CanalPermissionService permissionService,
                         PresenceService presenceService,
-                        SimpMessagingTemplate messagingTemplate) {
+                        SimpMessagingTemplate messagingTemplate,
+                        PasswordEncoder passwordEncoder) {
         this.canalRepository = canalRepository;
         this.miembroRepository = miembroRepository;
         this.baneoRepository = baneoRepository;
+        this.mensajeRepository = mensajeRepository;
         this.personajeRepository = personajeRepository;
         this.permissionService = permissionService;
         this.presenceService = presenceService;
         this.messagingTemplate = messagingTemplate;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public List<CanalDTO> listarCanalesDisponibles(Integer personajeId) {
@@ -138,6 +157,24 @@ public class CanalService {
     }
 
     @Transactional
+    public CanalDTO editarCanal(Integer canalId, EditarCanalDTO dto, Integer personajeId) {
+        Canal canal = canalRepository.findById(canalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Canal no encontrado"));
+
+        permissionService.verificarPermiso(canalId, personajeId, PermisoCanal.EDITAR_CANAL);
+
+        canal.setNombre(dto.getNombre());
+        canal.setDescripcion(dto.getDescripcion());
+        canal.setPrivado(dto.isPrivado());
+        canal = canalRepository.save(canal);
+
+        CanalDTO result = CanalDTO.fromEntity(canal);
+        result.setMiembroCount((int) miembroRepository.countByCanalId(canalId));
+        permissionService.obtenerRol(canalId, personajeId).ifPresent(rol -> result.setMiRol(rol.name()));
+        return result;
+    }
+
+    @Transactional
     public void unirseACanal(Integer canalId, Integer personajeId) {
         Canal canal = canalRepository.findById(canalId)
                 .orElseThrow(() -> new ResourceNotFoundException("Canal no encontrado"));
@@ -172,14 +209,10 @@ public class CanalService {
                 .orElseThrow(() -> new ResourceNotFoundException("No eres miembro de este canal"));
 
         if (miembro.getRol() == RolCanal.OWNER) {
-            long otherMembers = miembroRepository.countByCanalId(canalId);
-            if (otherMembers > 1) {
-                throw new BadRequestException("Debes transferir la propiedad antes de salir");
-            }
-            canalRepository.deleteById(canalId);
-        } else {
-            miembroRepository.delete(miembro);
+            throw new BadRequestException("El dueño del canal no puede salir. Usa el panel de administración para transferir o eliminar el canal");
         }
+
+        miembroRepository.delete(miembro);
     }
 
     @Transactional
@@ -299,7 +332,7 @@ public class CanalService {
                 .map(m -> {
                     MiembroCanalDTO dto = MiembroCanalDTO.fromEntity(m);
                     Integer pid = m.getPersonaje().getIdPersonaje();
-                    dto.setOnline(presenceService.isOnlineStrict(pid));
+                    dto.setOnline(presenceService.isOnline(pid));
                     dto.setStatus(presenceService.getStatus(pid));
                     return dto;
                 });
@@ -319,7 +352,7 @@ public class CanalService {
     }
 
     @Transactional
-    public void eliminarCanal(Integer canalId, Integer personajeId) {
+    public void eliminarCanal(Integer canalId, Integer personajeId, String password) {
         Canal canal = canalRepository.findById(canalId)
                 .orElseThrow(() -> new ResourceNotFoundException("Canal no encontrado"));
 
@@ -328,7 +361,131 @@ public class CanalService {
         }
 
         permissionService.verificarPermiso(canalId, personajeId, PermisoCanal.ELIMINAR_CANAL);
-        canal.setVisible(false);
-        canalRepository.save(canal);
+
+        if (password == null || password.isEmpty()) {
+            throw new BadRequestException("Debes introducir tu contraseña para eliminar el canal");
+        }
+
+        PerfilPersonaje personaje = personajeRepository.findById(personajeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Personaje no encontrado"));
+
+        String passwordCifrada = personaje.getUserId().getPassword();
+        if (!passwordEncoder.matches(password, passwordCifrada)) {
+            throw new BadRequestException("La contraseña no es correcta");
+        }
+
+        List<MiembroCanal> miembros = miembroRepository.findByCanalIdCanal(canalId);
+        List<Integer> miembroIds = miembros.stream()
+                .map(m -> m.getPersonaje().getIdPersonaje())
+                .collect(Collectors.toList());
+
+        if (canal.getImagenUrl() != null) {
+            eliminarArchivoImagen(canal.getImagenUrl());
+        }
+
+        baneoRepository.deleteByCanalId(canalId);
+        mensajeRepository.deleteByCanalId(canalId);
+        miembroRepository.deleteAll(miembros);
+        canalRepository.delete(canal);
+
+        for (Integer miembroId : miembroIds) {
+            messagingTemplate.convertAndSend(
+                    "/topic/privado." + miembroId,
+                    (Object) Map.of("tipo", "CANAL_ELIMINADO", "canalId", canalId));
+        }
+    }
+
+    @Transactional
+    public CanalDTO actualizarImagen(Integer canalId, MultipartFile imagenFile, Integer personajeId) {
+        Canal canal = canalRepository.findById(canalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Canal no encontrado"));
+
+        permissionService.verificarPermiso(canalId, personajeId, PermisoCanal.GESTIONAR_MIEMBROS);
+
+        if (imagenFile == null || imagenFile.isEmpty()) {
+            throw new BadRequestException("No se ha proporcionado una imagen");
+        }
+
+        validarTipoImagen(imagenFile);
+        validarDimensiones(imagenFile);
+
+        if (canal.getImagenUrl() != null) {
+            eliminarArchivoImagen(canal.getImagenUrl());
+        }
+
+        try {
+            Path uploadPath = Paths.get(System.getProperty("user.dir"), "uploads", "canales");
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+
+            String filename = UUID.randomUUID() + "_" + imagenFile.getOriginalFilename();
+            Path destination = uploadPath.resolve(filename);
+            imagenFile.transferTo(destination.toFile());
+
+            canal.setImagenUrl("/uploads/canales/" + filename);
+            canal = canalRepository.save(canal);
+        } catch (IOException e) {
+            throw new RuntimeException("Error al subir la imagen del canal", e);
+        }
+
+        CanalDTO dto = CanalDTO.fromEntity(canal);
+        dto.setMiembroCount((int) miembroRepository.countByCanalId(canalId));
+        permissionService.obtenerRol(canalId, personajeId).ifPresent(rol -> dto.setMiRol(rol.name()));
+        return dto;
+    }
+
+    @Transactional
+    public CanalDTO eliminarImagen(Integer canalId, Integer personajeId) {
+        Canal canal = canalRepository.findById(canalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Canal no encontrado"));
+
+        permissionService.verificarPermiso(canalId, personajeId, PermisoCanal.GESTIONAR_MIEMBROS);
+
+        if (canal.getImagenUrl() != null) {
+            eliminarArchivoImagen(canal.getImagenUrl());
+            canal.setImagenUrl(null);
+            canal = canalRepository.save(canal);
+        }
+
+        CanalDTO dto = CanalDTO.fromEntity(canal);
+        dto.setMiembroCount((int) miembroRepository.countByCanalId(canalId));
+        permissionService.obtenerRol(canalId, personajeId).ifPresent(rol -> dto.setMiRol(rol.name()));
+        return dto;
+    }
+
+    private void eliminarArchivoImagen(String imageUrl) {
+        try {
+            String filename = imageUrl.substring(imageUrl.lastIndexOf('/') + 1);
+            Path filePath = Paths.get(System.getProperty("user.dir"), "uploads", "canales", filename);
+            Files.deleteIfExists(filePath);
+        } catch (IOException ignored) {}
+    }
+
+    private void validarDimensiones(MultipartFile file) {
+        try {
+            BufferedImage image = ImageIO.read(file.getInputStream());
+            if (image == null) {
+                throw new BadRequestException("El archivo no es una imagen válida");
+            }
+            if (image.getWidth() > 400 || image.getHeight() > 400) {
+                throw new InvalidImageException("imagenFile", "La imagen no puede superar 400x400 píxeles");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Error al leer la imagen", e);
+        }
+    }
+
+    private void validarTipoImagen(MultipartFile file) {
+        String contentType = file.getContentType();
+        if (contentType == null) {
+            throw new BadRequestException("No se puede determinar el tipo de archivo");
+        }
+        boolean valido = contentType.equals("image/jpeg")
+                      || contentType.equals("image/png")
+                      || contentType.equals("image/webp");
+        if (!valido) {
+            throw new InvalidImageTypeException("imagenFile", "Formato no permitido. Solo JPG, PNG y WEBP");
+        }
     }
 }

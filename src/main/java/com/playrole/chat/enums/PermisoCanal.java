@@ -9,5 +9,6 @@ public enum PermisoCanal {
     GESTIONAR_MIEMBROS,
     GESTIONAR_ROLES,
     SILENCIAR,
-    ELIMINAR_CANAL
+    ELIMINAR_CANAL,
+    EDITAR_CANAL
 }

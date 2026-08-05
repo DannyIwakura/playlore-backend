@@ -119,6 +119,9 @@ public class CanalMensajeService {
 
         mensaje.setEliminado(true);
         mensaje.setEliminadoPorModerador(puedeEliminarAjenos);
-        mensajeRepository.save(mensaje);
+        mensaje = mensajeRepository.save(mensaje);
+
+        MensajeCanalDTO dto = MensajeCanalDTO.fromEntity(mensaje, personajeId);
+        messagingTemplate.convertAndSend("/topic/canal." + mensaje.getCanal().getIdCanal(), dto);
     }
 }
