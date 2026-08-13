@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import com.playrole.dto.AmigoDTO;
 import com.playrole.dto.SolicitudAmistadDTO;
 import com.playrole.enums.EstadoSolicitud;
+import com.playrole.exception.BadRequestException;
+import com.playrole.exception.ResourceNotFoundException;
 import com.playrole.model.SolicitudAmistad;
 import com.playrole.model.Usuario;
 import com.playrole.repository.SolicitudAmistadRespositoryInterface;
@@ -28,21 +30,24 @@ public class SolicitudAmistadServiceImpl implements ISolicitudAmistadService {
 	public SolicitudAmistadDTO enviarSolicitud(Integer emisorId, Integer receptorId) {
 		
 		//comprobamos si se está enviado a si mismo
+	    if (receptorId == null) {
+	        throw new BadRequestException("Debes indicar el usuario receptor");
+	    }
 	    if (emisorId.equals(receptorId)) {
-	        throw new RuntimeException("No puedes enviarte una solicitud a ti mismo");
+	        throw new BadRequestException("No puedes enviarte una solicitud a ti mismo");
 	    }
 		
 		//buscamos una solicitud que esté repetida o no
 	    if (solicitudAmistadRepository.buscarSolicitudEntreUsuarios(emisorId, receptorId).isPresent()) {
-	        throw new RuntimeException("Ya existe una solicitud o amistad");
+	        throw new BadRequestException("Ya existe una solicitud o amistad");
 	    }
 
 	    //recuperamos el usuario emidor
 	    Usuario emisor = usuarioRepository.findById(emisorId)
-	            .orElseThrow(() -> new RuntimeException("Emisor no encontrado"));
+	            .orElseThrow(() -> new ResourceNotFoundException("Emisor no encontrado"));
 	    //recuperamos el usuario receptor
 	    Usuario receptor = usuarioRepository.findById(receptorId)
-	            .orElseThrow(() -> new RuntimeException("Receptor no encontrado"));
+	            .orElseThrow(() -> new ResourceNotFoundException("Receptor no encontrado"));
 	    
 	    //una vez recuperados de la base de datos podemos crear la solicitud
 	    SolicitudAmistad solicitud = new SolicitudAmistad();
@@ -87,11 +92,22 @@ public class SolicitudAmistadServiceImpl implements ISolicitudAmistadService {
 	public SolicitudAmistadDTO aceptarSolicitud(Integer idSolicitud) {
 		//recuperamos la solicitud
 		SolicitudAmistad solicitud = solicitudAmistadRepository.findById(idSolicitud)
-	            .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
+	            .orElseThrow(() -> new ResourceNotFoundException("Solicitud no encontrada"));
 		//cambiamos el estado y fecha de respuesta
 	    solicitud.setEstado(EstadoSolicitud.ACEPTADA);
 	    solicitud.setFechaRespuesta(new Date());
 	    //la guardamos modificada
+	    SolicitudAmistad guardada = solicitudAmistadRepository.save(solicitud);
+
+	    return SolicitudAmistadDTO.fromEntity(guardada);
+	}
+
+	@Override
+	public SolicitudAmistadDTO rechazarSolicitud(Integer idSolicitud) {
+		SolicitudAmistad solicitud = solicitudAmistadRepository.findById(idSolicitud)
+	            .orElseThrow(() -> new ResourceNotFoundException("Solicitud no encontrada"));
+	    solicitud.setEstado(EstadoSolicitud.RECHAZADA);
+	    solicitud.setFechaRespuesta(new Date());
 	    SolicitudAmistad guardada = solicitudAmistadRepository.save(solicitud);
 
 	    return SolicitudAmistadDTO.fromEntity(guardada);
@@ -144,7 +160,7 @@ public class SolicitudAmistadServiceImpl implements ISolicitudAmistadService {
 	@Override
 	public void eliminarSolicitud(Integer idSolicitud) {
 	    if (!solicitudAmistadRepository.existsById(idSolicitud)) {
-	        throw new RuntimeException("Solicitud no encontrada");
+	        throw new ResourceNotFoundException("Solicitud no encontrada");
 	    }
 	    solicitudAmistadRepository.eliminarPorId(idSolicitud);
 	}

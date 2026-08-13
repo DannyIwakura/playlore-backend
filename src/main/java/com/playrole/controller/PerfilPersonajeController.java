@@ -4,6 +4,8 @@ import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,9 +18,11 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.playrole.chat.auth.CharacterSessionPrincipal;
 import com.playrole.dto.PerfilPersonajeAdminDTO;
 import com.playrole.dto.PerfilPersonajeDTO;
-import com.playrole.model.PerfilPersonaje;
+import com.playrole.exception.AccessDeniedException;
+import com.playrole.security.CustomUserDetails;
 import com.playrole.service.IPerfilPersonajeService;
 
 import jakarta.validation.Valid;
@@ -69,8 +73,10 @@ public class PerfilPersonajeController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public PerfilPersonajeDTO crearPersonaje(
             @RequestPart("personaje") @Valid PerfilPersonajeDTO dto,
-            @RequestPart(value = "avatarFile", required = false) MultipartFile avatarFile) {
+            @RequestPart(value = "avatarFile", required = false) MultipartFile avatarFile,
+            Authentication authentication) {
 
+        dto.setUserId(obtenerUserId(authentication));
         return personajeService.guardarPersonaje(dto, avatarFile);
     }
 
@@ -78,21 +84,43 @@ public class PerfilPersonajeController {
     public PerfilPersonajeDTO actualizarPersonaje(
             @PathVariable Integer id,
             @RequestPart("personaje") @Valid PerfilPersonajeDTO dto,
-            @RequestPart(value = "avatarFile", required = false) MultipartFile avatarFile) {
+            @RequestPart(value = "avatarFile", required = false) MultipartFile avatarFile,
+            Authentication authentication) {
 
+        comprobarPropiedadPersonaje(id, authentication);
         return personajeService.modificarPersonaje(id, dto, avatarFile);
     }
     
     @PutMapping("/admin/{id}/estado")
+    @PreAuthorize("hasAnyRole('ADMIN','MOD')")
     public PerfilPersonajeDTO actualizarEstadoAdmin(@PathVariable Integer id, 
                                                     @RequestBody PerfilPersonajeAdminDTO dto) {
         return personajeService.modificarPersonajeAdmin(id, dto);
     }
 
     @DeleteMapping("/{id}")
-    public void eliminarPersonaje(@PathVariable Integer id) {
+    public void eliminarPersonaje(@PathVariable Integer id, Authentication authentication) {
+        comprobarPropiedadPersonaje(id, authentication);
         personajeService.eliminarPersonaje(id);
     }
-	
 
+    private void comprobarPropiedadPersonaje(Integer id, Authentication authentication) {
+        Integer userId = obtenerUserId(authentication);
+        PerfilPersonajeDTO personaje = personajeService.obtenerPersonaje(id);
+        if (!personaje.getUserId().equals(userId) && !esModerador(authentication)) {
+            throw new AccessDeniedException("No puedes modificar o eliminar un personaje que no es tuyo");
+        }
+    }
+
+    private boolean esModerador(Authentication authentication) {
+        return authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()) || "ROLE_MOD".equals(a.getAuthority()));
+    }
+
+    private Integer obtenerUserId(Authentication authentication) {
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof CharacterSessionPrincipal cp) return cp.getUsuario().getUserId();
+        if (principal instanceof CustomUserDetails cd) return cd.getUsuario().getUserId();
+        throw new AccessDeniedException("No autenticado");
+    }
 }

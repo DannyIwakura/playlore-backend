@@ -35,7 +35,10 @@ public class CanalMensajeController {
             @RequestBody Map<String, String> body,
             Authentication authentication) {
         Integer personajeId = obtenerPersonajeId(authentication);
-        return ResponseEntity.ok(mensajeService.enviarMensaje(canalId, personajeId, body.get("contenido")));
+        Integer mensajePadreId = body.get("mensajePadreId") != null && !body.get("mensajePadreId").isBlank()
+                ? Integer.valueOf(body.get("mensajePadreId"))
+                : null;
+        return ResponseEntity.ok(mensajeService.enviarMensaje(canalId, personajeId, body.get("contenido"), mensajePadreId));
     }
 
     @PutMapping("/{mensajeId}")

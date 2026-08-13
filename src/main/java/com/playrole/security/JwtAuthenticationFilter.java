@@ -9,11 +9,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.playrole.utils.JwtUtils;
+
+import io.jsonwebtoken.JwtException;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -43,21 +46,35 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             
             if (jwtUtils.validarToken(token)) {
 
-                String username = jwtUtils.obtenerUsername(token);
+                // Los tokens de sesión de personaje (claim personajeId) los
+                // procesa CharacterSessionFilter, este filtro solo autentica
+                // el JWT de usuario.
+                if (jwtUtils.esTokenSesionPersonaje(token)) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
 
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                
-                UsernamePasswordAuthenticationToken auth =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities()
-                        );
+                try {
+                    String username = jwtUtils.obtenerUsername(token);
 
-                auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                SecurityContextHolder.getContext().setAuthentication(auth);
-                logger.info("Request a: " + request.getRequestURI());
+                    UsernamePasswordAuthenticationToken auth =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails,
+                                    null,
+                                    userDetails.getAuthorities()
+                            );
+
+                    auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                    SecurityContextHolder.getContext().setAuthentication(auth);
+                    logger.info("Request a: " + request.getRequestURI());
+                } catch (UsernameNotFoundException | JwtException e) {
+                    // Usuario inexistente o token no válido para el filtro de usuario:
+                    // se deja pasar sin autenticación (lo resolverá CharacterSessionFilter o 401).
+                    logger.warn("No se pudo autenticar el token de usuario: " + e.getMessage());
+                }
             }
         }
 

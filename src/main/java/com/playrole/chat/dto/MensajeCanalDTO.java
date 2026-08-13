@@ -17,6 +17,9 @@ public class MensajeCanalDTO {
     private boolean esMio;
     private boolean eliminado;
     private boolean eliminadoPorModerador;
+    private Integer mensajePadreId;
+    private String mensajePadreAutor;
+    private String mensajePadreContenido;
 
     public static MensajeCanalDTO fromEntity(MensajeCanal mensaje, Integer currentPersonajeId) {
         MensajeCanalDTO dto = new MensajeCanalDTO();
@@ -31,6 +34,11 @@ public class MensajeCanalDTO {
         dto.setEsMio(mensaje.getPersonaje().getIdPersonaje().equals(currentPersonajeId));
         dto.setEliminado(mensaje.isEliminado());
         dto.setEliminadoPorModerador(mensaje.isEliminadoPorModerador());
+        if (mensaje.getMensajePadre() != null) {
+            dto.setMensajePadreId(mensaje.getMensajePadre().getIdMensaje());
+        }
+        dto.setMensajePadreAutor(mensaje.getMensajePadreAutor());
+        dto.setMensajePadreContenido(mensaje.getMensajePadreContenido());
         return dto;
     }
 
@@ -66,4 +74,13 @@ public class MensajeCanalDTO {
 
     public boolean isEliminadoPorModerador() { return eliminadoPorModerador; }
     public void setEliminadoPorModerador(boolean eliminadoPorModerador) { this.eliminadoPorModerador = eliminadoPorModerador; }
+
+    public Integer getMensajePadreId() { return mensajePadreId; }
+    public void setMensajePadreId(Integer mensajePadreId) { this.mensajePadreId = mensajePadreId; }
+
+    public String getMensajePadreAutor() { return mensajePadreAutor; }
+    public void setMensajePadreAutor(String mensajePadreAutor) { this.mensajePadreAutor = mensajePadreAutor; }
+
+    public String getMensajePadreContenido() { return mensajePadreContenido; }
+    public void setMensajePadreContenido(String mensajePadreContenido) { this.mensajePadreContenido = mensajePadreContenido; }
 }

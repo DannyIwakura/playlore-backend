@@ -8,6 +8,7 @@ import java.nio.file.Paths;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -269,18 +270,18 @@ public class PerfilPersonajeServiceImpl implements IPerfilPersonajeService {
 
         String contentType = file.getContentType();
 
-        if (contentType == null) {
-            throw new IllegalArgumentException("No se puede determinar el tipo de archivo");
-        }
-
-        boolean valido = contentType.equals("image/jpeg")
-                      || contentType.equals("image/png")
-                      || contentType.equals("image/webp");
-
-        if (!valido) {
+        if (contentType == null || !Set.of("image/jpeg", "image/png", "image/webp").contains(contentType)) {
             throw new InvalidImageTypeException(
             	    "avatarFile",
             	    "Formato no permitido. Solo JPG, PNG y WEBP"
+            	);
+        }
+
+        String tipoReal = com.playrole.utils.ImageFileValidator.detectarTipoReal(file);
+        if (tipoReal == null || !Set.of("jpeg", "png", "webp").contains(tipoReal)) {
+            throw new InvalidImageTypeException(
+            	    "avatarFile",
+            	    "El archivo no es una imagen válida"
             	);
         }
     }

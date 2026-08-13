@@ -25,6 +25,8 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 
+import org.hibernate.annotations.BatchSize;
+
 @Entity
 @Table(name = "perfiles_personajes")
 @NamedQueries({
@@ -65,6 +67,7 @@ public class PerfilPersonaje implements Serializable {
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     private Usuario userId;
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = "idPersonaje", fetch = FetchType.EAGER)
+    @BatchSize(size = 50)
     private List<PersonajeCategoria> personajeCategoriaList;
 
     public PerfilPersonaje() {

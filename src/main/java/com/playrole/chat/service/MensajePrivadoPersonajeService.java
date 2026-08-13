@@ -3,9 +3,11 @@ package com.playrole.chat.service;
 import com.playrole.chat.dto.MensajePrivadoPersonajeDTO;
 import com.playrole.chat.model.MensajePrivadoPersonaje;
 import com.playrole.chat.repository.MensajePrivadoPersonajeRepository;
+import com.playrole.exception.AccessDeniedException;
 import com.playrole.exception.BadRequestException;
 import com.playrole.exception.ResourceNotFoundException;
 import com.playrole.model.PerfilPersonaje;
+import com.playrole.repository.BaneoGlobalRepository;
 import com.playrole.repository.PerfilPersonajeRepositoryInterface;
 import com.playrole.utils.HtmlUtils;
 import jakarta.transaction.Transactional;
@@ -21,13 +23,16 @@ public class MensajePrivadoPersonajeService {
     private final MensajePrivadoPersonajeRepository mensajeRepository;
     private final PerfilPersonajeRepositoryInterface personajeRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final BaneoGlobalRepository baneoGlobalRepository;
 
     public MensajePrivadoPersonajeService(MensajePrivadoPersonajeRepository mensajeRepository,
                                            PerfilPersonajeRepositoryInterface personajeRepository,
-                                           SimpMessagingTemplate messagingTemplate) {
+                                           SimpMessagingTemplate messagingTemplate,
+                                           BaneoGlobalRepository baneoGlobalRepository) {
         this.mensajeRepository = mensajeRepository;
         this.personajeRepository = personajeRepository;
         this.messagingTemplate = messagingTemplate;
+        this.baneoGlobalRepository = baneoGlobalRepository;
     }
 
     @Transactional
@@ -38,6 +43,11 @@ public class MensajePrivadoPersonajeService {
 
         PerfilPersonaje emisor = personajeRepository.findById(emisorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Personaje emisor no encontrado"));
+
+        if (baneoGlobalRepository.existsActivoByUsuarioOPersonaje(
+                emisor.getUserId().getUserId(), emisorId)) {
+            throw new AccessDeniedException("Tu cuenta o personaje está suspendido.");
+        }
 
         PerfilPersonaje receptor = personajeRepository.findById(receptorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Personaje receptor no encontrado"));

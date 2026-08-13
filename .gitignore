@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Subidas de usuarios (avatares, galerías, imágenes de canales)
+uploads/
+

@@ -18,6 +18,8 @@ public interface ISolicitudAmistadService {
 
     SolicitudAmistadDTO aceptarSolicitud(Integer idSolicitud);
 
+    SolicitudAmistadDTO rechazarSolicitud(Integer idSolicitud);
+
     boolean existeSolicitud(Integer emisorId, Integer receptorId);
     
     public List<AmigoDTO> obtenerAmigos(Integer userId);

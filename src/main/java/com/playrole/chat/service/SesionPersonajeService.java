@@ -4,10 +4,12 @@ import com.playrole.chat.auth.SessionJwtUtils;
 import com.playrole.chat.dto.SesionPersonajeDTO;
 import com.playrole.chat.model.SesionPersonaje;
 import com.playrole.chat.repository.SesionPersonajeRepository;
+import com.playrole.exception.AccessDeniedException;
 import com.playrole.exception.BadRequestException;
 import com.playrole.exception.ResourceNotFoundException;
 import com.playrole.model.PerfilPersonaje;
 import com.playrole.model.Usuario;
+import com.playrole.repository.BaneoGlobalRepository;
 import com.playrole.repository.PerfilPersonajeRepositoryInterface;
 import com.playrole.repository.UsuarioRepositoryInterface;
 import jakarta.transaction.Transactional;
@@ -25,15 +27,18 @@ public class SesionPersonajeService {
     private final UsuarioRepositoryInterface usuarioRepository;
     private final PerfilPersonajeRepositoryInterface personajeRepository;
     private final SessionJwtUtils sessionJwtUtils;
+    private final BaneoGlobalRepository baneoGlobalRepository;
 
     public SesionPersonajeService(SesionPersonajeRepository sesionRepository,
                                    UsuarioRepositoryInterface usuarioRepository,
                                    PerfilPersonajeRepositoryInterface personajeRepository,
-                                   SessionJwtUtils sessionJwtUtils) {
+                                   SessionJwtUtils sessionJwtUtils,
+                                   BaneoGlobalRepository baneoGlobalRepository) {
         this.sesionRepository = sesionRepository;
         this.usuarioRepository = usuarioRepository;
         this.personajeRepository = personajeRepository;
         this.sessionJwtUtils = sessionJwtUtils;
+        this.baneoGlobalRepository = baneoGlobalRepository;
     }
 
     @Transactional
@@ -46,6 +51,10 @@ public class SesionPersonajeService {
 
         if (!personaje.getUserId().getUserId().equals(usuarioId)) {
             throw new BadRequestException("Este personaje no te pertenece");
+        }
+
+        if (baneoGlobalRepository.existsActivoByUsuarioOPersonaje(usuarioId, personajeId)) {
+            throw new AccessDeniedException("Tu cuenta o personaje está suspendido.");
         }
 
         // Limpiar sesiones expiradas antes de contar
@@ -98,6 +107,15 @@ public class SesionPersonajeService {
     @Transactional
     public void cerrarTodasSesiones(Integer usuarioId) {
         List<SesionPersonaje> sesiones = sesionRepository.findActivasByUsuario(usuarioId);
+        for (SesionPersonaje sesion : sesiones) {
+            sesion.setActiva(false);
+        }
+        sesionRepository.saveAll(sesiones);
+    }
+
+    @Transactional
+    public void cerrarSesionesDePersonaje(Integer personajeId) {
+        List<SesionPersonaje> sesiones = sesionRepository.findActivasByPersonaje(personajeId);
         for (SesionPersonaje sesion : sesiones) {
             sesion.setActiva(false);
         }

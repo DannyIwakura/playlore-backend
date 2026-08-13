@@ -1,5 +1,6 @@
 package com.playrole.chat.service;
 
+import com.playrole.chat.dto.BaneadoCanalDTO;
 import com.playrole.chat.dto.CanalDTO;
 import com.playrole.chat.dto.CrearCanalDTO;
 import com.playrole.chat.dto.EditarCanalDTO;
@@ -304,6 +305,29 @@ public class CanalService {
         messagingTemplate.convertAndSend(
                 "/topic/privado." + objetivoId,
                 (Object) Map.of("tipo", "BANEADO", "canalId", canalId));
+    }
+
+    @Transactional
+    public void desbanearMiembro(Integer canalId, Integer objetivoId, Integer solicitanteId) {
+        permissionService.verificarPermiso(canalId, solicitanteId, PermisoCanal.GESTIONAR_MIEMBROS);
+
+        BaneoCanal baneo = baneoRepository
+                .findByCanalIdCanalAndPersonajeIdPersonaje(canalId, objetivoId)
+                .orElseThrow(() -> new ResourceNotFoundException("El personaje no está baneado de este canal"));
+
+        baneoRepository.delete(baneo);
+
+        messagingTemplate.convertAndSend(
+                "/topic/privado." + objetivoId,
+                (Object) Map.of("tipo", "DESBANEADO", "canalId", canalId));
+    }
+
+    public List<BaneadoCanalDTO> listarBaneados(Integer canalId, Integer personajeId) {
+        permissionService.verificarPermiso(canalId, personajeId, PermisoCanal.GESTIONAR_MIEMBROS);
+
+        return baneoRepository.findByCanalIdCanalOrderByFechaBaneoDesc(canalId).stream()
+                .map(BaneadoCanalDTO::fromEntity)
+                .collect(Collectors.toList());
     }
 
     @Transactional

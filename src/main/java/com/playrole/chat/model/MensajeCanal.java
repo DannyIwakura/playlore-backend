@@ -45,6 +45,17 @@ public class MensajeCanal implements Serializable {
     @Column(name = "eliminado_por_moderador", nullable = false)
     private boolean eliminadoPorModerador = false;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "mensaje_padre_id")
+    private MensajeCanal mensajePadre;
+
+    @Column(name = "mensaje_padre_autor")
+    private String mensajePadreAutor;
+
+    @Lob
+    @Column(name = "mensaje_padre_contenido", columnDefinition = "LONGTEXT")
+    private String mensajePadreContenido;
+
     public MensajeCanal() {}
 
     public Integer getIdMensaje() { return idMensaje; }
@@ -73,6 +84,15 @@ public class MensajeCanal implements Serializable {
 
     public boolean isEliminadoPorModerador() { return eliminadoPorModerador; }
     public void setEliminadoPorModerador(boolean eliminadoPorModerador) { this.eliminadoPorModerador = eliminadoPorModerador; }
+
+    public MensajeCanal getMensajePadre() { return mensajePadre; }
+    public void setMensajePadre(MensajeCanal mensajePadre) { this.mensajePadre = mensajePadre; }
+
+    public String getMensajePadreAutor() { return mensajePadreAutor; }
+    public void setMensajePadreAutor(String mensajePadreAutor) { this.mensajePadreAutor = mensajePadreAutor; }
+
+    public String getMensajePadreContenido() { return mensajePadreContenido; }
+    public void setMensajePadreContenido(String mensajePadreContenido) { this.mensajePadreContenido = mensajePadreContenido; }
 
     @Override
     public int hashCode() {

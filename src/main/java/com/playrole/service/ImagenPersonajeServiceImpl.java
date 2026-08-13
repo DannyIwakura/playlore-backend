@@ -32,6 +32,11 @@ public class ImagenPersonajeServiceImpl implements IImagenPersonajeService {
     private static final int MAX_WIDTH = 1920;
     private static final int MAX_HEIGHT = 1920;
 
+    private static final java.util.Set<String> CONTENT_TYPES_PERMITIDOS =
+            java.util.Set.of("image/jpeg", "image/png", "image/webp", "image/gif");
+    private static final java.util.Set<String> TIPOS_REALES_PERMITIDOS =
+            java.util.Set.of("jpeg", "png", "webp", "gif");
+
     private final ImagenPersonajeRepositoryInterface imagenRepository;
     private final PerfilPersonajeRepositoryInterface personajeRepository;
 
@@ -148,17 +153,16 @@ public class ImagenPersonajeServiceImpl implements IImagenPersonajeService {
 
     private void validarTipoImagen(MultipartFile file) {
         String contentType = file.getContentType();
-        if (contentType == null) {
-            throw new IllegalArgumentException("No se puede determinar el tipo de archivo");
-        }
-        boolean valido = contentType.equals("image/jpeg")
-                || contentType.equals("image/png")
-                || contentType.equals("image/webp")
-                || contentType.equals("image/gif");
-        if (!valido) {
+        if (contentType == null || !CONTENT_TYPES_PERMITIDOS.contains(contentType)) {
             throw new InvalidImageTypeException(
                     "imagenFile",
                     "Formato no permitido. Solo JPG, PNG, WEBP y GIF");
+        }
+        String tipoReal = com.playrole.utils.ImageFileValidator.detectarTipoReal(file);
+        if (tipoReal == null || !TIPOS_REALES_PERMITIDOS.contains(tipoReal)) {
+            throw new InvalidImageTypeException(
+                    "imagenFile",
+                    "El archivo no es una imagen válida");
         }
     }
 }

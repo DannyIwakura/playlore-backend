@@ -1,6 +1,7 @@
 package com.playrole.chat.controller;
 
 import com.playrole.chat.auth.CharacterSessionPrincipal;
+import com.playrole.chat.dto.BaneadoCanalDTO;
 import com.playrole.chat.dto.CanalDTO;
 import com.playrole.chat.dto.CrearCanalDTO;
 import com.playrole.chat.dto.EditarCanalDTO;
@@ -109,6 +110,22 @@ public class CanalController {
         String duracion = body.get("duracion");
         canalService.banearMiembro(id, personajeId, solicitanteId, duracion);
         return ResponseEntity.ok(Map.of("mensaje", "Personaje baneado del canal"));
+    }
+
+    @DeleteMapping("/{id}/miembros/{personajeId}/ban")
+    public ResponseEntity<Map<String, String>> desbanear(@PathVariable Integer id,
+                                                         @PathVariable Integer personajeId,
+                                                         Authentication authentication) {
+        Integer solicitanteId = obtenerPersonajeId(authentication);
+        canalService.desbanearMiembro(id, personajeId, solicitanteId);
+        return ResponseEntity.ok(Map.of("mensaje", "Personaje desbaneado del canal"));
+    }
+
+    @GetMapping("/{id}/baneados")
+    public ResponseEntity<List<BaneadoCanalDTO>> listarBaneados(@PathVariable Integer id,
+                                                                Authentication authentication) {
+        Integer personajeId = obtenerPersonajeId(authentication);
+        return ResponseEntity.ok(canalService.listarBaneados(id, personajeId));
     }
 
     @PutMapping("/{id}/miembros/{personajeId}/rol")

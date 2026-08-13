@@ -29,7 +29,10 @@ public class ChatWebSocketController {
         Integer personajeId = Integer.parseInt(principal.getName());
         String contenido = payload.get("contenido");
         if (contenido != null && !contenido.isBlank()) {
-            canalMensajeService.enviarMensaje(canalId, personajeId, contenido);
+            Integer mensajePadreId = payload.get("mensajePadreId") != null && !payload.get("mensajePadreId").isBlank()
+                    ? Integer.valueOf(payload.get("mensajePadreId"))
+                    : null;
+            canalMensajeService.enviarMensaje(canalId, personajeId, contenido, mensajePadreId);
         }
     }
 

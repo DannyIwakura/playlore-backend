@@ -2,11 +2,14 @@ package com.playrole.config;
 
 import com.playrole.chat.auth.CharacterSessionFilter;
 import com.playrole.security.JwtAuthenticationFilter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
@@ -17,19 +20,30 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.OncePerRequestFilter;
+
 import java.io.IOException;
 
+import tools.jackson.databind.ObjectMapper;
+import java.util.Arrays;
+import java.util.Map;
+
 @Configuration
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CharacterSessionFilter characterSessionFilter;
+    private final ObjectMapper objectMapper;
+
+    @Value("${app.cors.allowed-origins:http://localhost:5173,http://127.0.0.1:5173}")
+    private String allowedOrigins;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
-                          CharacterSessionFilter characterSessionFilter) {
+                          CharacterSessionFilter characterSessionFilter,
+                          ObjectMapper objectMapper) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.characterSessionFilter = characterSessionFilter;
+        this.objectMapper = objectMapper;
     }
 
     @Bean
@@ -42,6 +56,7 @@ public class SecurityConfig {
         		// Endpoints públicos
         	    .requestMatchers(HttpMethod.POST, "/usuarios").permitAll()
         	    .requestMatchers(HttpMethod.POST, "/usuarios/login").permitAll()
+        	    .requestMatchers(HttpMethod.POST, "/usuarios/google-login").permitAll()
 
         	    // CORS preflight para cualquier origen (PNA requests incluidos)
         	    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
@@ -79,15 +94,41 @@ public class SecurityConfig {
           	    .requestMatchers(HttpMethod.PUT, "/usuarios/{id}/ultima-conexion").authenticated()
           	    .requestMatchers("/usuarios/**").hasRole("ADMIN")
 
+        	    // Denuncias: crear requiere autenticación (user JWT o session JWT),
+        	    // el resto (listar/resolver) solo ADMIN o MOD
+        	    .requestMatchers(HttpMethod.POST, "/denuncias").authenticated()
+        	    .requestMatchers("/denuncias/**").hasAnyRole("ADMIN", "MOD")
+
+        	    // Moderación (baneos globales): solo ADMIN o MOD
+        	    .requestMatchers("/moderacion/**").hasAnyRole("ADMIN", "MOD")
+
         	    // Todo lo demás requiere autenticación
         	    .anyRequest().authenticated()
             )
-            
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint((request, response, authException) ->
+                    escribirJson(response, jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED,
+                            "No autenticado o sesión caducada"))
+                .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    String mensaje = (accessDeniedException instanceof com.playrole.exception.AccessDeniedException)
+                            ? accessDeniedException.getMessage()
+                            : "No tienes permisos para realizar esta acción";
+                    escribirJson(response, jakarta.servlet.http.HttpServletResponse.SC_FORBIDDEN, mensaje);
+                })
+            )
+
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterAfter(characterSessionFilter, JwtAuthenticationFilter.class)
-            .addFilterAfter(pnaHeaderFilter(), BasicAuthenticationFilter.class);
+            .addFilterAfter(characterSessionFilter, JwtAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    private void escribirJson(jakarta.servlet.http.HttpServletResponse response, int status, String mensaje)
+            throws IOException {
+        response.setStatus(status);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding("UTF-8");
+        objectMapper.writeValue(response.getWriter(), Map.of("error", mensaje));
     }
 
     //necesario para encriptar contraseñas
@@ -104,7 +145,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.addAllowedOriginPattern("*");
+        Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .forEach(config::addAllowedOrigin);
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
         config.setAllowCredentials(true);
@@ -112,19 +156,5 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
-    }
-
-    @Bean
-    public OncePerRequestFilter pnaHeaderFilter() {
-        return new OncePerRequestFilter() {
-            @Override
-            protected void doFilterInternal(jakarta.servlet.http.HttpServletRequest request,
-                    jakarta.servlet.http.HttpServletResponse response,
-                    jakarta.servlet.FilterChain chain)
-                    throws jakarta.servlet.ServletException, IOException {
-                response.addHeader("Access-Control-Allow-Private-Network", "true");
-                chain.doFilter(request, response);
-            }
-        };
     }
 }

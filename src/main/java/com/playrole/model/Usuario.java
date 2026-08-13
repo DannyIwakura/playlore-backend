@@ -61,10 +61,6 @@ public class Usuario implements Serializable {
     private List<SolicitudAmistad> solicitudAmistadList;
     @OneToMany(mappedBy = "receptorId", fetch = FetchType.EAGER)
     private List<SolicitudAmistad> solicitudAmistadList1;
-    @OneToMany(mappedBy = "emisorId", fetch = FetchType.EAGER)
-    private List<MensajePrivado> mensajePrivadoList;
-    @OneToMany(mappedBy = "receptorId", fetch = FetchType.EAGER)
-    private List<MensajePrivado> mensajePrivadoList1;
 
     public Usuario() {
     }
@@ -171,22 +167,6 @@ public class Usuario implements Serializable {
 
     public void setSolicitudAmistadList1(List<SolicitudAmistad> solicitudAmistadList1) {
         this.solicitudAmistadList1 = solicitudAmistadList1;
-    }
-
-    public List<MensajePrivado> getMensajePrivadoList() {
-        return mensajePrivadoList;
-    }
-
-    public void setMensajePrivadoList(List<MensajePrivado> mensajePrivadoList) {
-        this.mensajePrivadoList = mensajePrivadoList;
-    }
-
-    public List<MensajePrivado> getMensajePrivadoList1() {
-        return mensajePrivadoList1;
-    }
-
-    public void setMensajePrivadoList1(List<MensajePrivado> mensajePrivadoList1) {
-        this.mensajePrivadoList1 = mensajePrivadoList1;
     }
 
     @Override

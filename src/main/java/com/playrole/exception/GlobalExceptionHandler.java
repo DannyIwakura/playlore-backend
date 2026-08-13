@@ -5,9 +5,13 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.server.ResponseStatusException;
 
 //calse que captura excepciones de toda la app
 @RestControllerAdvice
@@ -56,6 +60,55 @@ public class GlobalExceptionHandler {
         error.put("error", ex.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
     }
+
+    // Acceso denegado lanzado por @PreAuthorize / method security de Spring
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<Map<String, String>> handleSpringAccessDenied(
+            org.springframework.security.access.AccessDeniedException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", "No tienes permisos para realizar esta acción");
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
+    // Demasiadas peticiones (rate limiting)
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<Map<String, String>> handleTooManyRequests(TooManyRequestsException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(error);
+    }
+
+    // Parámetro de consulta inválido (p.ej. estado=FALSE)
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, String>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", "Valor no válido para el parámetro '" + ex.getName() + "'");
+        return ResponseEntity.badRequest().body(error);
+    }
+
+    // Parámetro de consulta obligatorio ausente
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<Map<String, String>> handleMissingParam(MissingServletRequestParameterException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", "Falta el parámetro '" + ex.getParameterName() + "'");
+        return ResponseEntity.badRequest().body(error);
+    }
+
+    // Cuerpo JSON inválido o mal formado
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, String>> handleNotReadable(HttpMessageNotReadableException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", "El cuerpo de la petición no es válido");
+        return ResponseEntity.badRequest().body(error);
+    }
+
+    // Excepciones con estado HTTP explícito (p.ej. ResponseStatusException del servicio de usuarios)
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, String>> handleResponseStatus(ResponseStatusException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", ex.getReason() != null ? ex.getReason() : "Error en la petición");
+        return ResponseEntity.status(ex.getStatusCode()).body(error);
+    }
     
     //manejo de errores a la hora validr los tipos de archivo permititos
     @ExceptionHandler(InvalidImageTypeException.class)
@@ -71,9 +124,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidImageException.class)
     public ResponseEntity<Map<String, String>> handleInvalidImage(InvalidImageException ex) {
 
-    	ex.printStackTrace();
         Map<String, String> error = new HashMap<>();
-        error.put("message", ex.getMessage());
+        error.put("error", ex.getMessage());
 
         return ResponseEntity.badRequest().body(error);
     }
