@@ -79,35 +79,40 @@ public class CanalService {
 
     public List<CanalDTO> listarCanalesDisponibles(Integer personajeId) {
         List<Canal> canales = canalRepository.findByVisibleTrueOrderByFechaCreacionDesc();
-        return canales.stream()
-                .map(c -> {
-                    CanalDTO dto = CanalDTO.fromEntity(c);
-                    dto.setMiembroCount((int) miembroRepository.countByCanalId(c.getIdCanal()));
-                    permissionService.obtenerRol(c.getIdCanal(), personajeId)
-                            .ifPresent(rol -> dto.setMiRol(rol.name()));
-                    return dto;
-                })
-                .collect(Collectors.toList());
+        return construirDTOs(canales, personajeId, true);
     }
 
     public List<CanalDTO> listarCanalesUnidos(Integer personajeId) {
         List<Canal> canales = canalRepository.findCanalesDePersonaje(personajeId);
-        return canales.stream()
-                .map(c -> {
-                    CanalDTO dto = CanalDTO.fromEntity(c);
-                    dto.setMiembroCount((int) miembroRepository.countByCanalId(c.getIdCanal()));
-                    permissionService.obtenerRol(c.getIdCanal(), personajeId)
-                            .ifPresent(rol -> dto.setMiRol(rol.name()));
-                    return dto;
-                })
-                .collect(Collectors.toList());
+        return construirDTOs(canales, personajeId, true);
     }
 
     public List<CanalDTO> listarCanalesPublicosNoUnidos(Integer personajeId) {
-        return canalRepository.findCanalesPublicosNoUnidos(personajeId).stream()
+        List<Canal> canales = canalRepository.findCanalesPublicosNoUnidos(personajeId);
+        return construirDTOs(canales, personajeId, false);
+    }
+
+    private List<CanalDTO> construirDTOs(List<Canal> canales, Integer personajeId, boolean incluirMiRol) {
+        if (canales.isEmpty()) return List.of();
+
+        List<Integer> canalIds = canales.stream().map(Canal::getIdCanal).collect(Collectors.toList());
+        Map<Integer, Long> conteos = miembroRepository.countByCanalIn(canalIds).stream()
+                .collect(Collectors.toMap(MiembroCanalRepository.CountByCanal::getCanalId,
+                        MiembroCanalRepository.CountByCanal::getTotal));
+        Map<Integer, RolCanal> roles = incluirMiRol
+                ? miembroRepository.findRolesPorCanales(canalIds, personajeId).stream()
+                        .collect(Collectors.toMap(MiembroCanalRepository.RolPorCanal::getCanalId,
+                                MiembroCanalRepository.RolPorCanal::getRol))
+                : Map.of();
+
+        return canales.stream()
                 .map(c -> {
                     CanalDTO dto = CanalDTO.fromEntity(c);
-                    dto.setMiembroCount((int) miembroRepository.countByCanalId(c.getIdCanal()));
+                    dto.setMiembroCount(conteos.getOrDefault(c.getIdCanal(), 0L).intValue());
+                    if (incluirMiRol) {
+                        RolCanal rol = roles.get(c.getIdCanal());
+                        if (rol != null) dto.setMiRol(rol.name());
+                    }
                     return dto;
                 })
                 .collect(Collectors.toList());

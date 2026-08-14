@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import jakarta.transaction.Transactional;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,6 +27,26 @@ public interface MiembroCanalRepository extends JpaRepository<MiembroCanal, Inte
 
     @Query("SELECT COUNT(m) FROM MiembroCanal m WHERE m.canal.idCanal = :canalId")
     long countByCanalId(@Param("canalId") Integer canalId);
+
+    @Query("SELECT m.canal.idCanal AS canalId, COUNT(m) AS total FROM MiembroCanal m " +
+           "WHERE m.canal.idCanal IN :canalIds GROUP BY m.canal.idCanal")
+    List<CountByCanal> countByCanalIn(@Param("canalIds") Collection<Integer> canalIds);
+
+    @Query("SELECT m.canal.idCanal AS canalId, m.rol AS rol FROM MiembroCanal m " +
+           "WHERE m.canal.idCanal IN :canalIds AND m.personaje.idPersonaje = :personajeId")
+    List<RolPorCanal> findRolesPorCanales(@Param("canalIds") Collection<Integer> canalIds, @Param("personajeId") Integer personajeId);
+
+    interface CountByCanal {
+        Integer getCanalId();
+
+        Long getTotal();
+    }
+
+    interface RolPorCanal {
+        Integer getCanalId();
+
+        RolCanal getRol();
+    }
 
     boolean existsByCanalIdCanalAndPersonajeIdPersonaje(Integer canalId, Integer personajeId);
 
