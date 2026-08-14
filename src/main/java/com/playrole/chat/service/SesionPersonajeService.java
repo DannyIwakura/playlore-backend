@@ -42,7 +42,7 @@ public class SesionPersonajeService {
     }
 
     @Transactional
-    public SesionPersonajeDTO iniciarSesion(Integer usuarioId, Integer personajeId) {
+    public SesionPersonajeDTO iniciarSesion(Integer usuarioId, Integer personajeId, String ipAddress) {
         Usuario usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
@@ -86,6 +86,7 @@ public class SesionPersonajeService {
         sesion.setFechaInicio(new Date());
         sesion.setUltimaActividad(new Date());
         sesion.setActiva(true);
+        sesion.setIpAddress(ipAddress);
 
         sesion = sesionRepository.save(sesion);
 

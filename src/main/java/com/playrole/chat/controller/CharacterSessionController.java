@@ -26,13 +26,17 @@ public class CharacterSessionController {
     @PostMapping("/iniciar")
     public ResponseEntity<SesionPersonajeDTO> iniciarSesion(
             @RequestBody @Valid IniciarSesionDTO dto,
-            Authentication authentication) {
+            Authentication authentication,
+            jakarta.servlet.http.HttpServletRequest request) {
 
         Integer usuarioId = obtenerUsuarioId(authentication);
         if (usuarioId == null) {
             return ResponseEntity.status(401).build();
         }
-        SesionPersonajeDTO sesion = sesionService.iniciarSesion(usuarioId, dto.getPersonajeId());
+        // Con server.forward-headers-strategy=NATIVE Spring ya resuelve X-Forwarded-For.
+        // Usar getRemoteAddr() directamente evita que un atacante forje la cabecera.
+        SesionPersonajeDTO sesion = sesionService.iniciarSesion(usuarioId, dto.getPersonajeId(),
+                request.getRemoteAddr());
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + sesion.getTokenJwt())

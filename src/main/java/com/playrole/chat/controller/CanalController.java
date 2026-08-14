@@ -8,6 +8,7 @@ import com.playrole.chat.dto.EditarCanalDTO;
 import com.playrole.chat.dto.MiembroCanalDTO;
 import com.playrole.chat.enums.RolCanal;
 import com.playrole.chat.service.CanalService;
+import com.playrole.exception.AccessDeniedException;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -112,6 +113,26 @@ public class CanalController {
         return ResponseEntity.ok(Map.of("mensaje", "Personaje baneado del canal"));
     }
 
+    @PostMapping("/{id}/miembros/{personajeId}/silenciar")
+    public ResponseEntity<Map<String, String>> silenciar(@PathVariable Integer id,
+                                                          @PathVariable Integer personajeId,
+                                                          @RequestBody Map<String, String> body,
+                                                          Authentication authentication) {
+        Integer solicitanteId = obtenerPersonajeId(authentication);
+        String duracion = body.get("duracion");
+        canalService.silenciarMiembro(id, personajeId, solicitanteId, duracion);
+        return ResponseEntity.ok(Map.of("mensaje", "Personaje silenciado del canal"));
+    }
+
+    @DeleteMapping("/{id}/miembros/{personajeId}/silenciar")
+    public ResponseEntity<Map<String, String>> desilenciar(@PathVariable Integer id,
+                                                           @PathVariable Integer personajeId,
+                                                           Authentication authentication) {
+        Integer solicitanteId = obtenerPersonajeId(authentication);
+        canalService.desilenciarMiembro(id, personajeId, solicitanteId);
+        return ResponseEntity.ok(Map.of("mensaje", "Personaje desilenciado del canal"));
+    }
+
     @DeleteMapping("/{id}/miembros/{personajeId}/ban")
     public ResponseEntity<Map<String, String>> desbanear(@PathVariable Integer id,
                                                          @PathVariable Integer personajeId,
@@ -183,12 +204,14 @@ public class CanalController {
     }
 
     private Integer obtenerPersonajeId(Authentication authentication) {
-        if (authentication == null) return null;
+        if (authentication == null) {
+            throw new AccessDeniedException("Se requiere una sesión de personaje activa");
+        }
         Object principal = authentication.getPrincipal();
         if (principal instanceof CharacterSessionPrincipal cp) {
             return cp.getPersonajeId();
         }
-        return null;
+        throw new AccessDeniedException("Se requiere una sesión de personaje activa");
     }
 
     private boolean esAdmin(Authentication authentication) {

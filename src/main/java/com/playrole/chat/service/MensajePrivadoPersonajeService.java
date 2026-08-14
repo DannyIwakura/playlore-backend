@@ -72,6 +72,7 @@ public class MensajePrivadoPersonajeService {
         return dto;
     }
 
+    @Transactional
     public List<MensajePrivadoPersonajeDTO> obtenerConversacion(Integer personajeId1, Integer personajeId2, Integer currentPersonajeId) {
         return mensajeRepository.findConversacionEntre(personajeId1, personajeId2).stream()
                 .map(m -> {

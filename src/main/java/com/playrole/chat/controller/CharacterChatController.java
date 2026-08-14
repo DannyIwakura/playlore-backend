@@ -3,6 +3,7 @@ package com.playrole.chat.controller;
 import com.playrole.chat.auth.CharacterSessionPrincipal;
 import com.playrole.chat.dto.MensajePrivadoPersonajeDTO;
 import com.playrole.chat.service.MensajePrivadoPersonajeService;
+import com.playrole.exception.AccessDeniedException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -66,11 +67,13 @@ public class CharacterChatController {
     }
 
     private Integer obtenerPersonajeId(Authentication authentication) {
-        if (authentication == null) return null;
+        if (authentication == null) {
+            throw new AccessDeniedException("Se requiere una sesión de personaje activa");
+        }
         Object principal = authentication.getPrincipal();
         if (principal instanceof CharacterSessionPrincipal cp) {
             return cp.getPersonajeId();
         }
-        return null;
+        throw new AccessDeniedException("Se requiere una sesión de personaje activa");
     }
 }

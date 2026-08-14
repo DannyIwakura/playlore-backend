@@ -22,6 +22,7 @@ import com.playrole.exception.InvalidImageTypeException;
 import com.playrole.exception.ResourceNotFoundException;
 import com.playrole.model.PerfilPersonaje;
 import com.playrole.repository.PerfilPersonajeRepositoryInterface;
+import com.playrole.utils.ImageFileValidator;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -349,6 +350,58 @@ public class CanalService {
         miembroRepository.updateRol(canalId, objetivoId, nuevoRol);
     }
 
+    @Transactional
+    public void silenciarMiembro(Integer canalId, Integer objetivoId, Integer solicitanteId, String duracion) {
+        permissionService.verificarPermiso(canalId, solicitanteId, PermisoCanal.SILENCIAR);
+
+        if (objetivoId.equals(solicitanteId)) {
+            throw new BadRequestException("No puedes silenciarte a ti mismo");
+        }
+
+        MiembroCanal objetivo = miembroRepository
+                .findByCanalIdCanalAndPersonajeIdPersonaje(canalId, objetivoId)
+                .orElseThrow(() -> new ResourceNotFoundException("El personaje no es miembro del canal"));
+
+        if (objetivo.getRol() != RolCanal.MEMBER) {
+            throw new AccessDeniedException("Solo puedes silenciar a miembros del canal");
+        }
+
+        long millis = switch (duracion == null ? "" : duracion.toUpperCase()) {
+            case "1H" -> 3600000L;
+            case "24H" -> 86400000L;
+            case "7D" -> 604800000L;
+            default -> throw new BadRequestException("Duración no válida: " + duracion);
+        };
+        Date hasta = new Date(System.currentTimeMillis() + millis);
+
+        objetivo.setSilenciadoHasta(hasta);
+        miembroRepository.save(objetivo);
+
+        Canal canal = canalRepository.findById(canalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Canal no encontrado"));
+
+        messagingTemplate.convertAndSend(
+                "/topic/privado." + objetivoId,
+                (Object) Map.of("tipo", "SILENCIADO", "canalId", canalId,
+                        "canalNombre", canal.getNombre(), "silenciadoHasta", hasta.getTime()));
+    }
+
+    @Transactional
+    public void desilenciarMiembro(Integer canalId, Integer objetivoId, Integer solicitanteId) {
+        permissionService.verificarPermiso(canalId, solicitanteId, PermisoCanal.SILENCIAR);
+
+        MiembroCanal objetivo = miembroRepository
+                .findByCanalIdCanalAndPersonajeIdPersonaje(canalId, objetivoId)
+                .orElseThrow(() -> new ResourceNotFoundException("El personaje no es miembro del canal"));
+
+        objetivo.setSilenciadoHasta(null);
+        miembroRepository.save(objetivo);
+
+        messagingTemplate.convertAndSend(
+                "/topic/privado." + objetivoId,
+                (Object) Map.of("tipo", "DESILENCIADO", "canalId", canalId));
+    }
+
     public Page<MiembroCanalDTO> listarMiembros(Integer canalId, Integer personajeId, int page, int size) {
         permissionService.verificarPermiso(canalId, personajeId, PermisoCanal.LEER_MENSAJES);
 
@@ -501,13 +554,8 @@ public class CanalService {
     }
 
     private void validarTipoImagen(MultipartFile file) {
-        String contentType = file.getContentType();
-        if (contentType == null) {
-            throw new BadRequestException("No se puede determinar el tipo de archivo");
-        }
-        boolean valido = contentType.equals("image/jpeg")
-                      || contentType.equals("image/png")
-                      || contentType.equals("image/webp");
+        String tipoReal = ImageFileValidator.detectarTipoReal(file);
+        boolean valido = "jpeg".equals(tipoReal) || "png".equals(tipoReal) || "webp".equals(tipoReal);
         if (!valido) {
             throw new InvalidImageTypeException("imagenFile", "Formato no permitido. Solo JPG, PNG y WEBP");
         }

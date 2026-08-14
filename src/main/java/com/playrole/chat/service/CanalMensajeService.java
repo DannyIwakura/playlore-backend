@@ -4,8 +4,10 @@ import com.playrole.chat.dto.MensajeCanalDTO;
 import com.playrole.chat.enums.PermisoCanal;
 import com.playrole.chat.model.Canal;
 import com.playrole.chat.model.MensajeCanal;
+import com.playrole.chat.model.MiembroCanal;
 import com.playrole.chat.repository.CanalRepository;
 import com.playrole.chat.repository.MensajeCanalRepository;
+import com.playrole.chat.repository.MiembroCanalRepository;
 import com.playrole.exception.AccessDeniedException;
 import com.playrole.exception.BadRequestException;
 import com.playrole.exception.ResourceNotFoundException;
@@ -41,19 +43,22 @@ public class CanalMensajeService {
     private final CanalPermissionService permissionService;
     private final SimpMessagingTemplate messagingTemplate;
     private final BaneoGlobalRepository baneoGlobalRepository;
+    private final MiembroCanalRepository miembroRepository;
 
     public CanalMensajeService(MensajeCanalRepository mensajeRepository,
                                 CanalRepository canalRepository,
                                 PerfilPersonajeRepositoryInterface personajeRepository,
                                 CanalPermissionService permissionService,
                                 SimpMessagingTemplate messagingTemplate,
-                                BaneoGlobalRepository baneoGlobalRepository) {
+                                BaneoGlobalRepository baneoGlobalRepository,
+                                MiembroCanalRepository miembroRepository) {
         this.mensajeRepository = mensajeRepository;
         this.canalRepository = canalRepository;
         this.personajeRepository = personajeRepository;
         this.permissionService = permissionService;
         this.messagingTemplate = messagingTemplate;
         this.baneoGlobalRepository = baneoGlobalRepository;
+        this.miembroRepository = miembroRepository;
     }
 
     public Page<MensajeCanalDTO> obtenerMensajes(Integer canalId, Integer personajeId, int page, int size) {
@@ -75,6 +80,8 @@ public class CanalMensajeService {
                 .orElseThrow(() -> new ResourceNotFoundException("Canal no encontrado"));
 
         permissionService.verificarPermiso(canalId, personajeId, PermisoCanal.ENVIAR_MENSAJES);
+
+        verificarSilenciado(canalId, personajeId);
 
         PerfilPersonaje personaje = personajeRepository.findById(personajeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Personaje no encontrado"));
@@ -117,6 +124,18 @@ public class CanalMensajeService {
         messagingTemplate.convertAndSend("/topic/canal." + canalId, dto);
 
         return dto;
+    }
+
+    private void verificarSilenciado(Integer canalId, Integer personajeId) {
+        MiembroCanal miembro = miembroRepository
+                .findByCanalIdCanalAndPersonajeIdPersonaje(canalId, personajeId)
+                .orElseThrow(() -> new ResourceNotFoundException("El personaje no es miembro del canal"));
+
+        Date hasta = miembro.getSilenciadoHasta();
+        if (hasta != null && hasta.after(new Date())) {
+            throw new AccessDeniedException("Estás silenciado en este canal hasta "
+                    + new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(hasta));
+        }
     }
 
     private void verificarAntiFlood(Integer personajeId) {

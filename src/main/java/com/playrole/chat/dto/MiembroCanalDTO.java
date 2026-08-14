@@ -13,6 +13,7 @@ public class MiembroCanalDTO {
     private Date fechaUnion;
     private boolean online;
     private String status;
+    private Date silenciadoHasta;
 
     public static MiembroCanalDTO fromEntity(MiembroCanal miembro) {
         MiembroCanalDTO dto = new MiembroCanalDTO();
@@ -22,6 +23,7 @@ public class MiembroCanalDTO {
         dto.setPersonajeAvatar(miembro.getPersonaje().getAvatar());
         dto.setRol(miembro.getRol().name());
         dto.setFechaUnion(miembro.getFechaUnion());
+        dto.setSilenciadoHasta(miembro.getSilenciadoHasta());
         return dto;
     }
 
@@ -48,4 +50,7 @@ public class MiembroCanalDTO {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public Date getSilenciadoHasta() { return silenciadoHasta; }
+    public void setSilenciadoHasta(Date silenciadoHasta) { this.silenciadoHasta = silenciadoHasta; }
 }
