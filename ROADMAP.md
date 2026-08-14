@@ -21,7 +21,7 @@
 | L1 | Tests frontend: cobertura de composables de chat y utilidades (92 tests) | ✅ |
 | L2 | Tests backend: cobertura de servicios con Mockito (83 tests nuevos, 111 total) | ✅ |
 | L3 | Búsqueda de mensajes por canal: `GET /canales/{id}/mensajes/buscar?q=` con escape de LIKE y `GET /canales/{id}/mensajes/{mensajeId}/pagina` para saltar al resultado; buscador en `ChatWindow` | ✅ |
-| L4 | Notificaciones fuera de foco (Service Worker/Notification API) + auto-eliminación de cuenta con contraseña BCrypt y UI "Zona de peligro" | ⏳ |
+| L4 | Notificaciones fuera de foco (`notificarPush` solo con `document.hidden`; Web Push con Service Worker queda como deuda) + auto-eliminación de cuenta con contraseña BCrypt (`DELETE /usuarios/{id}` con `{password}`) y UI "Zona de peligro" | ✅ |
 | L5 | Auditoría de moderación: registro persistente de acciones de mod + listado para ADMIN | ⏳ |
 | L6 | Roadmap/AGENTS: cierre de fases y deuda documentada | ⏳ |
 
@@ -33,6 +33,9 @@
   `LoginAttemptServiceTest`; los `@SpringBootTest` existentes validan queries JPQL al arrancar.
 - L3: los resultados de búsqueda se saltan al mensaje recargando la página exacta donde está.
 - a11y: informe completo diferido (deuda documentada); solo lo crítico ya implementado.
+- L4: la auto-eliminación exige la contraseña BCrypt del propio usuario (400 si falta, 403 si es incorrecta);
+  ADMIN/MOD puede eliminar a otros sin contraseña. Las cuentas creadas por Google no pueden auto-eliminarse
+  (guardan un password UUID aleatorio) y deben solicitarlo a un ADMIN.
 
 ## Fase 3 — checklist por lote
 
