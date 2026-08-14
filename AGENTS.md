@@ -41,6 +41,17 @@ API REST de PlayLore/PlayRole. Spring Boot 4.0.3, Java 21, Maven (wrapper `.\mvn
   auto-configura Spring Boot 4. NO inyectar `com.fasterxml.jackson.databind.ObjectMapper` (Jackson 2, solo presente por `jjwt-jackson`, sin bean).
 - Rate-limit de login (incl. `/google-login`) por IP vía `LoginAttemptService`; `server.forward-headers-strategy=NATIVE` para IP real tras proxy.
 
+## Auditoría de moderación
+
+- Toda acción de moderación (baneo de cuenta/personaje, desbaneo, resolución de denuncia) debe registrarse
+  con `AuditoriaModeracionService.registrar(...)` (ejemplos en `BaneoGlobalService` y `DenunciaService`).
+- `RegistroModeracion` guarda SNAPSHOTS (ids + nombres del moderador y del objetivo), NO claves foráneas:
+  el registro sobrevive a la eliminación de usuarios/personajes. No añadir FKs a esa entidad.
+- Listado para ADMIN/MOD: `GET /moderacion/auditoria` (orden descendente por fecha).
+- Auto-eliminación de cuenta: `DELETE /usuarios/{id}` con `{password}` verifica BCrypt para el propio usuario
+  (400 si falta, 403 si es incorrecta); ADMIN/MOD elimina a otros sin contraseña. Las cuentas de Google no pueden
+  auto-eliminarse (password UUID) y deben pedirlo a un ADMIN.
+
 ## Estructura destacada
 
 - `controller/`: REST (Usuarios, Personajes, Amistades, Denuncias, Moderación, Categorías...)

@@ -11,7 +11,7 @@
 | F2 — Chat por canales/WebSocket y sesiones de personaje | ✅ Completada |
 | F3 — Mejora continua (lotes 0-6) | ✅ Completada |
 | F4 — Deuda diferida (lotes 0-7) | ✅ Completada |
-| F5 — Calidad de ingeniería + mejoras de producto (en curso) | 🚧 |
+| F5 — Calidad de ingeniería + mejoras de producto | ✅ Completada |
 
 ## Fase 5 — checklist por lote
 
@@ -23,7 +23,7 @@
 | L3 | Búsqueda de mensajes por canal: `GET /canales/{id}/mensajes/buscar?q=` con escape de LIKE y `GET /canales/{id}/mensajes/{mensajeId}/pagina` para saltar al resultado; buscador en `ChatWindow` | ✅ |
 | L4 | Notificaciones fuera de foco (`notificarPush` solo con `document.hidden`; Web Push con Service Worker queda como deuda) + auto-eliminación de cuenta con contraseña BCrypt (`DELETE /usuarios/{id}` con `{password}`) y UI "Zona de peligro" | ✅ |
 | L5 | Auditoría de moderación: registro persistente de acciones de mod (snapshots, sin FK) + `GET /moderacion/auditoria` para ADMIN/MOD + vista en `AdminPanel` | ✅ |
-| L6 | Roadmap/AGENTS: cierre de fases y deuda documentada | ⏳ |
+| L6 | Roadmap/AGENTS: cierre de fases y deuda documentada | ✅ |
 
 ## Decisiones de alcance (Fase 5)
 
