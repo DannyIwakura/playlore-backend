@@ -15,6 +15,13 @@ public interface MensajeCanalRepository extends JpaRepository<MensajeCanal, Inte
            "ORDER BY m.fechaEnvio DESC")
     Page<MensajeCanal> findMensajesByCanal(@Param("canalId") Integer canalId, Pageable pageable);
 
+    @Query("SELECT m FROM MensajeCanal m WHERE m.canal.idCanal = :canalId " +
+           "AND m.eliminado = FALSE " +
+           "AND LOWER(CAST(m.contenido AS string)) LIKE LOWER(CONCAT('%', :termino, '%')) ESCAPE '!' " +
+           "ORDER BY m.fechaEnvio DESC")
+    Page<MensajeCanal> buscarEnCanal(@Param("canalId") Integer canalId,
+                                     @Param("termino") String termino, Pageable pageable);
+
     @Modifying
     @Transactional
     @Query("DELETE FROM MensajeCanal m WHERE m.canal.idCanal = :canalId")

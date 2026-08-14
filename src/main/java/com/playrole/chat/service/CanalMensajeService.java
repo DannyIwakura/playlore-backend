@@ -69,6 +69,25 @@ public class CanalMensajeService {
                 .map(m -> MensajeCanalDTO.fromEntity(m, personajeId));
     }
 
+    public Page<MensajeCanalDTO> buscarMensajes(Integer canalId, Integer personajeId, String q, int page, int size) {
+        permissionService.verificarPermiso(canalId, personajeId, PermisoCanal.LEER_MENSAJES);
+
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "fechaEnvio"));
+        return mensajeRepository.buscarEnCanal(canalId, escaparLike(q), pageRequest)
+                .map(m -> MensajeCanalDTO.fromEntity(m, personajeId));
+    }
+
+    /**
+     * Escapa los caracteres comodín de LIKE ('%' y '_') y el escape '!'
+     * para que la búsqueda sea literal y no se pueda inyectar patrones.
+     */
+    private String escaparLike(String q) {
+        if (q == null) {
+            return "";
+        }
+        return q.replace("!", "!!").replace("%", "!%").replace("_", "!_");
+    }
+
     @Transactional
     public MensajeCanalDTO enviarMensaje(Integer canalId, Integer personajeId, String contenido) {
         return enviarMensaje(canalId, personajeId, contenido, null);

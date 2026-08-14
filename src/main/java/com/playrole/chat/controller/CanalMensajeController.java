@@ -30,6 +30,17 @@ public class CanalMensajeController {
         return ResponseEntity.ok(mensajeService.obtenerMensajes(canalId, personajeId, page, size));
     }
 
+    @GetMapping("/buscar")
+    public ResponseEntity<Page<MensajeCanalDTO>> buscarMensajes(
+            @PathVariable Integer canalId,
+            @RequestParam String q,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            Authentication authentication) {
+        Integer personajeId = obtenerPersonajeId(authentication);
+        return ResponseEntity.ok(mensajeService.buscarMensajes(canalId, personajeId, q, page, size));
+    }
+
     @PostMapping
     public ResponseEntity<MensajeCanalDTO> enviarMensaje(
             @PathVariable Integer canalId,
