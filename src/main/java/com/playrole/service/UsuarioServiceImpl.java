@@ -25,6 +25,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.playrole.dto.LoginDTO;
 import com.playrole.dto.UsuarioCrearDTO;
@@ -42,6 +44,8 @@ import jakarta.validation.Valid;
 
 @Service
 public class UsuarioServiceImpl implements IUsuarioService {
+
+    private static final Logger log = LoggerFactory.getLogger(UsuarioServiceImpl.class);
 
     @Autowired
     private UsuarioRepositoryInterface usuarioRepositorio;
@@ -121,7 +125,7 @@ public class UsuarioServiceImpl implements IUsuarioService {
         	    usuario.setAvatar(avatarUrl);
 
         	} catch (Exception e) {
-        	    e.printStackTrace();
+        	    log.error("Error al subir el avatar", e);
         	    throw new RuntimeException("Error al subir el avatar", e);
         	}
 
@@ -189,7 +193,7 @@ public class UsuarioServiceImpl implements IUsuarioService {
                 usuarioExistente.setAvatar(avatarUrl);
 
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error("Error al subir el avatar", e);
                 throw new RuntimeException("Error al subir el avatar", e);
             }
         }

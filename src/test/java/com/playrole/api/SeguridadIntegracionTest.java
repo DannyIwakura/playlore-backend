@@ -23,10 +23,14 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.playrole.enums.EstadoPersonaje;
 import com.playrole.enums.EstadoSolicitud;
 import com.playrole.enums.RolUsuario;
+import com.playrole.enums.TipoCategoria;
+import com.playrole.model.Categoria;
 import com.playrole.model.PerfilPersonaje;
 import com.playrole.model.SolicitudAmistad;
 import com.playrole.model.Usuario;
+import com.playrole.repository.CategoríaRepositoryInterface;
 import com.playrole.repository.PerfilPersonajeRepositoryInterface;
+import com.playrole.repository.PersonajeCategoriaRepositoryInterface;
 import com.playrole.repository.SolicitudAmistadRespositoryInterface;
 import com.playrole.repository.UsuarioRepositoryInterface;
 import com.playrole.security.CustomUserDetails;
@@ -50,6 +54,12 @@ class SeguridadIntegracionTest {
 	private SolicitudAmistadRespositoryInterface amistadRepo;
 
 	@Autowired
+	private CategoríaRepositoryInterface categoriaRepo;
+
+	@Autowired
+	private PersonajeCategoriaRepositoryInterface personajeCategoriaRepo;
+
+	@Autowired
 	private PasswordEncoder passwordEncoder;
 
 	@Autowired
@@ -57,6 +67,8 @@ class SeguridadIntegracionTest {
 
 	@BeforeEach
 	void limpiarBase() {
+		personajeCategoriaRepo.deleteAll();
+		categoriaRepo.deleteAll();
 		personajeRepo.deleteAll();
 		amistadRepo.deleteAll();
 		usuarioRepo.deleteAll();
@@ -96,6 +108,13 @@ class SeguridadIntegracionTest {
 		p.setUserId(propietario);
 		p.setFechaCreacion(new Date());
 		return personajeRepo.save(p);
+	}
+
+	private Categoria crearCategoria(String nombre) {
+		Categoria c = new Categoria();
+		c.setNombre(nombre);
+		c.setTipo(TipoCategoria.FANDOM);
+		return categoriaRepo.save(c);
 	}
 
 	@Test
@@ -207,5 +226,65 @@ class SeguridadIntegracionTest {
 
 		PerfilPersonaje actualizado = personajeRepo.findById(p.getIdPersonaje()).orElseThrow();
 		assertEquals(EstadoPersonaje.DESACTIVADO, actualizado.getEstado());
+	}
+
+	@Test
+	void cambiarStatusPersonajeDeOtro_devuelve403_yPropio_devuelve200() throws Exception {
+		Usuario alice = crearUsuario("alice", RolUsuario.USER);
+		Usuario bob = crearUsuario("bob", RolUsuario.USER);
+		PerfilPersonaje p = crearPersonaje(alice);
+
+		mockMvc.perform(put("/personajes/" + p.getIdPersonaje() + "/status")
+						.header("Authorization", "Bearer " + token(bob))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"status\":\"ocupado\"}"))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.error").value("No puedes cambiar el estado de un personaje que no es tuyo"));
+
+		mockMvc.perform(put("/personajes/" + p.getIdPersonaje() + "/status")
+						.header("Authorization", "Bearer " + token(alice))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"status\":\"ocupado\"}"))
+				.andExpect(status().isOk());
+	}
+
+	@Test
+	void personajeCategoria_relacionDeOtro_devuelve403_yPropia_devuelve200() throws Exception {
+		Usuario alice = crearUsuario("alice", RolUsuario.USER);
+		Usuario bob = crearUsuario("bob", RolUsuario.USER);
+		PerfilPersonaje p = crearPersonaje(alice);
+		Categoria cat = crearCategoria("Fantasia");
+
+		mockMvc.perform(post("/personaje-categorias")
+						.header("Authorization", "Bearer " + token(bob))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"idPersonaje\": " + p.getIdPersonaje() + ", \"idCategoria\": " + cat.getIdCategoria() + "}"))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.error").value("No puedes gestionar las categorías de un personaje que no es tuyo"));
+
+		mockMvc.perform(post("/personaje-categorias")
+						.header("Authorization", "Bearer " + token(alice))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"idPersonaje\": " + p.getIdPersonaje() + ", \"idCategoria\": " + cat.getIdCategoria() + "}"))
+				.andExpect(status().isOk());
+	}
+
+	@Test
+	void personajeCategoria_getInexistente_devuelve404ConJson() throws Exception {
+		Usuario alice = crearUsuario("alice", RolUsuario.USER);
+
+		mockMvc.perform(get("/personaje-categorias/99999")
+						.header("Authorization", "Bearer " + token(alice)))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.error").exists());
+	}
+
+	@Test
+	void eliminarUsuarioComoUsuarioNormal_devuelve403() throws Exception {
+		Usuario alice = crearUsuario("alice", RolUsuario.USER);
+
+		mockMvc.perform(delete("/usuarios/" + alice.getUserId())
+						.header("Authorization", "Bearer " + token(alice)))
+				.andExpect(status().isForbidden());
 	}
 }

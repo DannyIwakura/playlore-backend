@@ -17,8 +17,11 @@ public class SessionJwtUtils {
     private final long jwtExpirationMs;
 
     public SessionJwtUtils(
-            @Value("${jwt.secret:DefaultSecretKeyForSessions12345678901234567890}") String secret,
+            @Value("${jwt.secret:}") String secret,
             @Value("${jwt.expiration:86400000}") long jwtExpirationMs) {
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalArgumentException("jwt.secret no configurado. Establece la variable JWT_SECRET");
+        }
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
         if (keyBytes.length < 32) {
             byte[] padded = new byte[32];

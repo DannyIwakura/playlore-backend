@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.playrole.chat.auth.CharacterSessionPrincipal;
 import com.playrole.dto.ImagenPersonajeDTO;
+import com.playrole.exception.AccessDeniedException;
 import com.playrole.security.CustomUserDetails;
 import com.playrole.service.IImagenPersonajeService;
 
@@ -38,8 +40,8 @@ public class ImagenPersonajeController {
             @PathVariable Integer id,
             @RequestPart("imagenFile") MultipartFile imagenFile,
             Authentication authentication) {
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        return ResponseEntity.ok(imagenService.subirImagen(id, imagenFile, userDetails.getUsuario().getUserId()));
+        Integer userId = obtenerUserId(authentication);
+        return ResponseEntity.ok(imagenService.subirImagen(id, imagenFile, userId));
     }
 
     @DeleteMapping("/{imagenId}")
@@ -47,8 +49,15 @@ public class ImagenPersonajeController {
             @PathVariable Integer id,
             @PathVariable Integer imagenId,
             Authentication authentication) {
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        imagenService.eliminarImagen(imagenId, userDetails.getUsuario().getUserId());
+        Integer userId = obtenerUserId(authentication);
+        imagenService.eliminarImagen(imagenId, userId);
         return ResponseEntity.noContent().build();
+    }
+
+    private Integer obtenerUserId(Authentication authentication) {
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof CharacterSessionPrincipal cp) return cp.getUsuario().getUserId();
+        if (principal instanceof CustomUserDetails cd) return cd.getUsuario().getUserId();
+        throw new AccessDeniedException("No autenticado");
     }
 }

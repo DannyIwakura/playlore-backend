@@ -238,7 +238,6 @@ public class PerfilPersonajeServiceImpl implements IPerfilPersonajeService {
     @Override
     public void eliminarPersonaje(Integer idPersonaje) {
     	perfilPersonajeRepository.deleteByIdDirect(idPersonaje);
-        System.out.println("Personaje eliminado con ID: " + idPersonaje);
     }
     
   //metodo para validad dimensiones para el avatar

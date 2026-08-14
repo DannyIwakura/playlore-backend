@@ -11,6 +11,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.playrole.dto.PerfilPersonajeDTO;
 import com.playrole.dto.PersonajeCategoriaDTO;
+import com.playrole.exception.ResourceNotFoundException;
 import com.playrole.model.Categoria;
 import com.playrole.model.PerfilPersonaje;
 import com.playrole.model.PersonajeCategoria;
@@ -66,10 +67,10 @@ public class PersonajeCategoriaServiceImpl implements IPersonajeCategoriaService
     public PersonajeCategoriaDTO crear(@Valid PersonajeCategoriaDTO dto) {
         // Obtenemos entidades reales para persistir la relación
         Categoria cat = categoriaService.obtenerEntidadPorId(dto.getIdCategoria())
-                .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada"));
         
         PerfilPersonaje per = personajeService.obtenerEntidadPorId(dto.getIdPersonaje())
-                .orElseThrow(() -> new RuntimeException("Personaje no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Personaje no encontrado"));
 
         // Usamos el método toEntity de tu DTO
         PersonajeCategoria nuevaRelacion = dto.toEntity(cat, per);
@@ -82,7 +83,7 @@ public class PersonajeCategoriaServiceImpl implements IPersonajeCategoriaService
     @Transactional
     public PersonajeCategoriaDTO actualizar(Integer id, @Valid PersonajeCategoriaDTO dto) {
         PersonajeCategoria existente = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Relación no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Relación no encontrada"));
 
         // 1. Actualizar Fecha
         if (dto.getFechaAdicion() != null) {
@@ -92,14 +93,14 @@ public class PersonajeCategoriaServiceImpl implements IPersonajeCategoriaService
         // 2. Actualizar Categoría si el ID enviado es distinto al actual
         if (dto.getIdCategoria() != null && !dto.getIdCategoria().equals(existente.getIdCategoria().getIdCategoria())) {
             Categoria nuevaCat = categoriaService.obtenerEntidadPorId(dto.getIdCategoria())
-                    .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada"));
             existente.setIdCategoria(nuevaCat);
         }
 
         // 3. Actualizar Personaje si el ID enviado es distinto al actual
         if (dto.getIdPersonaje() != null && !dto.getIdPersonaje().equals(existente.getIdPersonaje().getIdPersonaje())) {
             PerfilPersonaje nuevoPer = personajeService.obtenerEntidadPorId(dto.getIdPersonaje())
-                    .orElseThrow(() -> new RuntimeException("Personaje no encontrado"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Personaje no encontrado"));
             existente.setIdPersonaje(nuevoPer);
         }
 
@@ -110,7 +111,7 @@ public class PersonajeCategoriaServiceImpl implements IPersonajeCategoriaService
     @Transactional
     public void eliminarPorId(Integer id) {
         if (!repository.existsById(id)) {
-            throw new RuntimeException("El ID no existe");
+            throw new ResourceNotFoundException("El ID no existe");
         }
         repository.deleteById(id);
     }
