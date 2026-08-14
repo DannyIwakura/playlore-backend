@@ -69,4 +69,9 @@ public interface MiembroCanalRepository extends JpaRepository<MiembroCanal, Inte
     void deleteByCanalId(@Param("canalId") Integer canalId);
 
     List<MiembroCanal> findByPersonajeIdPersonaje(Integer personajeId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM MiembroCanal m WHERE m.personaje.idPersonaje = :personajeId")
+    void deleteByPersonajeId(@Param("personajeId") Integer personajeId);
 }

@@ -27,4 +27,9 @@ public interface BaneoCanalRepository extends JpaRepository<BaneoCanal, Integer>
     @Transactional
     @Query("DELETE FROM BaneoCanal b WHERE b.canal.idCanal = :canalId")
     void deleteByCanalId(@Param("canalId") Integer canalId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM BaneoCanal b WHERE b.personaje.idPersonaje = :personajeId OR b.baneadoPor.idPersonaje = :personajeId")
+    void deleteByPersonajeId(@Param("personajeId") Integer personajeId);
 }

@@ -200,8 +200,11 @@ public class UsuarioController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public void eliminarUsuario(@PathVariable Integer id) {
+    public void eliminarUsuario(@PathVariable Integer id, Authentication authentication) {
+        Integer userId = obtenerUserId(authentication);
+        if (!id.equals(userId) && !esAdmin(authentication)) {
+            throw new AccessDeniedException("No puedes eliminar la cuenta de otro usuario");
+        }
         usuarioService.eliminarUsuario(id);
     }
     

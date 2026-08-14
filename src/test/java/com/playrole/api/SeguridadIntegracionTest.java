@@ -280,11 +280,23 @@ class SeguridadIntegracionTest {
 	}
 
 	@Test
-	void eliminarUsuarioComoUsuarioNormal_devuelve403() throws Exception {
+	void eliminarCuentaDeOtroComoUsuarioNormal_devuelve403() throws Exception {
+		Usuario alice = crearUsuario("alice", RolUsuario.USER);
+		Usuario bob = crearUsuario("bob", RolUsuario.USER);
+
+		mockMvc.perform(delete("/usuarios/" + bob.getUserId())
+						.header("Authorization", "Bearer " + token(alice)))
+				.andExpect(status().isForbidden());
+	}
+
+	@Test
+	void eliminarMiPropiaCuenta_devuelve200() throws Exception {
 		Usuario alice = crearUsuario("alice", RolUsuario.USER);
 
 		mockMvc.perform(delete("/usuarios/" + alice.getUserId())
 						.header("Authorization", "Bearer " + token(alice)))
-				.andExpect(status().isForbidden());
+				.andExpect(status().isOk());
+
+		assertEquals(0, usuarioRepo.count());
 	}
 }

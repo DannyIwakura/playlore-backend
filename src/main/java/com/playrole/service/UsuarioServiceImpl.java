@@ -34,9 +34,24 @@ import com.playrole.dto.UsuarioDTO;
 import com.playrole.enums.RolUsuario;
 import com.playrole.exception.InvalidImageException;
 import com.playrole.exception.InvalidImageTypeException;
+import com.playrole.model.ImagenPersonaje;
+import com.playrole.model.PerfilPersonaje;
 import com.playrole.model.Usuario;
+import com.playrole.repository.BaneoGlobalRepository;
+import com.playrole.repository.DenunciaRepository;
+import com.playrole.repository.ImagenPersonajeRepositoryInterface;
+import com.playrole.repository.PerfilPersonajeRepositoryInterface;
+import com.playrole.repository.PersonajeCategoriaRepositoryInterface;
 import com.playrole.repository.SolicitudAmistadRespositoryInterface;
 import com.playrole.repository.UsuarioRepositoryInterface;
+import com.playrole.chat.model.Canal;
+import com.playrole.chat.model.MiembroCanal;
+import com.playrole.chat.repository.BaneoCanalRepository;
+import com.playrole.chat.repository.CanalRepository;
+import com.playrole.chat.repository.MensajeCanalRepository;
+import com.playrole.chat.repository.MensajePrivadoPersonajeRepository;
+import com.playrole.chat.repository.MiembroCanalRepository;
+import com.playrole.chat.repository.SesionPersonajeRepository;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
@@ -53,6 +68,28 @@ public class UsuarioServiceImpl implements IUsuarioService {
     private SolicitudAmistadRespositoryInterface solicitudRepositorio;
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private PerfilPersonajeRepositoryInterface personajeRepositorio;
+    @Autowired
+    private ImagenPersonajeRepositoryInterface imagenRepositorio;
+    @Autowired
+    private PersonajeCategoriaRepositoryInterface personajeCategoriaRepositorio;
+    @Autowired
+    private DenunciaRepository denunciaRepositorio;
+    @Autowired
+    private BaneoGlobalRepository baneoGlobalRepositorio;
+    @Autowired
+    private CanalRepository canalRepositorio;
+    @Autowired
+    private MiembroCanalRepository miembroRepositorio;
+    @Autowired
+    private BaneoCanalRepository baneoCanalRepositorio;
+    @Autowired
+    private MensajeCanalRepository mensajeRepositorio;
+    @Autowired
+    private MensajePrivadoPersonajeRepository mensajePrivadoRepositorio;
+    @Autowired
+    private SesionPersonajeRepository sesionRepositorio;
     
     private static final String DEFAULT_AVATAR =
     	    "/images/AVATAR.png";
@@ -233,11 +270,99 @@ public class UsuarioServiceImpl implements IUsuarioService {
     @Override
     @Transactional
     public void eliminarUsuario(Integer id) {
-        if (!usuarioRepositorio.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado");
+        Usuario usuario = usuarioRepositorio.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+        List<PerfilPersonaje> personajes = personajeRepositorio.findByUserId_UserId(id);
+        List<Integer> personajeIds = personajes.stream()
+                .map(PerfilPersonaje::getIdPersonaje)
+                .collect(Collectors.toList());
+
+        // Denuncias y baneos globales que dependen del usuario o de sus personajes
+        denunciaRepositorio.deleteByDenuncianteUsuario(id);
+        if (!personajeIds.isEmpty()) {
+            denunciaRepositorio.deleteByDenunciantePersonajes(personajeIds);
+            baneoGlobalRepositorio.deleteByPersonajes(personajeIds);
         }
+        baneoGlobalRepositorio.deleteByUsuario(id);
+        denunciaRepositorio.desvincularResueltoPor(id);
+
+        // Sesiones de personaje activas del usuario
+        sesionRepositorio.deleteByUsuarioUserId(id);
+
+        // Amistades
         solicitudRepositorio.deleteByUsuarioId(id);
+
+        // Avatar del usuario
+        if (usuario.getAvatar() != null && !DEFAULT_AVATAR.equals(usuario.getAvatar())) {
+            eliminarArchivoImagen(usuario.getAvatar());
+        }
+
+        // Contenido de cada personaje del usuario
+        for (PerfilPersonaje personaje : personajes) {
+            eliminarContenidoPersonaje(personaje);
+        }
+
         usuarioRepositorio.deleteById(id);
+    }
+
+    private void eliminarContenidoPersonaje(PerfilPersonaje personaje) {
+        Integer pid = personaje.getIdPersonaje();
+
+        // Canales creados por el personaje (con todo su contenido)
+        canalRepositorio.findByCreadorIdPersonaje(pid).forEach(this::eliminarCanalYContenido);
+
+        // Baneos y membresías de canal del personaje
+        baneoCanalRepositorio.deleteByPersonajeId(pid);
+        miembroRepositorio.deleteByPersonajeId(pid);
+
+        // Mensajes de canal: desvincular respuestas ajenas antes de borrar
+        mensajeRepositorio.desvincularRespuestasDePersonaje(pid);
+        mensajeRepositorio.deleteByPersonajeId(pid);
+
+        // Mensajes privados
+        mensajePrivadoRepositorio.deleteByPersonajeId(pid);
+
+        // Imágenes de la galería (filas + archivos)
+        imagenRepositorio.findByIdPersonaje_IdPersonajeOrderByOrdenAscFechaSubidaAsc(pid)
+                .forEach(img -> eliminarArchivoImagen(img.getUrl()));
+        imagenRepositorio.deleteByPersonajeId(pid);
+
+        // Relaciones con categorías
+        personajeCategoriaRepositorio.deleteByPersonajeId(pid);
+
+        // Avatar del personaje
+        if (personaje.getAvatar() != null && !personaje.getAvatar().startsWith("/images/")) {
+            eliminarArchivoImagen(personaje.getAvatar());
+        }
+
+        // Sesiones abiertas con este personaje
+        sesionRepositorio.deleteByPersonajeIdPersonaje(pid);
+
+        personajeRepositorio.deleteByIdDirect(pid);
+    }
+
+    private void eliminarCanalYContenido(Canal canal) {
+        if (canal.getImagenUrl() != null) {
+            eliminarArchivoImagen(canal.getImagenUrl());
+        }
+        baneoCanalRepositorio.deleteByCanalId(canal.getIdCanal());
+        mensajeRepositorio.deleteByCanalId(canal.getIdCanal());
+        List<MiembroCanal> miembros = miembroRepositorio.findByCanalIdCanal(canal.getIdCanal());
+        miembroRepositorio.deleteAll(miembros);
+        canalRepositorio.delete(canal);
+    }
+
+    private void eliminarArchivoImagen(String imageUrl) {
+        if (imageUrl == null || !imageUrl.startsWith("/uploads/")) {
+            return;
+        }
+        try {
+            String relative = imageUrl.substring("/uploads/".length());
+            Path filePath = Paths.get(System.getProperty("user.dir"), "uploads", relative);
+            Files.deleteIfExists(filePath);
+        } catch (IOException ignored) {
+        }
     }
     
     //metodo para validad dimensiones para el avatar

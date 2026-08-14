@@ -21,4 +21,9 @@ public interface ImagenPersonajeRepositoryInterface extends JpaRepository<Imagen
     @Transactional
     @Query("DELETE FROM ImagenPersonaje i WHERE i.idImagen = :id")
     void deleteByIdDirect(@Param("id") Integer id);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM ImagenPersonaje i WHERE i.idPersonaje.idPersonaje = :personajeId")
+    void deleteByPersonajeId(@Param("personajeId") Integer personajeId);
 }

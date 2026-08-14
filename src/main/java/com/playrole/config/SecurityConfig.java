@@ -90,9 +90,10 @@ public class SecurityConfig {
         	    .requestMatchers(HttpMethod.GET, "/usuarios/{id}/amigos").authenticated()
         	    .requestMatchers(HttpMethod.DELETE, "/usuarios/{userId}/amigos/{amigoId}").authenticated() 
         	    .requestMatchers(HttpMethod.PUT, "/usuarios/{id}/rol").hasRole("ADMIN")
-          	    .requestMatchers(HttpMethod.PUT, "/usuarios/{id}").authenticated()
-          	    .requestMatchers(HttpMethod.PUT, "/usuarios/{id}/ultima-conexion").authenticated()
-          	    .requestMatchers("/usuarios/**").hasRole("ADMIN")
+           	    .requestMatchers(HttpMethod.PUT, "/usuarios/{id}").authenticated()
+           	    .requestMatchers(HttpMethod.PUT, "/usuarios/{id}/ultima-conexion").authenticated()
+           	    .requestMatchers(HttpMethod.DELETE, "/usuarios/{id}").authenticated()
+           	    .requestMatchers("/usuarios/**").hasRole("ADMIN")
 
         	    // Denuncias: crear requiere autenticación (user JWT o session JWT),
         	    // el resto (listar/resolver) solo ADMIN o MOD

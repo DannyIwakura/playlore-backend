@@ -2,8 +2,10 @@ package com.playrole.chat.repository;
 
 import com.playrole.chat.model.MensajePrivadoPersonaje;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import jakarta.transaction.Transactional;
 import java.util.List;
 
 public interface MensajePrivadoPersonajeRepository extends JpaRepository<MensajePrivadoPersonaje, Integer> {
@@ -32,4 +34,9 @@ public interface MensajePrivadoPersonajeRepository extends JpaRepository<Mensaje
            "(m.emisor.idPersonaje = :personajeId AND m.eliminadoEmisor = false) OR " +
            "(m.receptor.idPersonaje = :personajeId AND m.eliminadoReceptor = false)")
     List<Integer> findContactIds(@Param("personajeId") Integer personajeId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM MensajePrivadoPersonaje m WHERE m.emisor.idPersonaje = :personajeId OR m.receptor.idPersonaje = :personajeId")
+    void deleteByPersonajeId(@Param("personajeId") Integer personajeId);
 }

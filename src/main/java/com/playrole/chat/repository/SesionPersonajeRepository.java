@@ -19,4 +19,8 @@ public interface SesionPersonajeRepository extends JpaRepository<SesionPersonaje
 
     @Query("SELECT s FROM SesionPersonaje s WHERE s.personaje.idPersonaje = :personajeId AND s.activa = true")
     List<SesionPersonaje> findActivasByPersonaje(@Param("personajeId") Integer personajeId);
+
+    void deleteByUsuarioUserId(Integer usuarioId);
+
+    void deleteByPersonajeIdPersonaje(Integer personajeId);
 }

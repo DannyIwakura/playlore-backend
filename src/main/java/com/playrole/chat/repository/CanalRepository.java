@@ -21,4 +21,6 @@ public interface CanalRepository extends JpaRepository<Canal, Integer> {
     List<Canal> findCanalesPublicosNoUnidos(@Param("personajeId") Integer personajeId);
 
     long countByCreadorIdPersonaje(Integer creadorId);
+
+    List<Canal> findByCreadorIdPersonaje(Integer creadorId);
 }

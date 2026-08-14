@@ -19,4 +19,14 @@ public interface MensajeCanalRepository extends JpaRepository<MensajeCanal, Inte
     @Transactional
     @Query("DELETE FROM MensajeCanal m WHERE m.canal.idCanal = :canalId")
     void deleteByCanalId(@Param("canalId") Integer canalId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM MensajeCanal m WHERE m.personaje.idPersonaje = :personajeId")
+    void deleteByPersonajeId(@Param("personajeId") Integer personajeId);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE MensajeCanal m SET m.mensajePadre = NULL WHERE m.mensajePadre.personaje.idPersonaje = :personajeId")
+    void desvincularRespuestasDePersonaje(@Param("personajeId") Integer personajeId);
 }
