@@ -34,7 +34,7 @@
 
 - [ ] Auto-eliminación de cuenta (restaurar borrado de cuenta con contraseña).
 - [ ] `DenunciaService.toDTO`: resolver snapshots nulos en batch.
-- [ ] `PresenceService` en memoria de instancia; migrar a Redis si se escala horizontalmente.
+- [ ] `PresenceService` en memoria de instancia (advertencia `log.warn` al arrancar); migrar a Redis si se escala horizontalmente.
 - [ ] Pruebas de carga en endpoints de chat (N+1 bajo carga real).
 - [ ] Auditoría a11y completa (solo se hizo lo crítico).
 

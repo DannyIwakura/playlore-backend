@@ -4,6 +4,9 @@ import com.playrole.chat.dto.PresenceDTO;
 import com.playrole.chat.repository.MiembroCanalRepository;
 import com.playrole.model.PerfilPersonaje;
 import com.playrole.repository.PerfilPersonajeRepositoryInterface;
+import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import java.util.Map;
@@ -12,6 +15,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class PresenceService {
+
+    private static final Logger log = LoggerFactory.getLogger(PresenceService.class);
 
     private final Map<Integer, Set<String>> onlineCharacters = new ConcurrentHashMap<>();
     private final Map<String, Integer> sessionIdToPersonajeId = new ConcurrentHashMap<>();
@@ -32,6 +37,13 @@ public class PresenceService {
         this.miembroCanalRepository = miembroCanalRepository;
         this.personajeRepository = personajeRepository;
         this.sesionPersonajeService = sesionPersonajeService;
+    }
+
+    @PostConstruct
+    void warnPresenciaEnMemoria() {
+        log.warn("PresenceService mantiene la presencia online en memoria de instancia: "
+                + "solo es coherente en despliegues de una única instancia. "
+                + "Si se escala horizontalmente, migrar a un almacén compartido (p. ej. Redis).");
     }
 
     public void onConnect(Integer personajeId, String sessionId) {
