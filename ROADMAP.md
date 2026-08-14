@@ -11,6 +11,28 @@
 | F2 — Chat por canales/WebSocket y sesiones de personaje | ✅ Completada |
 | F3 — Mejora continua (lotes 0-6) | ✅ Completada |
 | F4 — Deuda diferida (lotes 0-7) | ✅ Completada |
+| F5 — Calidad de ingeniería + mejoras de producto (en curso) | 🚧 |
+
+## Fase 5 — checklist por lote
+
+| Lote | Descripción | Estado |
+|---|---|---|
+| L0 | CI/CD: GitHub Actions en backend y frontend (compile + test con H2; typecheck + lint + test + build) | ✅ |
+| L1 | Tests frontend: cobertura de composables de chat y utilidades (92 tests) | ✅ |
+| L2 | Tests backend: cobertura de servicios con Mockito (83 tests nuevos, 111 total) | ✅ |
+| L3 | Búsqueda de mensajes por canal: `GET /canales/{id}/mensajes/buscar?q=` con escape de LIKE y `GET /canales/{id}/mensajes/{mensajeId}/pagina` para saltar al resultado; buscador en `ChatWindow` | ✅ |
+| L4 | Notificaciones fuera de foco (Service Worker/Notification API) + auto-eliminación de cuenta con contraseña BCrypt y UI "Zona de peligro" | ⏳ |
+| L5 | Auditoría de moderación: registro persistente de acciones de mod + listado para ADMIN | ⏳ |
+| L6 | Roadmap/AGENTS: cierre de fases y deuda documentada | ⏳ |
+
+## Decisiones de alcance (Fase 5)
+
+- Solo desarrollo local; no hay producción desplegada. Flyway se mantiene fuera de alcance
+  (se sigue usando `ddl-auto=update`) y Redis/presencia distribuida quedan documentados como deuda.
+- L2 usa tests unitarios puros con Mockito (sin contexto Spring) siguiendo el patrón de
+  `LoginAttemptServiceTest`; los `@SpringBootTest` existentes validan queries JPQL al arrancar.
+- L3: los resultados de búsqueda se saltan al mensaje recargando la página exacta donde está.
+- a11y: informe completo diferido (deuda documentada); solo lo crítico ya implementado.
 
 ## Fase 3 — checklist por lote
 
@@ -56,7 +78,6 @@
 
 ## Deuda técnica diferida
 
-- [ ] Auto-eliminación de cuenta con contraseña por el propio usuario (hoy solo ADMIN/MOD vía cascada).
 - [ ] `DenunciaService.toDTO`: resolver snapshots nulos en batch.
 - [ ] `PresenceService` en memoria de instancia (advertencia `log.warn` al arrancar); migrar a Redis si se escala horizontalmente.
 - [ ] Pruebas de carga en endpoints de chat (N+1 bajo carga real).
