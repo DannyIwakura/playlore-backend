@@ -138,4 +138,58 @@ class CanalMensajeServiceTest {
         assertEquals(1, pagina.getTotalElements());
         assertEquals(5, pagina.getContent().get(0).getId());
     }
+
+    @Test
+    void paginaDeMensaje_computaPaginaSegunMensajesAnteriores() {
+        MensajeCanal msg = mensaje(7, "encontrado", null);
+        msg.setFechaEnvio(new Date(1_000_000L));
+        when(mensajeRepository.findById(7)).thenReturn(java.util.Optional.of(msg));
+        when(mensajeRepository.countAnterioresEnCanal(eq(1), any(Date.class), eq(7))).thenReturn(37L);
+
+        int pagina = service.paginaDeMensaje(1, 10, 7, 15);
+
+        assertEquals(2, pagina);
+        verify(mensajeRepository).countAnterioresEnCanal(eq(1), eq(msg.getFechaEnvio()), eq(7));
+    }
+
+    @Test
+    void paginaDeMensaje_exigePermisoDeLectura() {
+        MensajeCanal msg = mensaje(7, "encontrado", null);
+        msg.setFechaEnvio(new Date());
+        when(mensajeRepository.findById(7)).thenReturn(java.util.Optional.of(msg));
+
+        service.paginaDeMensaje(1, 10, 7, 15);
+
+        verify(permissionService).verificarPermiso(1, 10, PermisoCanal.LEER_MENSAJES);
+    }
+
+    @Test
+    void paginaDeMensaje_mensajeDeOtroCanal_lanzaBadRequest() {
+        Canal otro = new Canal(99);
+        otro.setNombre("Otro");
+        MensajeCanal msg = new MensajeCanal();
+        msg.setIdMensaje(7);
+        msg.setCanal(otro);
+        msg.setFechaEnvio(new Date());
+        when(mensajeRepository.findById(7)).thenReturn(java.util.Optional.of(msg));
+
+        try {
+            service.paginaDeMensaje(1, 10, 7, 15);
+            org.junit.jupiter.api.Assertions.fail("Debería lanzar BadRequestException");
+        } catch (com.playrole.exception.BadRequestException ex) {
+            assertEquals("El mensaje no pertenece al canal", ex.getMessage());
+        }
+    }
+
+    @Test
+    void paginaDeMensaje_mensajeInexistente_lanzaNotFound() {
+        when(mensajeRepository.findById(999)).thenReturn(java.util.Optional.empty());
+
+        try {
+            service.paginaDeMensaje(1, 10, 999, 15);
+            org.junit.jupiter.api.Assertions.fail("Debería lanzar ResourceNotFoundException");
+        } catch (com.playrole.exception.ResourceNotFoundException ex) {
+            assertEquals("Mensaje no encontrado", ex.getMessage());
+        }
+    }
 }

@@ -41,6 +41,17 @@ public class CanalMensajeController {
         return ResponseEntity.ok(mensajeService.buscarMensajes(canalId, personajeId, q, page, size));
     }
 
+    @GetMapping("/{mensajeId}/pagina")
+    public ResponseEntity<Map<String, Integer>> paginaDeMensaje(
+            @PathVariable Integer canalId,
+            @PathVariable Integer mensajeId,
+            @RequestParam(defaultValue = "15") int size,
+            Authentication authentication) {
+        Integer personajeId = obtenerPersonajeId(authentication);
+        int pagina = mensajeService.paginaDeMensaje(canalId, personajeId, mensajeId, size);
+        return ResponseEntity.ok(Map.of("pagina", pagina));
+    }
+
     @PostMapping
     public ResponseEntity<MensajeCanalDTO> enviarMensaje(
             @PathVariable Integer canalId,

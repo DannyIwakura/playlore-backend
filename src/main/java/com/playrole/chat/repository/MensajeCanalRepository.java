@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import jakarta.transaction.Transactional;
+import java.util.Date;
 
 public interface MensajeCanalRepository extends JpaRepository<MensajeCanal, Integer> {
 
@@ -21,6 +22,13 @@ public interface MensajeCanalRepository extends JpaRepository<MensajeCanal, Inte
            "ORDER BY m.fechaEnvio DESC")
     Page<MensajeCanal> buscarEnCanal(@Param("canalId") Integer canalId,
                                      @Param("termino") String termino, Pageable pageable);
+
+    @Query("SELECT COUNT(m) FROM MensajeCanal m WHERE m.canal.idCanal = :canalId " +
+           "AND m.eliminado = FALSE " +
+           "AND (m.fechaEnvio > :fechaEnvio OR (m.fechaEnvio = :fechaEnvio AND m.id > :mensajeId))")
+    long countAnterioresEnCanal(@Param("canalId") Integer canalId,
+                                @Param("fechaEnvio") Date fechaEnvio,
+                                @Param("mensajeId") Integer mensajeId);
 
     @Modifying
     @Transactional

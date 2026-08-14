@@ -88,6 +88,21 @@ public class CanalMensajeService {
         return q.replace("!", "!!").replace("%", "!%").replace("_", "!_");
     }
 
+    public int paginaDeMensaje(Integer canalId, Integer personajeId, Integer mensajeId, int size) {
+        permissionService.verificarPermiso(canalId, personajeId, PermisoCanal.LEER_MENSAJES);
+
+        MensajeCanal mensaje = mensajeRepository.findById(mensajeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Mensaje no encontrado"));
+        if (!mensaje.getCanal().getIdCanal().equals(canalId)) {
+            throw new BadRequestException("El mensaje no pertenece al canal");
+        }
+
+        int tamPagina = size <= 0 ? 15 : size;
+        long anteriores = mensajeRepository.countAnterioresEnCanal(canalId,
+                mensaje.getFechaEnvio(), mensajeId);
+        return (int) (anteriores / tamPagina);
+    }
+
     @Transactional
     public MensajeCanalDTO enviarMensaje(Integer canalId, Integer personajeId, String contenido) {
         return enviarMensaje(canalId, personajeId, contenido, null);
