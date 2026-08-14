@@ -22,7 +22,7 @@
 | L2 | Tests backend: cobertura de servicios con Mockito (83 tests nuevos, 111 total) | ✅ |
 | L3 | Búsqueda de mensajes por canal: `GET /canales/{id}/mensajes/buscar?q=` con escape de LIKE y `GET /canales/{id}/mensajes/{mensajeId}/pagina` para saltar al resultado; buscador en `ChatWindow` | ✅ |
 | L4 | Notificaciones fuera de foco (`notificarPush` solo con `document.hidden`; Web Push con Service Worker queda como deuda) + auto-eliminación de cuenta con contraseña BCrypt (`DELETE /usuarios/{id}` con `{password}`) y UI "Zona de peligro" | ✅ |
-| L5 | Auditoría de moderación: registro persistente de acciones de mod + listado para ADMIN | ⏳ |
+| L5 | Auditoría de moderación: registro persistente de acciones de mod (snapshots, sin FK) + `GET /moderacion/auditoria` para ADMIN/MOD + vista en `AdminPanel` | ✅ |
 | L6 | Roadmap/AGENTS: cierre de fases y deuda documentada | ⏳ |
 
 ## Decisiones de alcance (Fase 5)
