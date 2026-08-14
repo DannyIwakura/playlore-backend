@@ -3,9 +3,11 @@ package com.playrole.controller;
 import com.playrole.chat.auth.CharacterSessionPrincipal;
 import com.playrole.dto.BaneoGlobalDTO;
 import com.playrole.dto.CrearBaneoDTO;
+import com.playrole.dto.RegistroModeracionDTO;
 import com.playrole.exception.AccessDeniedException;
 import com.playrole.model.Usuario;
 import com.playrole.security.CustomUserDetails;
+import com.playrole.service.AuditoriaModeracionService;
 import com.playrole.service.BaneoGlobalService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -19,9 +21,12 @@ import java.util.Map;
 public class ModeracionController {
 
     private final BaneoGlobalService baneoGlobalService;
+    private final AuditoriaModeracionService auditoriaService;
 
-    public ModeracionController(BaneoGlobalService baneoGlobalService) {
+    public ModeracionController(BaneoGlobalService baneoGlobalService,
+                                AuditoriaModeracionService auditoriaService) {
         this.baneoGlobalService = baneoGlobalService;
+        this.auditoriaService = auditoriaService;
     }
 
     @GetMapping("/baneos")
@@ -37,9 +42,16 @@ public class ModeracionController {
     }
 
     @DeleteMapping("/baneos/{id}")
-    public ResponseEntity<Map<String, String>> desbanear(@PathVariable Integer id) {
-        baneoGlobalService.desbanear(id);
+    public ResponseEntity<Map<String, String>> desbanear(@PathVariable Integer id,
+                                                         Authentication authentication) {
+        Usuario admin = obtenerUsuario(authentication);
+        baneoGlobalService.desbanear(id, admin);
         return ResponseEntity.ok(Map.of("mensaje", "Baneo eliminado"));
+    }
+
+    @GetMapping("/auditoria")
+    public ResponseEntity<List<RegistroModeracionDTO>> listarAuditoria() {
+        return ResponseEntity.ok(auditoriaService.listar());
     }
 
     private Usuario obtenerUsuario(Authentication authentication) {

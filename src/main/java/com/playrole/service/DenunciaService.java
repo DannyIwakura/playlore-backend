@@ -6,6 +6,7 @@ import com.playrole.chat.repository.CanalRepository;
 import com.playrole.chat.repository.MensajeCanalRepository;
 import com.playrole.dto.CrearDenunciaDTO;
 import com.playrole.dto.DenunciaDTO;
+import com.playrole.enums.AccionModeracion;
 import com.playrole.enums.EstadoDenuncia;
 import com.playrole.enums.TipoDenuncia;
 import com.playrole.exception.BadRequestException;
@@ -51,17 +52,20 @@ public class DenunciaService {
     private final PerfilPersonajeRepositoryInterface personajeRepository;
     private final UsuarioRepositoryInterface usuarioRepository;
     private final CanalRepository canalRepository;
+    private final AuditoriaModeracionService auditoriaService;
 
     public DenunciaService(DenunciaRepository denunciaRepository,
                            MensajeCanalRepository mensajeCanalRepository,
                            PerfilPersonajeRepositoryInterface personajeRepository,
                            UsuarioRepositoryInterface usuarioRepository,
-                           CanalRepository canalRepository) {
+                           CanalRepository canalRepository,
+                           AuditoriaModeracionService auditoriaService) {
         this.denunciaRepository = denunciaRepository;
         this.mensajeCanalRepository = mensajeCanalRepository;
         this.personajeRepository = personajeRepository;
         this.usuarioRepository = usuarioRepository;
         this.canalRepository = canalRepository;
+        this.auditoriaService = auditoriaService;
     }
 
     @Transactional
@@ -287,7 +291,14 @@ public class DenunciaService {
         denuncia.setDecision(decision);
         denuncia.setResueltoPor(admin);
         denuncia.setFechaResolucion(new Date());
-        return toDTO(denunciaRepository.save(denuncia));
+        DenunciaDTO dto = toDTO(denunciaRepository.save(denuncia));
+
+        auditoriaService.registrar(AccionModeracion.DENUNCIA_RESUELTA, admin,
+                dto.getAutorUsuarioId() != null ? usuarioRepository.findById(dto.getAutorUsuarioId()).orElse(null) : null,
+                dto.getAutorPersonajeId() != null ? personajeRepository.findById(dto.getAutorPersonajeId()).orElse(null) : null,
+                dto.getMotivo(),
+                "Denuncia #" + id + " resuelta como " + estado + (decision != null ? ": " + decision : ""));
+        return dto;
     }
 
     private DenunciaDTO toDTO(Denuncia d) {

@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -20,6 +22,7 @@ import org.junit.jupiter.api.Test;
 
 import com.playrole.chat.service.SesionPersonajeService;
 import com.playrole.dto.CrearBaneoDTO;
+import com.playrole.enums.AccionModeracion;
 import com.playrole.enums.RolUsuario;
 import com.playrole.exception.AccessDeniedException;
 import com.playrole.exception.BadRequestException;
@@ -37,6 +40,7 @@ class BaneoGlobalServiceTest {
     private UsuarioRepositoryInterface usuarioRepository;
     private PerfilPersonajeRepositoryInterface personajeRepository;
     private SesionPersonajeService sesionPersonajeService;
+    private AuditoriaModeracionService auditoriaService;
     private BaneoGlobalService service;
 
     @BeforeEach
@@ -45,8 +49,9 @@ class BaneoGlobalServiceTest {
         usuarioRepository = mock(UsuarioRepositoryInterface.class);
         personajeRepository = mock(PerfilPersonajeRepositoryInterface.class);
         sesionPersonajeService = mock(SesionPersonajeService.class);
+        auditoriaService = mock(AuditoriaModeracionService.class);
         service = new BaneoGlobalService(baneoRepository, usuarioRepository,
-                personajeRepository, sesionPersonajeService);
+                personajeRepository, sesionPersonajeService, auditoriaService);
     }
 
     private CrearBaneoDTO dto(String tipo, Integer id, String duracion) {
@@ -130,6 +135,7 @@ class BaneoGlobalServiceTest {
         assertNull(res.getFechaExpiracion());
         verify(sesionPersonajeService).cerrarTodasSesiones(2);
         verify(baneoRepository).save(any(BaneoGlobal.class));
+        verify(auditoriaService).registrar(eq(AccionModeracion.BANEO_CUENTA), any(), any(), isNull(), eq("Spam"), any());
     }
 
     @Test
@@ -167,6 +173,7 @@ class BaneoGlobalServiceTest {
         assertEquals("PERSONAJE", res.getTipo());
         assertEquals(5, res.getIdObjetivo());
         verify(sesionPersonajeService).cerrarSesionesDePersonaje(5);
+        verify(auditoriaService).registrar(eq(AccionModeracion.BANEO_PERSONAJE), any(), isNull(), any(), eq("Spam"), any());
     }
 
     @Test
@@ -193,17 +200,19 @@ class BaneoGlobalServiceTest {
     void desbanear_baneoNoExiste_lanzaResourceNotFound() {
         when(baneoRepository.findById(1)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () -> service.desbanear(1));
+        assertThrows(ResourceNotFoundException.class,
+                () -> service.desbanear(1, usuario(1, RolUsuario.ADMIN)));
     }
 
     @Test
-    void desbanear_ok_eliminaBaneo() {
+    void desbanear_ok_eliminaBaneoYRegistraAuditoria() {
         BaneoGlobal baneo = new BaneoGlobal();
         when(baneoRepository.findById(1)).thenReturn(Optional.of(baneo));
 
-        service.desbanear(1);
+        service.desbanear(1, usuario(1, RolUsuario.ADMIN));
 
         verify(baneoRepository).delete(baneo);
+        verify(auditoriaService).registrar(eq(AccionModeracion.DESBANEO), any(), any(), any(), any(), any());
     }
 
     @Test

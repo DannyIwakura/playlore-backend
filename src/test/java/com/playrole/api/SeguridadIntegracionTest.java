@@ -65,10 +65,18 @@ class SeguridadIntegracionTest {
 	@Autowired
 	private JwtUtils jwtUtils;
 
+	@Autowired
+	private com.playrole.repository.BaneoGlobalRepository baneoRepo;
+
+	@Autowired
+	private com.playrole.repository.RegistroModeracionRepository registroModeracionRepo;
+
 	@BeforeEach
 	void limpiarBase() {
 		personajeCategoriaRepo.deleteAll();
 		categoriaRepo.deleteAll();
+		baneoRepo.deleteAll();
+		registroModeracionRepo.deleteAll();
 		personajeRepo.deleteAll();
 		amistadRepo.deleteAll();
 		usuarioRepo.deleteAll();
@@ -326,5 +334,33 @@ class SeguridadIntegracionTest {
 				.andExpect(jsonPath("$.error").value("Contraseña incorrecta"));
 
 		assertEquals(1, usuarioRepo.count());
+	}
+
+	@Test
+	void auditoria_moderacion_usuarioNormal_devuelve403() throws Exception {
+		Usuario alice = crearUsuario("alice", RolUsuario.USER);
+
+		mockMvc.perform(get("/moderacion/auditoria")
+						.header("Authorization", "Bearer " + token(alice)))
+				.andExpect(status().isForbidden());
+	}
+
+	@Test
+	void auditoria_moderacion_adminListaYRegistraBaneo() throws Exception {
+		Usuario admin = crearUsuario("admin", RolUsuario.ADMIN);
+		Usuario objetivo = crearUsuario("objetivo", RolUsuario.USER);
+
+		mockMvc.perform(post("/moderacion/baneos")
+						.header("Authorization", "Bearer " + token(admin))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"tipo\":\"USUARIO\", \"id\":" + objetivo.getUserId() + ", \"motivo\":\"Spam\"}"))
+				.andExpect(status().isOk());
+
+		mockMvc.perform(get("/moderacion/auditoria")
+						.header("Authorization", "Bearer " + token(admin)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[0].accion").value("BANEO_CUENTA"))
+				.andExpect(jsonPath("$[0].objetivoUsuarioNombre").value("objetivo"))
+				.andExpect(jsonPath("$[0].moderadorNombre").value("admin"));
 	}
 }

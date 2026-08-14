@@ -3,6 +3,7 @@ package com.playrole.service;
 import com.playrole.chat.service.SesionPersonajeService;
 import com.playrole.dto.BaneoGlobalDTO;
 import com.playrole.dto.CrearBaneoDTO;
+import com.playrole.enums.AccionModeracion;
 import com.playrole.exception.AccessDeniedException;
 import com.playrole.exception.BadRequestException;
 import com.playrole.exception.ResourceNotFoundException;
@@ -26,15 +27,18 @@ public class BaneoGlobalService {
     private final UsuarioRepositoryInterface usuarioRepository;
     private final PerfilPersonajeRepositoryInterface personajeRepository;
     private final SesionPersonajeService sesionPersonajeService;
+    private final AuditoriaModeracionService auditoriaService;
 
     public BaneoGlobalService(BaneoGlobalRepository baneoRepository,
                               UsuarioRepositoryInterface usuarioRepository,
                               PerfilPersonajeRepositoryInterface personajeRepository,
-                              SesionPersonajeService sesionPersonajeService) {
+                              SesionPersonajeService sesionPersonajeService,
+                              AuditoriaModeracionService auditoriaService) {
         this.baneoRepository = baneoRepository;
         this.usuarioRepository = usuarioRepository;
         this.personajeRepository = personajeRepository;
         this.sesionPersonajeService = sesionPersonajeService;
+        this.auditoriaService = auditoriaService;
     }
 
     @Transactional
@@ -68,6 +72,8 @@ public class BaneoGlobalService {
             baneo = baneoRepository.save(baneo);
 
             sesionPersonajeService.cerrarTodasSesiones(objetivo.getUserId());
+            auditoriaService.registrar(AccionModeracion.BANEO_CUENTA, admin, objetivo, null,
+                    dto.getMotivo(), dto.getDuracion() != null ? "Duración: " + dto.getDuracion() : "Permanente");
             return BaneoGlobalDTO.fromEntity(baneo);
         } else {
             PerfilPersonaje objetivo = personajeRepository.findById(dto.getId())
@@ -85,15 +91,20 @@ public class BaneoGlobalService {
             baneo = baneoRepository.save(baneo);
 
             sesionPersonajeService.cerrarSesionesDePersonaje(objetivo.getIdPersonaje());
+            auditoriaService.registrar(AccionModeracion.BANEO_PERSONAJE, admin, null, objetivo,
+                    dto.getMotivo(), dto.getDuracion() != null ? "Duración: " + dto.getDuracion() : "Permanente");
             return BaneoGlobalDTO.fromEntity(baneo);
         }
     }
 
     @Transactional
-    public void desbanear(Integer baneoId) {
+    public void desbanear(Integer baneoId, Usuario moderador) {
         BaneoGlobal baneo = baneoRepository.findById(baneoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Baneo no encontrado"));
         baneoRepository.delete(baneo);
+        auditoriaService.registrar(AccionModeracion.DESBANEO, moderador,
+                baneo.getUsuario(), baneo.getPersonaje(), baneo.getMotivo(),
+                "Baneo #" + baneoId + " eliminado");
     }
 
     public List<BaneoGlobalDTO> listar() {

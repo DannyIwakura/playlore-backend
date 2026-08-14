@@ -5,6 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -26,6 +29,7 @@ import com.playrole.chat.model.MensajeCanal;
 import com.playrole.chat.repository.CanalRepository;
 import com.playrole.chat.repository.MensajeCanalRepository;
 import com.playrole.dto.CrearDenunciaDTO;
+import com.playrole.enums.AccionModeracion;
 import com.playrole.enums.EstadoDenuncia;
 import com.playrole.enums.TipoDenuncia;
 import com.playrole.exception.BadRequestException;
@@ -44,6 +48,7 @@ class DenunciaServiceTest {
     private PerfilPersonajeRepositoryInterface personajeRepository;
     private UsuarioRepositoryInterface usuarioRepository;
     private CanalRepository canalRepository;
+    private AuditoriaModeracionService auditoriaService;
     private DenunciaService service;
 
     @BeforeEach
@@ -53,8 +58,9 @@ class DenunciaServiceTest {
         personajeRepository = mock(PerfilPersonajeRepositoryInterface.class);
         usuarioRepository = mock(UsuarioRepositoryInterface.class);
         canalRepository = mock(CanalRepository.class);
+        auditoriaService = mock(AuditoriaModeracionService.class);
         service = new DenunciaService(denunciaRepository, mensajeCanalRepository,
-                personajeRepository, usuarioRepository, canalRepository);
+                personajeRepository, usuarioRepository, canalRepository, auditoriaService);
     }
 
     private CrearDenunciaDTO dto(TipoDenuncia tipo, Integer tipoId) {
@@ -243,7 +249,7 @@ class DenunciaServiceTest {
     }
 
     @Test
-    void resolverDenuncia_ok_actualizaEstadoYResolutor() {
+    void resolverDenuncia_ok_actualizaEstadoYResolutorYRegistraAuditoria() {
         stubSaveDevuelveDenuncia();
         Denuncia denuncia = new Denuncia();
         denuncia.setIdDenuncia(1);
@@ -259,6 +265,7 @@ class DenunciaServiceTest {
         assertEquals("Se confirma", res.getDecision());
         assertEquals("Mod", res.getResueltoPorNombre());
         assertNotNull(res.getFechaResolucion());
+        verify(auditoriaService).registrar(eq(AccionModeracion.DENUNCIA_RESUELTA), eq(admin), isNull(), isNull(), any(), contains("Denuncia #1"));
     }
 
     @Test
