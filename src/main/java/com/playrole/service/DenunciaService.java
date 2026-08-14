@@ -18,6 +18,7 @@ import com.playrole.repository.PerfilPersonajeRepositoryInterface;
 import com.playrole.repository.UsuarioRepositoryInterface;
 import com.playrole.utils.HtmlUtils;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -32,9 +33,15 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class DenunciaService {
@@ -176,7 +183,100 @@ public class DenunciaService {
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };
-        return denunciaRepository.findAll(spec, pageable).map(this::toDTO);
+        Page<Denuncia> denuncias = denunciaRepository.findAll(spec, pageable);
+        List<DenunciaDTO> dtos = denuncias.getContent().stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+        enriquecerEnLote(dtos);
+        return new PageImpl<>(dtos, pageable, denuncias.getTotalElements());
+    }
+
+    /**
+     * Resuelve en lote los nombres de canal/personaje/usuario cuyo snapshot
+     * quedó null (registros antiguos) para evitar N+1 en el listado paginado.
+     */
+    private void enriquecerEnLote(List<DenunciaDTO> dtos) {
+        if (dtos.isEmpty()) return;
+
+        Map<Integer, String> canales = resolverNombresCanales(dtos.stream()
+                .filter(d -> d.getCanalNombre() == null && d.getCanalId() != null)
+                .map(DenunciaDTO::getCanalId)
+                .collect(Collectors.toCollection(LinkedHashSet::new)));
+        dtos.forEach(d -> {
+            if (d.getCanalNombre() == null && d.getCanalId() != null) {
+                d.setCanalNombre(canales.get(d.getCanalId()));
+            }
+        });
+
+        Map<Integer, String> personajes = resolverNombresPersonajes(dtos.stream()
+                .filter(d -> d.getAutorPersonajeNombre() == null && d.getAutorPersonajeId() != null)
+                .map(DenunciaDTO::getAutorPersonajeId)
+                .collect(Collectors.toCollection(LinkedHashSet::new)));
+        dtos.forEach(d -> {
+            if (d.getAutorPersonajeNombre() == null && d.getAutorPersonajeId() != null) {
+                d.setAutorPersonajeNombre(personajes.get(d.getAutorPersonajeId()));
+            }
+        });
+
+        Map<Integer, String> usuarios = resolverNombresUsuarios(dtos.stream()
+                .filter(d -> d.getAutorUsuarioNombre() == null && d.getAutorUsuarioId() != null)
+                .map(DenunciaDTO::getAutorUsuarioId)
+                .collect(Collectors.toCollection(LinkedHashSet::new)));
+        dtos.forEach(d -> {
+            if (d.getAutorUsuarioNombre() == null && d.getAutorUsuarioId() != null) {
+                d.setAutorUsuarioNombre(usuarios.get(d.getAutorUsuarioId()));
+            }
+        });
+
+        List<DenunciaDTO> objetivoPendiente = dtos.stream()
+                .filter(d -> d.getObjetivoNombre() == null)
+                .collect(Collectors.toList());
+        if (objetivoPendiente.isEmpty()) return;
+
+        canales.putAll(resolverNombresCanales(objetivoPendiente.stream()
+                .filter(d -> d.getTipo() == TipoDenuncia.CANAL && d.getCanalId() != null)
+                .map(DenunciaDTO::getCanalId)
+                .collect(Collectors.toCollection(LinkedHashSet::new))));
+        personajes.putAll(resolverNombresPersonajes(objetivoPendiente.stream()
+                .filter(d -> d.getTipo() == TipoDenuncia.PERSONAJE)
+                .map(DenunciaDTO::getTipoId)
+                .collect(Collectors.toCollection(LinkedHashSet::new))));
+        usuarios.putAll(resolverNombresUsuarios(objetivoPendiente.stream()
+                .filter(d -> d.getTipo() == TipoDenuncia.USUARIO)
+                .map(DenunciaDTO::getTipoId)
+                .collect(Collectors.toCollection(LinkedHashSet::new))));
+
+        objetivoPendiente.forEach(d -> {
+            String nombre = null;
+            if (d.getTipo() == TipoDenuncia.USUARIO) {
+                nombre = usuarios.get(d.getTipoId());
+            } else if (d.getTipo() == TipoDenuncia.PERSONAJE) {
+                nombre = personajes.get(d.getTipoId());
+            } else if (d.getTipo() == TipoDenuncia.CANAL) {
+                nombre = d.getCanalId() != null ? canales.get(d.getCanalId()) : null;
+            } else {
+                nombre = d.getAutorPersonajeNombre();
+            }
+            if (nombre != null) d.setObjetivoNombre(nombre);
+        });
+    }
+
+    private Map<Integer, String> resolverNombresCanales(Collection<Integer> ids) {
+        if (ids.isEmpty()) return new HashMap<>();
+        return canalRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(Canal::getIdCanal, Canal::getNombre));
+    }
+
+    private Map<Integer, String> resolverNombresPersonajes(Collection<Integer> ids) {
+        if (ids.isEmpty()) return new HashMap<>();
+        return personajeRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(PerfilPersonaje::getIdPersonaje, PerfilPersonaje::getNombre));
+    }
+
+    private Map<Integer, String> resolverNombresUsuarios(Collection<Integer> ids) {
+        if (ids.isEmpty()) return new HashMap<>();
+        return usuarioRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(Usuario::getUserId, Usuario::getNombre));
     }
 
     @Transactional
