@@ -32,6 +32,8 @@ import com.playrole.dto.LoginDTO;
 import com.playrole.dto.UsuarioCrearDTO;
 import com.playrole.dto.UsuarioDTO;
 import com.playrole.enums.RolUsuario;
+import com.playrole.exception.AccessDeniedException;
+import com.playrole.exception.BadRequestException;
 import com.playrole.exception.InvalidImageException;
 import com.playrole.exception.InvalidImageTypeException;
 import com.playrole.model.ImagenPersonaje;
@@ -265,6 +267,22 @@ public class UsuarioServiceImpl implements IUsuarioService {
                 usuario.setUltimaConexion(new Date());
                 usuarioRepositorio.save(usuario);
             });
+    }
+
+    @Override
+    @Transactional
+    public void eliminarCuentaPropia(Integer id, String password) {
+        Usuario usuario = usuarioRepositorio.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+        if (password == null || password.isBlank()) {
+            throw new BadRequestException("Debes introducir tu contraseña para eliminar la cuenta");
+        }
+        if (!passwordEncoder.matches(password, usuario.getPassword())) {
+            throw new AccessDeniedException("Contraseña incorrecta");
+        }
+
+        eliminarUsuario(id);
     }
 
     @Override

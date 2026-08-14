@@ -1,6 +1,7 @@
 package com.playrole.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -200,9 +201,16 @@ public class UsuarioController {
     }
 
     @DeleteMapping("/{id}")
-    public void eliminarUsuario(@PathVariable Integer id, Authentication authentication) {
+    public void eliminarUsuario(@PathVariable Integer id,
+                                @RequestBody(required = false) Map<String, String> body,
+                                Authentication authentication) {
         Integer userId = obtenerUserId(authentication);
-        if (!id.equals(userId) && !esAdmin(authentication)) {
+        if (id.equals(userId)) {
+            String password = body == null ? null : body.get("password");
+            usuarioService.eliminarCuentaPropia(id, password);
+            return;
+        }
+        if (!esAdmin(authentication)) {
             throw new AccessDeniedException("No puedes eliminar la cuenta de otro usuario");
         }
         usuarioService.eliminarUsuario(id);

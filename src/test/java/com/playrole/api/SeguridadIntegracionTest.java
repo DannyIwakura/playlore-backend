@@ -290,13 +290,41 @@ class SeguridadIntegracionTest {
 	}
 
 	@Test
-	void eliminarMiPropiaCuenta_devuelve200() throws Exception {
+	void eliminarMiPropiaCuenta_conPasswordCorrecta_devuelve200() throws Exception {
+		Usuario alice = crearUsuario("alice", RolUsuario.USER);
+
+		mockMvc.perform(delete("/usuarios/" + alice.getUserId())
+						.header("Authorization", "Bearer " + token(alice))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"password\":\"Password123\"}"))
+				.andExpect(status().isOk());
+
+		assertEquals(0, usuarioRepo.count());
+	}
+
+	@Test
+	void eliminarMiPropiaCuenta_sinPassword_devuelve400() throws Exception {
 		Usuario alice = crearUsuario("alice", RolUsuario.USER);
 
 		mockMvc.perform(delete("/usuarios/" + alice.getUserId())
 						.header("Authorization", "Bearer " + token(alice)))
-				.andExpect(status().isOk());
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error").value("Debes introducir tu contraseña para eliminar la cuenta"));
 
-		assertEquals(0, usuarioRepo.count());
+		assertEquals(1, usuarioRepo.count());
+	}
+
+	@Test
+	void eliminarMiPropiaCuenta_passwordIncorrecta_devuelve403() throws Exception {
+		Usuario alice = crearUsuario("alice", RolUsuario.USER);
+
+		mockMvc.perform(delete("/usuarios/" + alice.getUserId())
+						.header("Authorization", "Bearer " + token(alice))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"password\":\"clave-equivocada\"}"))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.error").value("Contraseña incorrecta"));
+
+		assertEquals(1, usuarioRepo.count());
 	}
 }

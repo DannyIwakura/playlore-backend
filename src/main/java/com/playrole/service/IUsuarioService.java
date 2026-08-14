@@ -21,4 +21,5 @@ public interface IUsuarioService {
     void actualizarUltimaConexion(LoginDTO loginDTO);
     void actualizarUltimaConexion(Integer usuarioId);
     void eliminarUsuario(Integer id);
+    void eliminarCuentaPropia(Integer id, String password);
 }
