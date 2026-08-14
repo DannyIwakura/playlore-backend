@@ -7,6 +7,7 @@ API REST de PlayLore/PlayRole. Spring Boot 4.0.3, Java 21, Maven (wrapper `.\mvn
 - Tests: `.\mvnw.cmd test` (usa H2 en memoria con el perfil `test`, no necesita MySQL)
 - Compilar: `.\mvnw.cmd -q compile -DskipTests`
 - La app real usa MySQL y el perfil `dev` (o `SPRING_PROFILES_ACTIVE=prod` en producción).
+- CI: `.github/workflows/ci.yml` ejecuta compile + test en cada push/PR a `main` (runner Linux, `./mvnw`).
 
 ## Configuración y secretos
 
