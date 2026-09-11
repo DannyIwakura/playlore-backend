@@ -71,8 +71,32 @@ class SeguridadIntegracionTest {
 	@Autowired
 	private com.playrole.repository.RegistroModeracionRepository registroModeracionRepo;
 
+	@Autowired
+	private com.playrole.chat.repository.MensajePrivadoPersonajeRepository mensajePrivadoRepo;
+
+	@Autowired
+	private com.playrole.chat.repository.MensajeCanalRepository mensajeCanalRepo;
+
+	@Autowired
+	private com.playrole.chat.repository.SesionPersonajeRepository sesionRepo;
+
+	@Autowired
+	private com.playrole.chat.repository.BaneoCanalRepository baneoCanalRepo;
+
+	@Autowired
+	private com.playrole.chat.repository.MiembroCanalRepository miembroRepo;
+
+	@Autowired
+	private com.playrole.chat.repository.CanalRepository canalRepo;
+
 	@BeforeEach
 	void limpiarBase() {
+		mensajePrivadoRepo.deleteAll();
+		mensajeCanalRepo.deleteAll();
+		sesionRepo.deleteAll();
+		baneoCanalRepo.deleteAll();
+		miembroRepo.deleteAll();
+		canalRepo.deleteAll();
 		personajeCategoriaRepo.deleteAll();
 		categoriaRepo.deleteAll();
 		baneoRepo.deleteAll();
