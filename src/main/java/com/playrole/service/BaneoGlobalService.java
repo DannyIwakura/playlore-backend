@@ -13,6 +13,7 @@ import com.playrole.model.Usuario;
 import com.playrole.repository.BaneoGlobalRepository;
 import com.playrole.repository.PerfilPersonajeRepositoryInterface;
 import com.playrole.repository.UsuarioRepositoryInterface;
+import com.playrole.utils.ModeracionUtils;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -126,15 +127,6 @@ public class BaneoGlobalService {
     }
 
     private Date calcularExpiracion(String duracion) {
-        if (duracion == null || duracion.isBlank() || duracion.equalsIgnoreCase("PERMANENTE")) {
-            return null;
-        }
-        long millis = switch (duracion.toUpperCase()) {
-            case "1H" -> 3600000L;
-            case "24H" -> 86400000L;
-            case "7D" -> 604800000L;
-            default -> throw new BadRequestException("Duración no válida: " + duracion);
-        };
-        return new Date(System.currentTimeMillis() + millis);
+        return ModeracionUtils.calcularExpiracion(duracion);
     }
 }

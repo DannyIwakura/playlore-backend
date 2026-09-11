@@ -127,7 +127,8 @@ public class ImagenPersonajeServiceImpl implements IImagenPersonajeService {
                     imagen.getUrl().replace("/uploads/galeria/", ""));
             Files.deleteIfExists(filePath);
         } catch (IOException e) {
-            // Si no se puede eliminar el archivo, continuamos
+            org.slf4j.LoggerFactory.getLogger(ImagenPersonajeServiceImpl.class)
+                    .warn("No se pudo eliminar archivo de imagen: {}", e.getMessage());
         }
 
         imagenRepository.deleteByIdDirect(idImagen);

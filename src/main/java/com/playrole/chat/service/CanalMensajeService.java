@@ -17,10 +17,13 @@ import com.playrole.repository.BaneoGlobalRepository;
 import com.playrole.repository.PerfilPersonajeRepositoryInterface;
 import com.playrole.utils.HtmlUtils;
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import java.util.ArrayDeque;
 import java.util.Date;
@@ -31,6 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class CanalMensajeService {
 
+    private static final Logger log = LoggerFactory.getLogger(CanalMensajeService.class);
     private static final int MAX_MENSAJES_VENTANA = 5;
     private static final long VENTANA_MS = 10_000L;
     private static final int MAX_CONTENIDO_LONGITUD = 2000;
@@ -234,5 +238,27 @@ public class CanalMensajeService {
 
         MensajeCanalDTO dto = MensajeCanalDTO.fromEntity(mensaje, personajeId);
         messagingTemplate.convertAndSend("/topic/canal." + mensaje.getCanal().getIdCanal(), dto);
+    }
+
+    @Scheduled(fixedRate = 60_000)
+    public void limpiarEnviosExpirados() {
+        long ahora = System.currentTimeMillis();
+        int limpiados = 0;
+        var it = enviosRecientes.entrySet().iterator();
+        while (it.hasNext()) {
+            Deque<Long> envios = it.next().getValue();
+            synchronized (envios) {
+                while (!envios.isEmpty() && ahora - envios.peekFirst() > VENTANA_MS) {
+                    envios.pollFirst();
+                }
+                if (envios.isEmpty()) {
+                    it.remove();
+                    limpiados++;
+                }
+            }
+        }
+        if (limpiados > 0) {
+            log.debug("CanalMensajeService: limpiadas {} entradas expiradas de enviosRecientes", limpiados);
+        }
     }
 }

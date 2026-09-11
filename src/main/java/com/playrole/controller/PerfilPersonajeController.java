@@ -18,12 +18,11 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.playrole.chat.auth.CharacterSessionPrincipal;
 import com.playrole.dto.PerfilPersonajeAdminDTO;
 import com.playrole.dto.PerfilPersonajeDTO;
 import com.playrole.exception.AccessDeniedException;
-import com.playrole.security.CustomUserDetails;
 import com.playrole.service.IPerfilPersonajeService;
+import com.playrole.utils.AuthUtils;
 
 import jakarta.validation.Valid;
 
@@ -76,7 +75,7 @@ public class PerfilPersonajeController {
             @RequestPart(value = "avatarFile", required = false) MultipartFile avatarFile,
             Authentication authentication) {
 
-        dto.setUserId(obtenerUserId(authentication));
+        dto.setUserId(AuthUtils.obtenerUserId(authentication));
         return personajeService.guardarPersonaje(dto, avatarFile);
     }
 
@@ -105,22 +104,10 @@ public class PerfilPersonajeController {
     }
 
     private void comprobarPropiedadPersonaje(Integer id, Authentication authentication) {
-        Integer userId = obtenerUserId(authentication);
+        Integer userId = AuthUtils.obtenerUserId(authentication);
         PerfilPersonajeDTO personaje = personajeService.obtenerPersonaje(id);
-        if (!personaje.getUserId().equals(userId) && !esModerador(authentication)) {
+        if (!personaje.getUserId().equals(userId) && !AuthUtils.esModerador(authentication)) {
             throw new AccessDeniedException("No puedes modificar o eliminar un personaje que no es tuyo");
         }
-    }
-
-    private boolean esModerador(Authentication authentication) {
-        return authentication.getAuthorities().stream()
-                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()) || "ROLE_MOD".equals(a.getAuthority()));
-    }
-
-    private Integer obtenerUserId(Authentication authentication) {
-        Object principal = authentication.getPrincipal();
-        if (principal instanceof CharacterSessionPrincipal cp) return cp.getUsuario().getUserId();
-        if (principal instanceof CustomUserDetails cd) return cd.getUsuario().getUserId();
-        throw new AccessDeniedException("No autenticado");
     }
 }

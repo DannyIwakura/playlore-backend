@@ -4,6 +4,8 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -18,8 +20,12 @@ import com.playrole.repository.UsuarioRepositoryInterface;
 import com.playrole.security.CustomUserDetails;
 import com.playrole.utils.JwtUtils;
 
+import jakarta.transaction.Transactional;
+
 @Service
 public class GoogleAuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(GoogleAuthService.class);
 
     private final UsuarioRepositoryInterface usuarioRepository;
     private final PasswordEncoder passwordEncoder;
@@ -42,11 +48,13 @@ public class GoogleAuthService {
                 .build();
     }
 
+    @Transactional
     public String loginConCredential(String credential) {
         GoogleIdToken idToken;
         try {
             idToken = verifier.verify(credential);
         } catch (Exception e) {
+            log.warn("Error verificando token de Google: {}", e.getMessage());
             throw new IllegalArgumentException("Token de Google inválido");
         }
         if (idToken == null) {
@@ -81,7 +89,7 @@ public class GoogleAuthService {
         usuario.setEmail(email);
         usuario.setNombre(generarNombreUnico(email, nombreGoogle));
         usuario.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
-        usuario.setAvatar(picture != null && !picture.isBlank() ? picture : "/images/AVATAR.png");
+        usuario.setAvatar(picture != null && !picture.isBlank() ? picture : com.playrole.utils.AppConstants.AVATAR_POR_DEFECTO);
         usuario.setRol(RolUsuario.USER);
         usuario.setFechaRegistro(new Date());
         usuario.setUltimaConexion(new Date());

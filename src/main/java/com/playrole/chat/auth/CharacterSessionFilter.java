@@ -9,6 +9,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,6 +23,9 @@ import java.util.List;
 @Component
 @Order(1)
 public class CharacterSessionFilter extends OncePerRequestFilter {
+
+    private static final Logger log = LoggerFactory.getLogger(CharacterSessionFilter.class);
+    private static final long ACTIVITY_THROTTLE_MS = 60_000L;
 
     private final SessionJwtUtils sessionJwtUtils;
     private final SesionPersonajeRepository sesionRepository;
@@ -48,8 +53,12 @@ public class CharacterSessionFilter extends OncePerRequestFilter {
                     SesionPersonaje sesion = sesionRepository.findByTokenJwtAndActivaTrue(token).orElse(null);
 
                     if (sesion != null) {
-                        sesion.setUltimaActividad(new Date());
-                        sesionRepository.save(sesion);
+                        long ahora = System.currentTimeMillis();
+                        Date ultimaActividad = sesion.getUltimaActividad();
+                        if (ultimaActividad == null || ahora - ultimaActividad.getTime() > ACTIVITY_THROTTLE_MS) {
+                            sesion.setUltimaActividad(new Date(ahora));
+                            sesionRepository.save(sesion);
+                        }
 
                         Usuario usuario = sesion.getUsuario();
                         PerfilPersonaje personaje = sesion.getPersonaje();

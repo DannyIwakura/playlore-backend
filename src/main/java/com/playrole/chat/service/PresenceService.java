@@ -84,6 +84,15 @@ public class PresenceService {
             sessions.remove(sessionId);
             if (sessions.isEmpty()) {
                 onlineCharacters.remove(personajeId);
+
+                // If the character still has a valid DB session, keep mappings intact.
+                // The character will appear online again via multi-char support when
+                // another character of the same user connects (onConnect re-broadcasts).
+                if (sesionPersonajeService.tieneSesionActivaValida(personajeId)) {
+                    return;
+                }
+
+                characterStatus.remove(personajeId);
                 broadcastPresence(personajeId, false);
 
                 // Re-broadcast other characters from the same user so they remain visible as online
@@ -91,10 +100,17 @@ public class PresenceService {
                 if (usuarioId != null) {
                     Set<Integer> userChars = userCharacters.get(usuarioId);
                     if (userChars != null) {
+                        boolean allOffline = true;
                         for (Integer otherId : userChars) {
                             if (!otherId.equals(personajeId)) {
-                                broadcastPresence(otherId, isOnline(otherId));
+                                boolean otherOnline = isOnlineStrict(otherId);
+                                broadcastPresence(otherId, otherOnline);
+                                if (otherOnline) allOffline = false;
                             }
+                        }
+                        if (allOffline) {
+                            userChars.forEach(personajeToUser::remove);
+                            userCharacters.remove(usuarioId);
                         }
                     }
                 }

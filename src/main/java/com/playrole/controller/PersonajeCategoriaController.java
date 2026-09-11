@@ -2,14 +2,13 @@ package com.playrole.controller;
 
 import java.util.List;
 import org.springframework.web.bind.annotation.*;
-import com.playrole.chat.auth.CharacterSessionPrincipal;
 import com.playrole.dto.PerfilPersonajeDTO;
 import com.playrole.dto.PersonajeCategoriaDTO;
 import com.playrole.exception.AccessDeniedException;
 import com.playrole.exception.ResourceNotFoundException;
-import com.playrole.security.CustomUserDetails;
 import com.playrole.service.IPerfilPersonajeService;
 import com.playrole.service.IPersonajeCategoriaService;
+import com.playrole.utils.AuthUtils;
 
 import org.springframework.security.core.Authentication;
 
@@ -78,22 +77,10 @@ public class PersonajeCategoriaController {
     }
 
     private void comprobarPropiedadPersonaje(Integer idPersonaje, Authentication authentication) {
-        Integer userId = obtenerUserId(authentication);
+        Integer userId = AuthUtils.obtenerUserId(authentication);
         PerfilPersonajeDTO personaje = personajeService.obtenerPersonaje(idPersonaje);
-        if (!personaje.getUserId().equals(userId) && !esModerador(authentication)) {
+        if (!personaje.getUserId().equals(userId) && !AuthUtils.esModerador(authentication)) {
             throw new AccessDeniedException("No puedes gestionar las categorías de un personaje que no es tuyo");
         }
-    }
-
-    private boolean esModerador(Authentication authentication) {
-        return authentication.getAuthorities().stream()
-                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()) || "ROLE_MOD".equals(a.getAuthority()));
-    }
-
-    private Integer obtenerUserId(Authentication authentication) {
-        Object principal = authentication.getPrincipal();
-        if (principal instanceof CharacterSessionPrincipal cp) return cp.getUsuario().getUserId();
-        if (principal instanceof CustomUserDetails cd) return cd.getUsuario().getUserId();
-        throw new AccessDeniedException("No autenticado");
     }
 }

@@ -66,7 +66,7 @@ public class PerfilPersonaje implements Serializable {
     @JoinColumn(name = "user_id", referencedColumnName = "user_id")
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     private Usuario userId;
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = "idPersonaje", fetch = FetchType.EAGER)
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = "idPersonaje", fetch = FetchType.LAZY)
     @BatchSize(size = 50)
     private List<PersonajeCategoria> personajeCategoriaList;
 
@@ -195,7 +195,6 @@ public class PerfilPersonaje implements Serializable {
 
     @Override
     public boolean equals(Object object) {
-        // TODO: Warning - this method won't work in the case the id fields are not set
         if (!(object instanceof PerfilPersonaje)) {
             return false;
         }

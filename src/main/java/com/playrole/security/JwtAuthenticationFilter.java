@@ -41,7 +41,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             //antes de inciciar sesion hace falta ver si el token es valido
             if (!jwtUtils.validarToken(token)) {
                 logger.warn("Token JWT inválido para el request: " + request.getRequestURI());
-                logger.info("Request a: " + request.getRequestURI());
             }
             
             if (jwtUtils.validarToken(token)) {
@@ -69,7 +68,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                     SecurityContextHolder.getContext().setAuthentication(auth);
-                    logger.info("Request a: " + request.getRequestURI());
                 } catch (UsernameNotFoundException | JwtException e) {
                     // Usuario inexistente o token no válido para el filtro de usuario:
                     // se deja pasar sin autenticación (lo resolverá CharacterSessionFilter o 401).

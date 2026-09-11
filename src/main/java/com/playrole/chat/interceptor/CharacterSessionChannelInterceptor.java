@@ -30,14 +30,15 @@ public class CharacterSessionChannelInterceptor implements ChannelInterceptor {
                 Integer personajeId = (Integer) sessionAttributes.get("personajeId");
 
                 if (personajeId != null) {
-                    String customSessionId = (String) sessionAttributes.get("customSessionId");
                     if (StompCommand.CONNECT.equals(accessor.getCommand())) {
                         accessor.setUser(() -> personajeId.toString());
+                        String customSessionId = (String) sessionAttributes.get("customSessionId");
+                        Integer usuarioId = (Integer) sessionAttributes.get("usuarioId");
                         if (customSessionId != null) {
-                            Integer usuarioId = (Integer) sessionAttributes.get("usuarioId");
                             presenceService.onConnect(personajeId, usuarioId, customSessionId);
                         }
                     } else if (StompCommand.DISCONNECT.equals(accessor.getCommand())) {
+                        String customSessionId = (String) sessionAttributes.get("customSessionId");
                         if (customSessionId != null) {
                             presenceService.onDisconnect(personajeId, customSessionId);
                         }

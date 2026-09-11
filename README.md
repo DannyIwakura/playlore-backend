@@ -1,73 +1,98 @@
-# PlayLore Backend — Spring Boot API
+# PlayRole Backend — Spring Boot API
 
-El backend que sirve para hacer llamadas desde el frontend.
-Este README describe cómo instalar y desplegar el proyecto en un entorno de desarrollo (`dev`).
+API REST de PlayLore/PlayRole. Spring Boot 4.0.3, Java 21, Maven.
 
 ---
 
 ## Requisitos previos
 
-Antes de ejecutar el proyecto, asegúrate de tener instaladas las siguientes herramientas:
-
-- **Java JDK 24+**
-  [Descarga el JDK Directamente aquí](https://adoptium.net/es/download?link=https%3A%2F%2Fgithub.com%2Fadoptium%2Ftemurin24-binaries%2Freleases%2Fdownload%2Fjdk-24.0.2%252B12%2FOpenJDK24U-jdk_x64_windows_hotspot_24.0.2_12.msi&vendor=Adoptium)
-- **MySQL 8+**
+- **Java JDK 21** ([Adoptium Temurin 21](https://adoptium.net/es/temurin/releases/?version=21))
+- **MySQL 8+** (o Docker — ver más abajo)
 - **Git**
-- IDE recomendado: **Eclipse**
-- Extensión recomendada para Eclipse: **Spring Tools 4**
+- IDE recomendado: IntelliJ IDEA o VS Code con extensionses de Java
 
 ---
 
-## Configuración del proyecto
+## Arranque rápido (con Docker)
 
-### Paso 1 — Clonar el repositorio
-
-Abre una terminal y ejecuta los siguientes comandos para descargar el proyecto en tu máquina:
+El método más rápido para levantar MySQL sin instalarlo:
 
 ```bash
-git clone https://github.com/usuario/playlore-backend.git
-cd playlore-backend
+# Levantar MySQL en Docker
+docker-compose up -d mysql
+
+# Arrancar el backend (usa el perfil dev por defecto)
+.\mvnw.cmd spring-boot:run
 ```
 
-### Paso 2 — Importar y actualizar el proyecto en Eclipse
+El backend se conectará a MySQL en `localhost:3306/playlore_db` con usuario `root`/`root`.
 
-Una vez clonado el repositorio, importa el proyecto en Eclipse como proyecto Maven existente. Después, para asegurarte de que Eclipse descarga todas las dependencias correctamente, haz clic derecho sobre el proyecto en el explorador y selecciona:
+---
 
-**Maven → Update Project...**
+## Arranque manual (sin Docker)
 
-En el diálogo que aparece, comprueba que tu proyecto está marcado y pulsa **OK**. Esto sincronizará las dependencias y resolverá posibles errores de importación.
+1. Asegúrate de tener MySQL 8+ corriendo en `localhost:3306`.
+2. Crea la base de datos:
+   ```sql
+   CREATE DATABASE playlore_db;
+   ```
+3. Las tablas se crean automáticamente con `ddl-auto=update` en el perfil `dev`.
 
-### Paso 3 — Configurar la base de datos
+---
 
-Navega hasta el fichero de configuración de la aplicación en:
-src/main/resources/application.properties
+## Variables de entorno
 
-Y edita las siguientes propiedades con los datos de tu instalación local de MySQL:
+Copia `.env.example` como `.env` y rellena los valores. En perfil `dev` todos tienen valores por defecto razonables.
 
-```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/NOMBRE_BD
-spring.datasource.username=TU_USUARIO
-spring.datasource.password=TU_CONTRASEÑA
+| Variable | Descripción | Default (dev) |
+|---|---|---|
+| `DB_URL` | JDBC URL de MySQL | `jdbc:mysql://localhost:3306/playlore_db` |
+| `DB_USER` | Usuario MySQL | `root` |
+| `DB_PASS` | Contraseña MySQL | `root` |
+| `JWT_SECRET` | Clave de firmado JWT (obligatorio en prod) | valor de dev |
+| `RECAPTCHA_SECRET` | Clave secreta de reCAPTCHA | clave de prueba Google |
+| `RECAPTCHA_SKIP_VERIFICATION` | Saltar verificación reCAPTCHA | `true` |
+| `GOOGLE_CLIENT_ID` | Client ID de Google OAuth | client-id de dev |
+| `CORS_ALLOWED_ORIGINS` | Orígenes CORS permitidos | `http://localhost:5173` |
+
+---
+
+## Comandos de verificación
+
+```bash
+# Tests (H2 en memoria, no necesita MySQL)
+.\mvnw.cmd test
+
+# Compilar sin tests
+.\mvnw.cmd -q compile -DskipTests
 ```
 
-Antes de arrancar la aplicación necesitas crear las tablas en la base de datos. Para ello ejecuta el siguiente script SQL:
+---
 
-📄 [Script de creación de tablas](https://drive.google.com/file/d/1Pou34ZBuwYnCPvdpEJ_Hk2oS9iGzCreP/view?usp=sharing)
-📄 [Script con datos de prueba](https://drive.google.com/file/d/1ZF3255JwrGhyxUKjMHnA1fdVaCjtVnxI/view?usp=sharing)
-📄 [Colección de endpoints completos para perubas en Postman y similares ](https://drive.google.com/file/d/14tkFIexIoNUlyHAW_EiVtuQQVg2LjCUJ/view?usp=sharing)
-> [!NOTE]
-> La contraseña para todos los usuarios es "password" sin comillas.
+## Estructura del proyecto
 
-Puedes ejecutarlo desde MySQL Workbench, DBeaver, o directamente desde la consola de MySQL.
+```
+src/main/java/com/playrole/
+  controller/    — Endpoints REST (Usuarios, Personajes, Chat, Moderación...)
+  chat/          — WebSocket, sesiones de personaje, presencia
+  service/       — Lógica de negocio
+  security/      — JWT, filtros, configuración de seguridad
+  config/        — CORS, WebSocket, properties
+  repository/    — Spring Data JPA
+  model/         — Entidades JPA
+  dto/           — Data Transfer Objects
+  utils/         — HtmlUtils, ImageFileValidator, JwtUtils
+```
 
-### Paso 4 — Arrancar la aplicación
+---
 
-Con la base de datos configurada y las tablas creadas, ya puedes iniciar el servidor. Haz clic derecho sobre el proyecto en Eclipse y selecciona:
+## Perfiles
 
-**Run As → Spring Boot App**
+- **dev** (`application-dev.properties`): ddl-auto=update, credenciales de desarrollo, reCAPTCHA de prueba.
+- **test** (`application-test.properties`): H2 en memoria para tests automatizados.
+- **prod** (default `application.properties`): ddl-auto=validate, secretos por variables de entorno.
 
-La aplicación se iniciará y estará disponible por defecto en `http://localhost:8080`. Puedes verificarlo revisando la consola de Eclipse, donde debería aparecer el mensaje de arranque de Spring Boot.
+---
 
-
-    PlayRole  © 2026 by Daniel is licensed under CC BY-SA 4.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-sa/4.0/
-
+    PlayRole (c) 2026 by Daniel is licensed under CC BY-SA 4.0.
+    To view a copy of this license, visit https://creativecommons.org/licenses/by-sa/4.0/

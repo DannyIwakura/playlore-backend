@@ -94,7 +94,7 @@ public class UsuarioServiceImpl implements IUsuarioService {
     private SesionPersonajeRepository sesionRepositorio;
     
     private static final String DEFAULT_AVATAR =
-    	    "/images/AVATAR.png";
+    	    com.playrole.utils.AppConstants.AVATAR_POR_DEFECTO;
     
     @Value("${app.upload.dir}")
     private String uploadsDir;
@@ -379,7 +379,9 @@ public class UsuarioServiceImpl implements IUsuarioService {
             String relative = imageUrl.substring("/uploads/".length());
             Path filePath = Paths.get(System.getProperty("user.dir"), "uploads", relative);
             Files.deleteIfExists(filePath);
-        } catch (IOException ignored) {
+        } catch (IOException e) {
+            org.slf4j.LoggerFactory.getLogger(UsuarioServiceImpl.class)
+                    .warn("No se pudo eliminar archivo de imagen: {}", e.getMessage());
         }
     }
     

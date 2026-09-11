@@ -12,13 +12,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.playrole.chat.auth.CharacterSessionPrincipal;
 import com.playrole.dto.CrearSolicitudAmistadDTO;
 import com.playrole.dto.SolicitudAmistadDTO;
 import com.playrole.exception.AccessDeniedException;
 import com.playrole.exception.ResourceNotFoundException;
-import com.playrole.security.CustomUserDetails;
 import com.playrole.service.ISolicitudAmistadService;
+import com.playrole.utils.AuthUtils;
 
 @RestController
 @RequestMapping("/amistades")
@@ -100,9 +99,6 @@ public class SolicitudAmistadController {
     }
 
     private Integer obtenerUserId(Authentication authentication) {
-        Object principal = authentication.getPrincipal();
-        if (principal instanceof CharacterSessionPrincipal cp) return cp.getUsuario().getUserId();
-        if (principal instanceof CustomUserDetails cd) return cd.getUsuario().getUserId();
-        throw new AccessDeniedException("No autenticado");
+        return AuthUtils.obtenerUserId(authentication);
     }
 }

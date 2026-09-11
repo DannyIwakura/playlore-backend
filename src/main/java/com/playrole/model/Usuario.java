@@ -7,6 +7,7 @@ import java.util.List;
 import com.playrole.enums.RolUsuario;
 
 import jakarta.persistence.Basic;
+import org.hibernate.annotations.BatchSize;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -57,9 +58,11 @@ public class Usuario implements Serializable {
     private Date ultimaConexion;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "userId", fetch = FetchType.LAZY)
     private List<PerfilPersonaje> perfilPersonajeList;
-    @OneToMany(mappedBy = "emisorId", fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "emisorId", fetch = FetchType.LAZY)
+    @BatchSize(size = 50)
     private List<SolicitudAmistad> solicitudAmistadList;
-    @OneToMany(mappedBy = "receptorId", fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "receptorId", fetch = FetchType.LAZY)
+    @BatchSize(size = 50)
     private List<SolicitudAmistad> solicitudAmistadList1;
 
     public Usuario() {

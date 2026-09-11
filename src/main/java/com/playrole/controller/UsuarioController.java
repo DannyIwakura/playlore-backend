@@ -44,6 +44,7 @@ import com.playrole.service.ISolicitudAmistadService;
 import com.playrole.service.IUsuarioService;
 import com.playrole.service.LoginAttemptService;
 import com.playrole.utils.JwtUtils;
+import com.playrole.utils.AuthUtils;
 
 import jakarta.validation.Valid;
 
@@ -237,20 +238,14 @@ public class UsuarioController {
     }
 
     private boolean esAdmin(Authentication authentication) {
-        return authentication.getAuthorities().stream()
-                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+        return AuthUtils.esAdmin(authentication);
     }
 
     private Integer obtenerUserId(Authentication authentication) {
-        Object principal = authentication.getPrincipal();
-        if (principal instanceof CharacterSessionPrincipal cp) return cp.getUsuario().getUserId();
-        if (principal instanceof CustomUserDetails cd) return cd.getUsuario().getUserId();
-        throw new AccessDeniedException("No autenticado");
+        return AuthUtils.obtenerUserId(authentication);
     }
 
     private String obtenerIpCliente(HttpServletRequest request) {
-        // Con server.forward-headers-strategy=NATIVE Spring ya resuelve X-Forwarded-For.
-        // Usar getRemoteAddr() directamente evita que un atacante forje la cabecera.
         return request.getRemoteAddr();
     }
 }

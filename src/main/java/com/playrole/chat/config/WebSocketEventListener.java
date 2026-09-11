@@ -23,15 +23,10 @@ public class WebSocketEventListener {
         StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
         var sessionAttributes = accessor.getSessionAttributes();
         if (sessionAttributes != null) {
-            Integer personajeId = (Integer) sessionAttributes.get("personajeId");
             String customSessionId = (String) sessionAttributes.get("customSessionId");
-            if (personajeId != null && customSessionId != null) {
-                Integer usuarioId = (Integer) sessionAttributes.get("usuarioId");
-                presenceService.onConnect(personajeId, usuarioId, customSessionId);
-                String stompSessionId = accessor.getSessionId();
-                if (stompSessionId != null) {
-                    presenceService.mapStompSessionToCustomSession(stompSessionId, customSessionId);
-                }
+            String stompSessionId = accessor.getSessionId();
+            if (customSessionId != null && stompSessionId != null) {
+                presenceService.mapStompSessionToCustomSession(stompSessionId, customSessionId);
             }
         }
     }

@@ -17,6 +17,8 @@ import com.playrole.model.Usuario;
 import com.playrole.repository.SolicitudAmistadRespositoryInterface;
 import com.playrole.repository.UsuarioRepositoryInterface;
 
+import jakarta.transaction.Transactional;
+
 @Service
 public class SolicitudAmistadServiceImpl implements ISolicitudAmistadService {
 
@@ -27,6 +29,7 @@ public class SolicitudAmistadServiceImpl implements ISolicitudAmistadService {
 	private UsuarioRepositoryInterface usuarioRepository;
 	
 	@Override
+	@Transactional
 	public SolicitudAmistadDTO enviarSolicitud(Integer emisorId, Integer receptorId) {
 		
 		//comprobamos si se está enviado a si mismo
@@ -89,6 +92,7 @@ public class SolicitudAmistadServiceImpl implements ISolicitudAmistadService {
 	}
 
 	@Override
+	@Transactional
 	public SolicitudAmistadDTO aceptarSolicitud(Integer idSolicitud) {
 		//recuperamos la solicitud
 		SolicitudAmistad solicitud = solicitudAmistadRepository.findById(idSolicitud)
@@ -103,6 +107,7 @@ public class SolicitudAmistadServiceImpl implements ISolicitudAmistadService {
 	}
 
 	@Override
+	@Transactional
 	public SolicitudAmistadDTO rechazarSolicitud(Integer idSolicitud) {
 		SolicitudAmistad solicitud = solicitudAmistadRepository.findById(idSolicitud)
 	            .orElseThrow(() -> new ResourceNotFoundException("Solicitud no encontrada"));
@@ -158,6 +163,7 @@ public class SolicitudAmistadServiceImpl implements ISolicitudAmistadService {
 	}
 	
 	@Override
+	@Transactional
 	public void eliminarSolicitud(Integer idSolicitud) {
 	    if (!solicitudAmistadRepository.existsById(idSolicitud)) {
 	        throw new ResourceNotFoundException("Solicitud no encontrada");
@@ -166,6 +172,7 @@ public class SolicitudAmistadServiceImpl implements ISolicitudAmistadService {
 	}
 	
 	@Override
+	@Transactional
 	public void eliminarAmistadEntreUsuarios(Integer userId1, Integer userId2) {
 		solicitudAmistadRepository.eliminarAmistadEntreUsuarios(userId1, userId2);
 	}

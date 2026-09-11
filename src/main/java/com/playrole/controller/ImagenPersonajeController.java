@@ -14,11 +14,10 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.playrole.chat.auth.CharacterSessionPrincipal;
 import com.playrole.dto.ImagenPersonajeDTO;
 import com.playrole.exception.AccessDeniedException;
-import com.playrole.security.CustomUserDetails;
 import com.playrole.service.IImagenPersonajeService;
+import com.playrole.utils.AuthUtils;
 
 @RestController
 @RequestMapping("/personajes/{id}/imagenes")
@@ -55,9 +54,6 @@ public class ImagenPersonajeController {
     }
 
     private Integer obtenerUserId(Authentication authentication) {
-        Object principal = authentication.getPrincipal();
-        if (principal instanceof CharacterSessionPrincipal cp) return cp.getUsuario().getUserId();
-        if (principal instanceof CustomUserDetails cd) return cd.getUsuario().getUserId();
-        throw new AccessDeniedException("No autenticado");
+        return AuthUtils.obtenerUserId(authentication);
     }
 }

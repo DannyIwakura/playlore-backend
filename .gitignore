@@ -1,4 +1,6 @@
 HELP.md
+AGENTS.md
+ROADMAP.md
 target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
@@ -34,4 +36,14 @@ build/
 
 # Subidas de usuarios (avatares, galerías, imágenes de canales)
 uploads/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# Entorno local (usar .env.example como plantilla)
+.env
+.env.local
 

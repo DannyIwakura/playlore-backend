@@ -23,6 +23,7 @@ import com.playrole.exception.ResourceNotFoundException;
 import com.playrole.model.PerfilPersonaje;
 import com.playrole.repository.PerfilPersonajeRepositoryInterface;
 import com.playrole.utils.ImageFileValidator;
+import com.playrole.utils.ModeracionUtils;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -297,13 +298,7 @@ public class CanalService {
         baneo.setFechaBaneo(new Date());
 
         if (duracion != null && !duracion.equalsIgnoreCase("PERMANENTE")) {
-            long millis = switch (duracion.toUpperCase()) {
-                case "1H" -> 3600000L;
-                case "24H" -> 86400000L;
-                case "7D" -> 604800000L;
-                default -> throw new BadRequestException("Duración no válida: " + duracion);
-            };
-            baneo.setFechaExpiracion(new Date(System.currentTimeMillis() + millis));
+            baneo.setFechaExpiracion(ModeracionUtils.calcularExpiracion(duracion));
         }
 
         baneoRepository.save(baneo);
@@ -371,13 +366,10 @@ public class CanalService {
             throw new AccessDeniedException("Solo puedes silenciar a miembros del canal");
         }
 
-        long millis = switch (duracion == null ? "" : duracion.toUpperCase()) {
-            case "1H" -> 3600000L;
-            case "24H" -> 86400000L;
-            case "7D" -> 604800000L;
-            default -> throw new BadRequestException("Duración no válida: " + duracion);
-        };
-        Date hasta = new Date(System.currentTimeMillis() + millis);
+        Date hasta = ModeracionUtils.calcularExpiracion(duracion);
+        if (hasta == null) {
+            throw new BadRequestException("Debes indicar una duración para el silenciamiento");
+        }
 
         objetivo.setSilenciadoHasta(hasta);
         miembroRepository.save(objetivo);
@@ -541,7 +533,10 @@ public class CanalService {
             String filename = imageUrl.substring(imageUrl.lastIndexOf('/') + 1);
             Path filePath = Paths.get(System.getProperty("user.dir"), "uploads", "canales", filename);
             Files.deleteIfExists(filePath);
-        } catch (IOException ignored) {}
+        } catch (IOException e) {
+            org.slf4j.LoggerFactory.getLogger(CanalService.class)
+                    .warn("No se pudo eliminar archivo de imagen: {}", e.getMessage());
+        }
     }
 
     private void validarDimensiones(MultipartFile file) {

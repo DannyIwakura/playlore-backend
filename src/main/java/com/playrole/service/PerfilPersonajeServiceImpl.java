@@ -49,7 +49,7 @@ public class PerfilPersonajeServiceImpl implements IPerfilPersonajeService {
     private UsuarioRepositoryInterface usuarioRepository;
     
     private static final String DEFAULT_AVATAR =
-    	    "/images/AVATAR.png";
+    	    com.playrole.utils.AppConstants.AVATAR_POR_DEFECTO;
     
     @Value("${app.upload.dir}")
     private String uploadsDir;
