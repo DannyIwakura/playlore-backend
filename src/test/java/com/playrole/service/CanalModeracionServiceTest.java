@@ -23,11 +23,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
+import com.playrole.chat.enums.RolCanal;
+import com.playrole.chat.enums.TipoCanal;
 import com.playrole.chat.model.Canal;
 import com.playrole.chat.model.MiembroCanal;
 import com.playrole.chat.repository.CanalRepository;
 import com.playrole.chat.repository.MiembroCanalRepository;
 import com.playrole.chat.service.CanalService;
+import com.playrole.dto.CrearCanalOficialDTO;
 import com.playrole.dto.EliminarCanalModeracionDTO;
 import com.playrole.dto.RestaurarCanalDTO;
 import com.playrole.dto.SuspenderCanalDTO;
@@ -36,6 +39,7 @@ import com.playrole.enums.RolUsuario;
 import com.playrole.exception.BadRequestException;
 import com.playrole.model.PerfilPersonaje;
 import com.playrole.model.Usuario;
+import com.playrole.repository.PerfilPersonajeRepositoryInterface;
 
 class CanalModeracionServiceTest {
 
@@ -44,6 +48,7 @@ class CanalModeracionServiceTest {
     private CanalService canalService;
     private AuditoriaModeracionService auditoriaService;
     private SimpMessagingTemplate messagingTemplate;
+    private PerfilPersonajeRepositoryInterface personajeRepository;
     private CanalModeracionService service;
 
     @BeforeEach
@@ -53,8 +58,9 @@ class CanalModeracionServiceTest {
         canalService = mock(CanalService.class);
         auditoriaService = mock(AuditoriaModeracionService.class);
         messagingTemplate = mock(SimpMessagingTemplate.class);
+        personajeRepository = mock(PerfilPersonajeRepositoryInterface.class);
         service = new CanalModeracionService(canalRepository, miembroRepository,
-                canalService, auditoriaService, messagingTemplate);
+                canalService, auditoriaService, messagingTemplate, personajeRepository);
 
         when(canalRepository.save(any(Canal.class))).thenAnswer(inv -> inv.getArgument(0));
     }
@@ -253,5 +259,113 @@ class CanalModeracionServiceTest {
         assertEquals(2, lista.size());
         assertEquals(5, lista.get(0).getMiembroCount());
         assertEquals(0, lista.get(1).getMiembroCount());
+    }
+
+    private Usuario admin(int id) {
+        Usuario u = new Usuario(id);
+        u.setNombre("Admin" + id);
+        u.setRol(RolUsuario.ADMIN);
+        return u;
+    }
+
+    private PerfilPersonaje personaje(int id, String nombre) {
+        PerfilPersonaje p = new PerfilPersonaje();
+        p.setIdPersonaje(id);
+        p.setNombre(nombre);
+        return p;
+    }
+
+    @Test
+    void crearOficial_asignaResponsableComoOwnerYAudita() {
+        Usuario admin = admin(1);
+        PerfilPersonaje responsable = personaje(10, "Aragorn");
+        when(personajeRepository.findById(10)).thenReturn(Optional.of(responsable));
+
+        CrearCanalOficialDTO dto = new CrearCanalOficialDTO();
+        dto.setNombre("Taberna Oficial");
+        dto.setDescripcion("Punto de encuentro");
+        dto.setPersonajeResponsableId(10);
+
+        var result = service.crearOficial(dto, null, admin);
+
+        assertEquals("OFFICIAL", result.getTipo());
+        assertFalse(result.isPrivado());
+        verify(miembroRepository).save(org.mockito.ArgumentMatchers.argThat(m ->
+                m.getRol() == RolCanal.OWNER && m.getPersonaje() == responsable));
+        verify(auditoriaService).registrar(eq(AccionModeracion.CANAL_OFICIAL_CREADO), eq(admin),
+                any(Canal.class), eq("Canal oficial creado"), anyString());
+    }
+
+    @Test
+    void crearOficial_sinNombre_lanzaBadRequest() {
+        CrearCanalOficialDTO dto = new CrearCanalOficialDTO();
+        dto.setNombre("   ");
+        dto.setPersonajeResponsableId(10);
+
+        assertThrows(BadRequestException.class, () -> service.crearOficial(dto, null, admin(1)));
+        verify(miembroRepository, never()).save(any());
+    }
+
+    @Test
+    void marcarOficial_fuerzaPublicoYAudita() {
+        Canal canal = canal(1);
+        canal.setPrivado(true);
+        canal.setTipo(TipoCanal.USER_CREATED);
+        when(canalRepository.findById(1)).thenReturn(Optional.of(canal));
+
+        Usuario admin = admin(1);
+        var result = service.marcarOficial(1, admin);
+
+        assertEquals("OFFICIAL", result.getTipo());
+        assertFalse(canal.isPrivado());
+        verify(auditoriaService).registrar(eq(AccionModeracion.CANAL_MARCADO_OFICIAL), eq(admin),
+                eq(canal), eq("Canal marcado como oficial"), anyString());
+    }
+
+    @Test
+    void marcarOficial_canalYaOficial_lanzaBadRequest() {
+        Canal canal = canal(1);
+        canal.setTipo(TipoCanal.OFFICIAL);
+        when(canalRepository.findById(1)).thenReturn(Optional.of(canal));
+
+        assertThrows(BadRequestException.class, () -> service.marcarOficial(1, admin(1)));
+    }
+
+    @Test
+    void desmarcarOficial_quedaPublicoYAudita() {
+        Canal canal = canal(1);
+        canal.setTipo(TipoCanal.OFFICIAL);
+        canal.setPrivado(false);
+        when(canalRepository.findById(1)).thenReturn(Optional.of(canal));
+
+        Usuario admin = admin(1);
+        var result = service.desmarcarOficial(1, admin);
+
+        assertEquals("USER_CREATED", result.getTipo());
+        assertFalse(canal.isPrivado());
+        verify(auditoriaService).registrar(eq(AccionModeracion.CANAL_DESMARCADO_OFICIAL), eq(admin),
+                eq(canal), eq("Canal desmarcado como oficial"), anyString());
+    }
+
+    @Test
+    void desmarcarOficial_canalNoOficial_lanzaBadRequest() {
+        Canal canal = canal(1);
+        canal.setTipo(TipoCanal.USER_CREATED);
+        when(canalRepository.findById(1)).thenReturn(Optional.of(canal));
+
+        assertThrows(BadRequestException.class, () -> service.desmarcarOficial(1, admin(1)));
+    }
+
+    @Test
+    void eliminar_canalOficial_lanzaBadRequestSinBorrar() {
+        Canal canal = canal(1);
+        canal.setTipo(TipoCanal.OFFICIAL);
+        when(canalRepository.findById(1)).thenReturn(Optional.of(canal));
+
+        EliminarCanalModeracionDTO dto = new EliminarCanalModeracionDTO();
+        dto.setMotivo("Contenido ilegal");
+
+        assertThrows(BadRequestException.class, () -> service.eliminar(1, dto, admin(1)));
+        verify(canalService, never()).borrarCanalFisico(any());
     }
 }

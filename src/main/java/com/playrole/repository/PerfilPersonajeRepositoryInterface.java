@@ -8,10 +8,12 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.playrole.enums.RolUsuario;
 import com.playrole.model.PerfilPersonaje;
 
 import jakarta.transaction.Transactional;
 
+import java.util.Collection;
 import java.util.List;
 
 public interface PerfilPersonajeRepositoryInterface extends JpaRepository<PerfilPersonaje, Integer>,
@@ -19,6 +21,20 @@ JpaSpecificationExecutor<PerfilPersonaje> {
 	
 	List<PerfilPersonaje> findByUserId_UserId(Integer userId);
 	Page<PerfilPersonaje> findByUserId_UserId(Integer userId, Pageable pageable);
+
+	/**
+	 * Rol de la cuenta propietaria por personaje, en una sola consulta. Se usa
+	 * para marcar el staff en los listados de miembros sin caer en N+1.
+	 */
+	@Query("SELECT p.idPersonaje AS personajeId, p.userId.rol AS rol FROM PerfilPersonaje p " +
+	       "WHERE p.idPersonaje IN :personajeIds")
+	List<RolUsuarioPorPersonaje> findRolesUsuarioPorPersonajes(@Param("personajeIds") Collection<Integer> personajeIds);
+
+	interface RolUsuarioPorPersonaje {
+		Integer getPersonajeId();
+
+		RolUsuario getRol();
+	}
 	
 	//metodo con quuery para evitar que JPA haga consultas select al eliminar
 	@Modifying

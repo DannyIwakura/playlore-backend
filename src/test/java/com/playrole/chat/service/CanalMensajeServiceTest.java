@@ -1,6 +1,7 @@
 package com.playrole.chat.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -23,9 +24,12 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import com.playrole.chat.enums.PermisoCanal;
 import com.playrole.chat.model.Canal;
 import com.playrole.chat.model.MensajeCanal;
+import com.playrole.chat.model.MiembroCanal;
 import com.playrole.chat.repository.CanalRepository;
 import com.playrole.chat.repository.MensajeCanalRepository;
 import com.playrole.chat.repository.MiembroCanalRepository;
+import com.playrole.enums.RolUsuario;
+import com.playrole.exception.AccessDeniedException;
 import com.playrole.model.PerfilPersonaje;
 import com.playrole.model.Usuario;
 import com.playrole.repository.BaneoGlobalRepository;
@@ -191,5 +195,56 @@ class CanalMensajeServiceTest {
         } catch (com.playrole.exception.ResourceNotFoundException ex) {
             assertEquals("Mensaje no encontrado", ex.getMessage());
         }
+    }
+
+    private PerfilPersonaje personaje(int id, RolUsuario rol) {
+        Usuario usuario = new Usuario(1);
+        usuario.setRol(rol);
+        PerfilPersonaje p = new PerfilPersonaje();
+        p.setIdPersonaje(id);
+        p.setNombre("Kael");
+        p.setUserId(usuario);
+        return p;
+    }
+
+    private MiembroCanal miembroSilenciado(PerfilPersonaje personaje) {
+        MiembroCanal miembro = new MiembroCanal();
+        miembro.setCanal(new Canal(1));
+        miembro.setPersonaje(personaje);
+        miembro.setSilenciadoHasta(new Date(System.currentTimeMillis() + 60_000));
+        return miembro;
+    }
+
+    private void prepararEnvio(PerfilPersonaje personaje) {
+        Canal canal = new Canal(1);
+        canal.setNombre("Sala");
+        when(canalRepository.findById(1)).thenReturn(java.util.Optional.of(canal));
+        when(miembroRepository.findByCanalIdCanalAndPersonajeIdPersonaje(1, personaje.getIdPersonaje()))
+                .thenReturn(java.util.Optional.of(miembroSilenciado(personaje)));
+        when(personajeRepository.findById(personaje.getIdPersonaje())).thenReturn(java.util.Optional.of(personaje));
+        when(baneoGlobalRepository.existsActivoByUsuarioOPersonaje(1, personaje.getIdPersonaje()))
+                .thenReturn(false);
+        when(mensajeRepository.save(any(MensajeCanal.class))).thenAnswer(inv -> inv.getArgument(0));
+    }
+
+    @Test
+    void enviarMensaje_staffConSilencioAntiguo_puedeEscribir() {
+        PerfilPersonaje admin = personaje(10, RolUsuario.ADMIN);
+        prepararEnvio(admin);
+
+        var dto = service.enviarMensaje(1, 10, "Hola desde moderación");
+
+        assertEquals("Hola desde moderación", dto.getContenido());
+        verify(mensajeRepository).save(any(MensajeCanal.class));
+    }
+
+    @Test
+    void enviarMensaje_usuarioSilenciado_noPuedeEscribir() {
+        PerfilPersonaje usuario = personaje(10, RolUsuario.USER);
+        prepararEnvio(usuario);
+
+        assertThrows(AccessDeniedException.class, () -> service.enviarMensaje(1, 10, "Hola"));
+
+        verify(mensajeRepository, org.mockito.Mockito.never()).save(any(MensajeCanal.class));
     }
 }

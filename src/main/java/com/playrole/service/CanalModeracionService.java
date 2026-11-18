@@ -1,18 +1,23 @@
 package com.playrole.service;
 
+import com.playrole.chat.enums.RolCanal;
+import com.playrole.chat.enums.TipoCanal;
 import com.playrole.chat.model.Canal;
 import com.playrole.chat.model.MiembroCanal;
 import com.playrole.chat.repository.CanalRepository;
 import com.playrole.chat.repository.MiembroCanalRepository;
 import com.playrole.chat.service.CanalService;
 import com.playrole.dto.CanalModeracionDTO;
+import com.playrole.dto.CrearCanalOficialDTO;
 import com.playrole.dto.EliminarCanalModeracionDTO;
 import com.playrole.dto.RestaurarCanalDTO;
 import com.playrole.dto.SuspenderCanalDTO;
 import com.playrole.enums.AccionModeracion;
 import com.playrole.exception.BadRequestException;
 import com.playrole.exception.ResourceNotFoundException;
+import com.playrole.model.PerfilPersonaje;
 import com.playrole.model.Usuario;
+import com.playrole.repository.PerfilPersonajeRepositoryInterface;
 import com.playrole.utils.HtmlUtils;
 import com.playrole.utils.ModeracionUtils;
 import jakarta.transaction.Transactional;
@@ -21,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -45,17 +51,20 @@ public class CanalModeracionService {
     private final CanalService canalService;
     private final AuditoriaModeracionService auditoriaService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final PerfilPersonajeRepositoryInterface personajeRepository;
 
     public CanalModeracionService(CanalRepository canalRepository,
                                   MiembroCanalRepository miembroRepository,
                                   CanalService canalService,
                                   AuditoriaModeracionService auditoriaService,
-                                  SimpMessagingTemplate messagingTemplate) {
+                                  SimpMessagingTemplate messagingTemplate,
+                                  PerfilPersonajeRepositoryInterface personajeRepository) {
         this.canalRepository = canalRepository;
         this.miembroRepository = miembroRepository;
         this.canalService = canalService;
         this.auditoriaService = auditoriaService;
         this.messagingTemplate = messagingTemplate;
+        this.personajeRepository = personajeRepository;
     }
 
     public List<CanalModeracionDTO> listar() {
@@ -126,6 +135,11 @@ public class CanalModeracionService {
     @Transactional
     public void eliminar(Integer canalId, EliminarCanalModeracionDTO dto, Usuario admin) {
         Canal canal = buscarCanal(canalId);
+
+        if (canal.getTipo() == TipoCanal.OFFICIAL) {
+            throw new BadRequestException("No se puede eliminar un canal oficial. Quita primero la marca de oficial.");
+        }
+
         String motivo = validarMotivo(dto != null ? dto.getMotivo() : null);
 
         Integer canalIdFinal = canal.getIdCanal();
@@ -139,6 +153,90 @@ public class CanalModeracionService {
 
         auditoriaService.registrar(AccionModeracion.CANAL_ELIMINADO, admin, canal, motivo,
                 "Canales eliminados definitivamente. Miembros notificados: " + miembroIds.size());
+    }
+
+    /**
+     * Crea un canal oficial con un personaje responsable que queda como OWNER.
+     * El canal nace publico y la imagen es opcional.
+     */
+    @Transactional
+    public CanalModeracionDTO crearOficial(CrearCanalOficialDTO dto, MultipartFile imagenFile, Usuario admin) {
+        String nombre = HtmlUtils.sanitize(dto.getNombre() != null ? dto.getNombre().trim() : null);
+        if (nombre == null || nombre.isBlank()) {
+            throw new BadRequestException("El nombre del canal es obligatorio");
+        }
+
+        PerfilPersonaje responsable = personajeRepository.findById(dto.getPersonajeResponsableId())
+                .orElseThrow(() -> new ResourceNotFoundException("Personaje responsable no encontrado"));
+
+        Canal canal = new Canal();
+        canal.setNombre(nombre);
+        canal.setDescripcion(HtmlUtils.sanitize(dto.getDescripcion()));
+        canal.setTipo(TipoCanal.OFFICIAL);
+        canal.setPrivado(false);
+        canal.setCreador(responsable);
+        canal.setFechaCreacion(new Date());
+        canal = canalRepository.save(canal);
+
+        if (imagenFile != null && !imagenFile.isEmpty()) {
+            canal = canalService.guardarImagenCanal(canal, imagenFile);
+        }
+
+        MiembroCanal miembro = new MiembroCanal();
+        miembro.setCanal(canal);
+        miembro.setPersonaje(responsable);
+        miembro.setRol(RolCanal.OWNER);
+        miembro.setFechaUnion(new Date());
+        miembroRepository.save(miembro);
+
+        auditoriaService.registrar(AccionModeracion.CANAL_OFICIAL_CREADO, admin, canal,
+                "Canal oficial creado",
+                "Responsable: " + responsable.getNombre() + " (#" + responsable.getIdPersonaje() + ")");
+
+        return CanalModeracionDTO.fromEntity(canal, 1L);
+    }
+
+    /**
+     * Promueve un canal existente a oficial. Un oficial es siempre publico, asi
+     * que la marca fuerza privado = false.
+     */
+    @Transactional
+    public CanalModeracionDTO marcarOficial(Integer canalId, Usuario admin) {
+        Canal canal = buscarCanal(canalId);
+
+        if (canal.getTipo() == TipoCanal.OFFICIAL) {
+            throw new BadRequestException("El canal ya es oficial");
+        }
+
+        canal.setTipo(TipoCanal.OFFICIAL);
+        canal.setPrivado(false);
+        canal = canalRepository.save(canal);
+
+        auditoriaService.registrar(AccionModeracion.CANAL_MARCADO_OFICIAL, admin, canal,
+                "Canal marcado como oficial", "El canal pasa a ser público");
+
+        return CanalModeracionDTO.fromEntity(canal, miembroRepository.countByCanalId(canalId));
+    }
+
+    /**
+     * Retira la marca de oficial. El canal sigue siendo publico; el dueño decide
+     * despues si quiere hacerlo privado.
+     */
+    @Transactional
+    public CanalModeracionDTO desmarcarOficial(Integer canalId, Usuario admin) {
+        Canal canal = buscarCanal(canalId);
+
+        if (canal.getTipo() != TipoCanal.OFFICIAL) {
+            throw new BadRequestException("El canal no es oficial");
+        }
+
+        canal.setTipo(TipoCanal.USER_CREATED);
+        canal = canalRepository.save(canal);
+
+        auditoriaService.registrar(AccionModeracion.CANAL_DESMARCADO_OFICIAL, admin, canal,
+                "Canal desmarcado como oficial", "El canal sigue público; el dueño decide si lo hace privado");
+
+        return CanalModeracionDTO.fromEntity(canal, miembroRepository.countByCanalId(canalId));
     }
 
     /**

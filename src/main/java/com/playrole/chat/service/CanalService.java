@@ -20,8 +20,12 @@ import com.playrole.exception.BadRequestException;
 import com.playrole.exception.InvalidImageException;
 import com.playrole.exception.InvalidImageTypeException;
 import com.playrole.exception.ResourceNotFoundException;
+import com.playrole.enums.AccionModeracion;
+import com.playrole.enums.RolUsuario;
 import com.playrole.model.PerfilPersonaje;
+import com.playrole.model.Usuario;
 import com.playrole.repository.PerfilPersonajeRepositoryInterface;
+import com.playrole.service.AuditoriaModeracionService;
 import com.playrole.utils.ImageFileValidator;
 import com.playrole.utils.ModeracionUtils;
 import jakarta.transaction.Transactional;
@@ -57,6 +61,7 @@ public class CanalService {
     private final PresenceService presenceService;
     private final SimpMessagingTemplate messagingTemplate;
     private final PasswordEncoder passwordEncoder;
+    private final AuditoriaModeracionService auditoriaService;
 
     public CanalService(CanalRepository canalRepository,
                         MiembroCanalRepository miembroRepository,
@@ -66,7 +71,8 @@ public class CanalService {
                         CanalPermissionService permissionService,
                         PresenceService presenceService,
                         SimpMessagingTemplate messagingTemplate,
-                        PasswordEncoder passwordEncoder) {
+                        PasswordEncoder passwordEncoder,
+                        AuditoriaModeracionService auditoriaService) {
         this.canalRepository = canalRepository;
         this.miembroRepository = miembroRepository;
         this.baneoRepository = baneoRepository;
@@ -76,10 +82,13 @@ public class CanalService {
         this.presenceService = presenceService;
         this.messagingTemplate = messagingTemplate;
         this.passwordEncoder = passwordEncoder;
+        this.auditoriaService = auditoriaService;
     }
 
-    public List<CanalDTO> listarCanalesDisponibles(Integer personajeId) {
-        List<Canal> canales = canalRepository.findVisibles(new Date());
+    public List<CanalDTO> listarCanalesDisponibles(Integer personajeId, boolean esStaff) {
+        List<Canal> canales = esStaff
+                ? canalRepository.findVisibles(new Date())
+                : canalRepository.findVisiblesPublicos(new Date());
         return construirDTOs(canales, personajeId, true);
     }
 
@@ -88,8 +97,10 @@ public class CanalService {
         return construirDTOs(canales, personajeId, true);
     }
 
-    public List<CanalDTO> listarCanalesPublicosNoUnidos(Integer personajeId) {
-        List<Canal> canales = canalRepository.findCanalesPublicosNoUnidos(personajeId, new Date());
+    public List<CanalDTO> listarCanalesPublicosNoUnidos(Integer personajeId, boolean esStaff) {
+        List<Canal> canales = esStaff
+                ? canalRepository.findCanalesNoUnidos(personajeId, new Date())
+                : canalRepository.findCanalesPublicosNoUnidos(personajeId, new Date());
         return construirDTOs(canales, personajeId, false);
     }
 
@@ -119,12 +130,17 @@ public class CanalService {
                 .collect(Collectors.toList());
     }
 
-    public CanalDTO obtenerCanal(Integer canalId, Integer personajeId) {
+    public CanalDTO obtenerCanal(Integer canalId, Integer personajeId, boolean esStaff) {
         Canal canal = canalRepository.findById(canalId)
                 .orElseThrow(() -> new ResourceNotFoundException("Canal no encontrado"));
 
         if (canal.isSuspendidoActivo()) {
             throw new AccessDeniedException("Este canal está suspendido por moderación");
+        }
+
+        if (canal.isPrivado() && !esStaff
+                && !miembroRepository.existsByCanalIdCanalAndPersonajeIdPersonaje(canalId, personajeId)) {
+            throw new AccessDeniedException("Este canal es privado. Necesitas una invitación.");
         }
 
         CanalDTO dto = CanalDTO.fromEntity(canal);
@@ -175,9 +191,13 @@ public class CanalService {
 
         permissionService.verificarPermiso(canalId, personajeId, PermisoCanal.EDITAR_CANAL);
 
+        if (canal.getTipo() == TipoCanal.OFFICIAL && dto.isPrivado()) {
+            throw new BadRequestException("Un canal oficial debe ser público. Quita primero la marca de oficial.");
+        }
+
         canal.setNombre(dto.getNombre());
         canal.setDescripcion(dto.getDescripcion());
-        canal.setPrivado(dto.isPrivado());
+        canal.setPrivado(canal.getTipo() == TipoCanal.OFFICIAL ? false : dto.isPrivado());
         canal = canalRepository.save(canal);
 
         CanalDTO result = CanalDTO.fromEntity(canal);
@@ -187,7 +207,7 @@ public class CanalService {
     }
 
     @Transactional
-    public void unirseACanal(Integer canalId, Integer personajeId) {
+    public void unirseACanal(Integer canalId, Integer personajeId, boolean esStaff, Usuario usuarioSolicitante) {
         Canal canal = canalRepository.findById(canalId)
                 .orElseThrow(() -> new ResourceNotFoundException("Canal no encontrado"));
 
@@ -195,7 +215,7 @@ public class CanalService {
             throw new AccessDeniedException("Este canal está suspendido por moderación");
         }
 
-        if (canal.isPrivado() && canal.getTipo() == TipoCanal.USER_CREATED) {
+        if (canal.isPrivado() && !esStaff) {
             throw new AccessDeniedException("Este canal es privado. Necesitas una invitación.");
         }
 
@@ -203,7 +223,8 @@ public class CanalService {
             throw new BadRequestException("Ya eres miembro de este canal");
         }
 
-        if (baneoRepository.existsActivoByCanalAndPersonaje(canalId, personajeId)) {
+        // El staff no queda bloqueado por baneos antiguos del canal.
+        if (!esStaff && baneoRepository.existsActivoByCanalAndPersonaje(canalId, personajeId)) {
             throw new AccessDeniedException("Estás baneado de este canal");
         }
 
@@ -216,6 +237,13 @@ public class CanalService {
         miembro.setRol(RolCanal.MEMBER);
         miembro.setFechaUnion(new Date());
         miembroRepository.save(miembro);
+
+        // Solo se audita el acceso del staff a un privado sin invitacion.
+        if (esStaff && canal.isPrivado()) {
+            auditoriaService.registrar(AccionModeracion.CANAL_ACCESO_MODERADOR, usuarioSolicitante, canal,
+                    "Acceso sin invitación",
+                    "El personaje " + personaje.getNombre() + " (#" + personajeId + ") entró como miembro");
+        }
     }
 
     @Transactional
@@ -240,6 +268,10 @@ public class CanalService {
 
         if (miembroRepository.existsByCanalIdCanalAndPersonajeIdPersonaje(canalId, invitadoId)) {
             throw new BadRequestException("El personaje ya es miembro del canal");
+        }
+
+        if (baneoRepository.existsActivoByCanalAndPersonaje(canalId, invitadoId)) {
+            throw new AccessDeniedException("El personaje está baneado de este canal");
         }
 
         MiembroCanal miembro = new MiembroCanal();
@@ -285,6 +317,10 @@ public class CanalService {
 
         if (objetivoId.equals(solicitanteId)) {
             throw new BadRequestException("No puedes banearte a ti mismo");
+        }
+
+        if (esStaff(objetivo)) {
+            throw new AccessDeniedException("No puedes banear a un personaje de una cuenta de moderación");
         }
 
         miembroRepository.findByCanalIdCanalAndPersonajeIdPersonaje(canalId, objetivoId)
@@ -374,6 +410,10 @@ public class CanalService {
             throw new AccessDeniedException("Solo puedes silenciar a miembros del canal");
         }
 
+        if (esStaff(objetivo.getPersonaje())) {
+            throw new AccessDeniedException("No puedes silenciar a un personaje de una cuenta de moderación");
+        }
+
         Date hasta = ModeracionUtils.calcularExpiracion(duracion);
         if (hasta == null) {
             throw new BadRequestException("Debes indicar una duración para el silenciamiento");
@@ -410,27 +450,56 @@ public class CanalService {
     public Page<MiembroCanalDTO> listarMiembros(Integer canalId, Integer personajeId, int page, int size) {
         permissionService.verificarPermiso(canalId, personajeId, PermisoCanal.LEER_MENSAJES);
 
-        return miembroRepository.findByCanalIdCanal(canalId, PageRequest.of(page, size))
-                .map(m -> {
-                    MiembroCanalDTO dto = MiembroCanalDTO.fromEntity(m);
-                    Integer pid = m.getPersonaje().getIdPersonaje();
-                    dto.setOnline(presenceService.isOnline(pid));
-                    dto.setStatus(presenceService.getStatus(pid));
-                    return dto;
-                });
+        Page<MiembroCanal> pagina = miembroRepository.findByCanalIdCanal(canalId, PageRequest.of(page, size));
+        Map<Integer, Boolean> staff = mapaStaff(pagina.getContent());
+
+        return pagina.map(m -> {
+            MiembroCanalDTO dto = MiembroCanalDTO.fromEntity(m);
+            Integer pid = m.getPersonaje().getIdPersonaje();
+            dto.setOnline(presenceService.isOnline(pid));
+            dto.setStatus(presenceService.getStatus(pid));
+            dto.setEsStaff(staff.getOrDefault(pid, false));
+            return dto;
+        });
     }
 
     public List<MiembroCanalDTO> listarMiembrosOnline(Integer canalId, Integer personajeId) {
         permissionService.verificarPermiso(canalId, personajeId, PermisoCanal.LEER_MENSAJES);
 
-        return miembroRepository.findByCanalIdCanal(canalId).stream()
+        List<MiembroCanal> miembros = miembroRepository.findByCanalIdCanal(canalId);
+        Map<Integer, Boolean> staff = mapaStaff(miembros);
+
+        return miembros.stream()
                 .filter(m -> presenceService.isOnline(m.getPersonaje().getIdPersonaje()))
                 .map(m -> {
                     MiembroCanalDTO dto = MiembroCanalDTO.fromEntity(m);
                     dto.setOnline(true);
+                    dto.setEsStaff(staff.getOrDefault(m.getPersonaje().getIdPersonaje(), false));
                     return dto;
                 })
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Consulta batch del rol de cuenta para marcar al staff en los listados de
+     * miembros. Evita un SELECT por cada personaje.
+     */
+    private Map<Integer, Boolean> mapaStaff(List<MiembroCanal> miembros) {
+        if (miembros.isEmpty()) return Map.of();
+
+        List<Integer> personajeIds = miembros.stream()
+                .map(m -> m.getPersonaje().getIdPersonaje())
+                .collect(Collectors.toList());
+
+        return personajeRepository.findRolesUsuarioPorPersonajes(personajeIds).stream()
+                .collect(Collectors.toMap(
+                        PerfilPersonajeRepositoryInterface.RolUsuarioPorPersonaje::getPersonajeId,
+                        r -> r.getRol() == RolUsuario.ADMIN || r.getRol() == RolUsuario.MOD));
+    }
+
+    private boolean esStaff(PerfilPersonaje personaje) {
+        RolUsuario rol = personaje.getUserId() != null ? personaje.getUserId().getRol() : null;
+        return rol == RolUsuario.ADMIN || rol == RolUsuario.MOD;
     }
 
     @Transactional
@@ -500,6 +569,20 @@ public class CanalService {
             throw new BadRequestException("No se ha proporcionado una imagen");
         }
 
+        canal = guardarImagenCanal(canal, imagenFile);
+
+        CanalDTO dto = CanalDTO.fromEntity(canal);
+        dto.setMiembroCount((int) miembroRepository.countByCanalId(canalId));
+        permissionService.obtenerRol(canalId, personajeId).ifPresent(rol -> dto.setMiRol(rol.name()));
+        return dto;
+    }
+
+    /**
+     * Valida y guarda la imagen de un canal. No comprueba permisos: quien llame
+     * debe haberlos validado antes (dueño o moderación).
+     */
+    @Transactional
+    public Canal guardarImagenCanal(Canal canal, MultipartFile imagenFile) {
         validarTipoImagen(imagenFile);
         validarDimensiones(imagenFile);
 
@@ -518,15 +601,10 @@ public class CanalService {
             imagenFile.transferTo(destination.toFile());
 
             canal.setImagenUrl("/uploads/canales/" + filename);
-            canal = canalRepository.save(canal);
+            return canalRepository.save(canal);
         } catch (IOException e) {
             throw new RuntimeException("Error al subir la imagen del canal", e);
         }
-
-        CanalDTO dto = CanalDTO.fromEntity(canal);
-        dto.setMiembroCount((int) miembroRepository.countByCanalId(canalId));
-        permissionService.obtenerRol(canalId, personajeId).ifPresent(rol -> dto.setMiRol(rol.name()));
-        return dto;
     }
 
     @Transactional

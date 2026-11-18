@@ -1,16 +1,20 @@
 package com.playrole.controller;
 
 import com.playrole.dto.CanalModeracionDTO;
+import com.playrole.dto.CrearCanalOficialDTO;
 import com.playrole.dto.EliminarCanalModeracionDTO;
 import com.playrole.dto.RestaurarCanalDTO;
 import com.playrole.dto.SuspenderCanalDTO;
 import com.playrole.model.Usuario;
 import com.playrole.service.CanalModeracionService;
 import com.playrole.utils.AuthUtils;
+import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -64,5 +68,31 @@ public class CanalModeracionController {
         Usuario admin = AuthUtils.obtenerUsuario(authentication);
         canalModeracionService.eliminar(id, dto, admin);
         return ResponseEntity.ok(Map.of("mensaje", "Canal eliminado definitivamente"));
+    }
+
+    @PostMapping(value = "/oficiales", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<CanalModeracionDTO> crearOficial(
+            @RequestPart("datos") @Valid CrearCanalOficialDTO datos,
+            @RequestPart(value = "imagenFile", required = false) MultipartFile imagenFile,
+            Authentication authentication) {
+        Usuario admin = AuthUtils.obtenerUsuario(authentication);
+        return ResponseEntity.ok(canalModeracionService.crearOficial(datos, imagenFile, admin));
+    }
+
+    @PostMapping("/{id}/oficial")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<CanalModeracionDTO> marcarOficial(@PathVariable Integer id,
+                                                            Authentication authentication) {
+        Usuario admin = AuthUtils.obtenerUsuario(authentication);
+        return ResponseEntity.ok(canalModeracionService.marcarOficial(id, admin));
+    }
+
+    @DeleteMapping("/{id}/oficial")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<CanalModeracionDTO> desmarcarOficial(@PathVariable Integer id,
+                                                               Authentication authentication) {
+        Usuario admin = AuthUtils.obtenerUsuario(authentication);
+        return ResponseEntity.ok(canalModeracionService.desmarcarOficial(id, admin));
     }
 }

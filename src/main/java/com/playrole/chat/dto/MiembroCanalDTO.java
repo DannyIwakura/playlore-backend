@@ -14,6 +14,7 @@ public class MiembroCanalDTO {
     private boolean online;
     private String status;
     private Date silenciadoHasta;
+    private boolean esStaff;
 
     public static MiembroCanalDTO fromEntity(MiembroCanal miembro) {
         MiembroCanalDTO dto = new MiembroCanalDTO();
@@ -53,4 +54,7 @@ public class MiembroCanalDTO {
 
     public Date getSilenciadoHasta() { return silenciadoHasta; }
     public void setSilenciadoHasta(Date silenciadoHasta) { this.silenciadoHasta = silenciadoHasta; }
+
+    public boolean isEsStaff() { return esStaff; }
+    public void setEsStaff(boolean esStaff) { this.esStaff = esStaff; }
 }

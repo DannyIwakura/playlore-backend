@@ -3,17 +3,22 @@ package com.playrole.chat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -28,6 +34,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.playrole.chat.auth.SessionJwtUtils;
 import com.playrole.chat.enums.RolCanal;
 import com.playrole.chat.enums.TipoCanal;
+import com.playrole.chat.model.BaneoCanal;
 import com.playrole.chat.model.Canal;
 import com.playrole.chat.model.MiembroCanal;
 import com.playrole.chat.model.SesionPersonaje;
@@ -38,13 +45,18 @@ import com.playrole.chat.repository.MensajePrivadoPersonajeRepository;
 import com.playrole.chat.repository.MiembroCanalRepository;
 import com.playrole.chat.repository.SesionPersonajeRepository;
 import com.playrole.chat.service.MensajePrivadoPersonajeService;
+import com.playrole.enums.AccionModeracion;
 import com.playrole.enums.EstadoPersonaje;
 import com.playrole.enums.RolUsuario;
 import com.playrole.exception.BadRequestException;
 import com.playrole.model.PerfilPersonaje;
+import com.playrole.model.RegistroModeracion;
 import com.playrole.model.Usuario;
 import com.playrole.repository.PerfilPersonajeRepositoryInterface;
+import com.playrole.repository.RegistroModeracionRepository;
 import com.playrole.repository.UsuarioRepositoryInterface;
+import com.playrole.security.CustomUserDetails;
+import com.playrole.utils.JwtUtils;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -87,8 +99,15 @@ class CanalChatIntegracionTest {
 	@Autowired
 	private SessionJwtUtils sessionJwtUtils;
 
+	@Autowired
+	private JwtUtils jwtUtils;
+
+	@Autowired
+	private RegistroModeracionRepository registroModeracionRepo;
+
 	@BeforeEach
 	void limpiarBase() {
+		registroModeracionRepo.deleteAll();
 		mensajePrivadoRepo.deleteAll();
 		mensajeCanalRepo.deleteAll();
 		sesionRepo.deleteAll();
@@ -157,6 +176,34 @@ class CanalChatIntegracionTest {
 		s.setActiva(true);
 		sesionRepo.save(s);
 		return token;
+	}
+
+	private String token(Usuario usuario) {
+		return jwtUtils.generarToken(new CustomUserDetails(usuario));
+	}
+
+	private Canal crearCanalPrivado(PerfilPersonaje creador, String nombre) {
+		Canal c = new Canal();
+		c.setNombre(nombre);
+		c.setDescripcion("Sala privada de pruebas");
+		c.setTipo(TipoCanal.USER_CREATED);
+		c.setPrivado(true);
+		c.setVisible(true);
+		c.setCreador(creador);
+		c.setFechaCreacion(new Date());
+		return canalRepo.save(c);
+	}
+
+	private Canal crearCanalOficial(PerfilPersonaje responsable, String nombre) {
+		Canal c = new Canal();
+		c.setNombre(nombre);
+		c.setDescripcion("Canal oficial de pruebas");
+		c.setTipo(TipoCanal.OFFICIAL);
+		c.setPrivado(false);
+		c.setVisible(true);
+		c.setCreador(responsable);
+		c.setFechaCreacion(new Date());
+		return canalRepo.save(c);
 	}
 
 	@Test
@@ -366,5 +413,278 @@ class CanalChatIntegracionTest {
 						.header("Authorization", "Bearer " + tokenMiembro))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.id").value(canal.getIdCanal()));
+	}
+
+	@Test
+	void canalPrivado_noSeListaNiSeAccedeSinInvitacion() throws Exception {
+		Usuario owner = crearUsuario("owner", RolUsuario.USER);
+		Usuario otro = crearUsuario("otro", RolUsuario.USER);
+		PerfilPersonaje pOwner = crearPersonaje(owner, "Aragorn");
+		PerfilPersonaje pOtro = crearPersonaje(otro, "Boromir");
+		Canal canal = crearCanalPrivado(pOwner, "Sala Secreta");
+		agregarMiembro(canal, pOwner, RolCanal.OWNER);
+		String tokenOtro = tokenSesion(otro, pOtro);
+
+		mockMvc.perform(get("/canales")
+						.header("Authorization", "Bearer " + tokenOtro))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$").isEmpty());
+
+		mockMvc.perform(get("/canales/disponibles")
+						.header("Authorization", "Bearer " + tokenOtro))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$").isEmpty());
+
+		mockMvc.perform(get("/canales/" + canal.getIdCanal())
+						.header("Authorization", "Bearer " + tokenOtro))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.error").value(containsString("privado")));
+
+		mockMvc.perform(post("/canales/" + canal.getIdCanal() + "/unirse")
+						.header("Authorization", "Bearer " + tokenOtro))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.error").value(containsString("privado")));
+	}
+
+	@Test
+	void staffVeYEntraAPrivadoSinInvitacion_ySeAudita() throws Exception {
+		Usuario owner = crearUsuario("owner", RolUsuario.USER);
+		Usuario admin = crearUsuario("admin", RolUsuario.ADMIN);
+		PerfilPersonaje pOwner = crearPersonaje(owner, "Aragorn");
+		PerfilPersonaje pAdmin = crearPersonaje(admin, "Gandalf");
+		Canal canal = crearCanalPrivado(pOwner, "Sala Secreta");
+		agregarMiembro(canal, pOwner, RolCanal.OWNER);
+		String tokenAdmin = tokenSesion(admin, pAdmin);
+
+		mockMvc.perform(get("/canales")
+						.header("Authorization", "Bearer " + tokenAdmin))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[0].id").value(canal.getIdCanal()))
+				.andExpect(jsonPath("$[0].privado").value(true));
+
+		mockMvc.perform(get("/canales/disponibles")
+						.header("Authorization", "Bearer " + tokenAdmin))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[0].id").value(canal.getIdCanal()));
+
+		mockMvc.perform(get("/canales/" + canal.getIdCanal())
+						.header("Authorization", "Bearer " + tokenAdmin))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.id").value(canal.getIdCanal()));
+
+		mockMvc.perform(post("/canales/" + canal.getIdCanal() + "/unirse")
+						.header("Authorization", "Bearer " + tokenAdmin))
+				.andExpect(status().isOk());
+
+		MiembroCanal miembro = miembroRepo
+				.findByCanalIdCanalAndPersonajeIdPersonaje(canal.getIdCanal(), pAdmin.getIdPersonaje())
+				.orElseThrow();
+		assertEquals(RolCanal.MEMBER, miembro.getRol());
+		assertFalse(miembro.isInvitado());
+
+		List<RegistroModeracion> registros = registroModeracionRepo.findAll();
+		assertEquals(1, registros.size());
+		assertEquals(AccionModeracion.CANAL_ACCESO_MODERADOR, registros.get(0).getAccion());
+		assertEquals(canal.getIdCanal(), registros.get(0).getObjetivoCanalId());
+		assertEquals(admin.getUserId(), registros.get(0).getModeradorId());
+	}
+
+	@Test
+	void staffConBaneoAntiguoPuedeEntrarAPrivado() throws Exception {
+		Usuario owner = crearUsuario("owner", RolUsuario.USER);
+		Usuario mod = crearUsuario("mod", RolUsuario.MOD);
+		PerfilPersonaje pOwner = crearPersonaje(owner, "Aragorn");
+		PerfilPersonaje pMod = crearPersonaje(mod, "Legolas");
+		Canal canal = crearCanalPrivado(pOwner, "Sala Secreta");
+		agregarMiembro(canal, pOwner, RolCanal.OWNER);
+
+		BaneoCanal baneo = new BaneoCanal();
+		baneo.setCanal(canal);
+		baneo.setPersonaje(pMod);
+		baneo.setBaneadoPor(pOwner);
+		baneo.setFechaBaneo(new Date());
+		baneoCanalRepo.save(baneo);
+
+		mockMvc.perform(post("/canales/" + canal.getIdCanal() + "/unirse")
+						.header("Authorization", "Bearer " + tokenSesion(mod, pMod)))
+				.andExpect(status().isOk());
+
+		assertTrue(miembroRepo.existsByCanalIdCanalAndPersonajeIdPersonaje(
+				canal.getIdCanal(), pMod.getIdPersonaje()));
+	}
+
+	@Test
+	void staffQueSeUneAPublico_noGeneraAuditoria() throws Exception {
+		Usuario owner = crearUsuario("owner", RolUsuario.USER);
+		Usuario admin = crearUsuario("admin", RolUsuario.ADMIN);
+		PerfilPersonaje pOwner = crearPersonaje(owner, "Aragorn");
+		PerfilPersonaje pAdmin = crearPersonaje(admin, "Gandalf");
+		Canal canal = crearCanal(pOwner);
+		agregarMiembro(canal, pOwner, RolCanal.OWNER);
+
+		mockMvc.perform(post("/canales/" + canal.getIdCanal() + "/unirse")
+						.header("Authorization", "Bearer " + tokenSesion(admin, pAdmin)))
+				.andExpect(status().isOk());
+
+		assertTrue(registroModeracionRepo.findAll().isEmpty());
+	}
+
+	@Test
+	void noSePuedeBanearNiSilenciarAStaff() throws Exception {
+		Usuario owner = crearUsuario("owner", RolUsuario.USER);
+		Usuario admin = crearUsuario("admin", RolUsuario.ADMIN);
+		PerfilPersonaje pOwner = crearPersonaje(owner, "Aragorn");
+		PerfilPersonaje pAdmin = crearPersonaje(admin, "Gandalf");
+		Canal canal = crearCanal(pOwner);
+		agregarMiembro(canal, pOwner, RolCanal.OWNER);
+		agregarMiembro(canal, pAdmin, RolCanal.MEMBER);
+		String tokenOwner = tokenSesion(owner, pOwner);
+
+		mockMvc.perform(post("/canales/" + canal.getIdCanal() + "/miembros/" + pAdmin.getIdPersonaje() + "/ban")
+						.header("Authorization", "Bearer " + tokenOwner)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"duracion\":\"PERMANENTE\"}"))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.error").value(containsString("moderación")));
+
+		mockMvc.perform(post("/canales/" + canal.getIdCanal() + "/miembros/" + pAdmin.getIdPersonaje() + "/silenciar")
+						.header("Authorization", "Bearer " + tokenOwner)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"duracion\":\"1H\"}"))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.error").value(containsString("moderación")));
+
+		assertTrue(baneoCanalRepo.findAll().isEmpty());
+	}
+
+	@Test
+	void invitarRechazaPersonajeBaneado() throws Exception {
+		Usuario owner = crearUsuario("owner", RolUsuario.USER);
+		Usuario invitado = crearUsuario("invitado", RolUsuario.USER);
+		PerfilPersonaje pOwner = crearPersonaje(owner, "Aragorn");
+		PerfilPersonaje pInvitado = crearPersonaje(invitado, "Boromir");
+		Canal canal = crearCanal(pOwner);
+		agregarMiembro(canal, pOwner, RolCanal.OWNER);
+
+		BaneoCanal baneo = new BaneoCanal();
+		baneo.setCanal(canal);
+		baneo.setPersonaje(pInvitado);
+		baneo.setBaneadoPor(pOwner);
+		baneo.setFechaBaneo(new Date());
+		baneoCanalRepo.save(baneo);
+
+		mockMvc.perform(post("/canales/" + canal.getIdCanal() + "/invitar")
+						.header("Authorization", "Bearer " + tokenSesion(owner, pOwner))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"personajeId\":" + pInvitado.getIdPersonaje() + "}"))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.error").value(containsString("baneado")));
+
+		assertFalse(miembroRepo.existsByCanalIdCanalAndPersonajeIdPersonaje(
+				canal.getIdCanal(), pInvitado.getIdPersonaje()));
+	}
+
+	@Test
+	void adminCreaCanalOficialConResponsableYAudita() throws Exception {
+		Usuario admin = crearUsuario("admin", RolUsuario.ADMIN);
+		Usuario responsable = crearUsuario("responsable", RolUsuario.USER);
+		PerfilPersonaje pResponsable = crearPersonaje(responsable, "Aragorn");
+		String tokenAdmin = token(admin);
+
+		String json = "{\"nombre\":\"Taberna Oficial\",\"descripcion\":\"Punto de encuentro\","
+				+ "\"personajeResponsableId\":" + pResponsable.getIdPersonaje() + "}";
+		MockMultipartFile datos = new MockMultipartFile(
+				"datos", "", MediaType.APPLICATION_JSON_VALUE, json.getBytes(StandardCharsets.UTF_8));
+
+		mockMvc.perform(multipart("/moderacion/canales/oficiales")
+						.file(datos)
+						.header("Authorization", "Bearer " + tokenAdmin))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.tipo").value("OFFICIAL"))
+				.andExpect(jsonPath("$.privado").value(false))
+				.andExpect(jsonPath("$.creadorId").value(pResponsable.getIdPersonaje()));
+
+		Canal canal = canalRepo.findAll().get(0);
+		assertEquals(TipoCanal.OFFICIAL, canal.getTipo());
+		assertFalse(canal.isPrivado());
+		assertEquals(RolCanal.OWNER, miembroRepo
+				.findByCanalIdCanalAndPersonajeIdPersonaje(canal.getIdCanal(), pResponsable.getIdPersonaje())
+				.orElseThrow().getRol());
+
+		List<RegistroModeracion> registros = registroModeracionRepo.findAll();
+		assertEquals(1, registros.size());
+		assertEquals(AccionModeracion.CANAL_OFICIAL_CREADO, registros.get(0).getAccion());
+	}
+
+	@Test
+	void adminMarcaYDesmarcaOficial_forzandoPublico() throws Exception {
+		Usuario admin = crearUsuario("admin", RolUsuario.ADMIN);
+		Usuario owner = crearUsuario("owner", RolUsuario.USER);
+		PerfilPersonaje pOwner = crearPersonaje(owner, "Aragorn");
+		Canal canal = crearCanalPrivado(pOwner, "Sala Secreta");
+		agregarMiembro(canal, pOwner, RolCanal.OWNER);
+		String tokenAdmin = token(admin);
+
+		mockMvc.perform(post("/moderacion/canales/" + canal.getIdCanal() + "/oficial")
+						.header("Authorization", "Bearer " + tokenAdmin))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.tipo").value("OFFICIAL"))
+				.andExpect(jsonPath("$.privado").value(false));
+
+		Canal marcado = canalRepo.findById(canal.getIdCanal()).orElseThrow();
+		assertEquals(TipoCanal.OFFICIAL, marcado.getTipo());
+		assertFalse(marcado.isPrivado());
+
+		mockMvc.perform(delete("/moderacion/canales/" + canal.getIdCanal() + "/oficial")
+						.header("Authorization", "Bearer " + tokenAdmin))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.tipo").value("USER_CREATED"))
+				.andExpect(jsonPath("$.privado").value(false));
+
+		Canal desmarcado = canalRepo.findById(canal.getIdCanal()).orElseThrow();
+		assertEquals(TipoCanal.USER_CREATED, desmarcado.getTipo());
+		assertFalse(desmarcado.isPrivado());
+		assertEquals(2, registroModeracionRepo.findAll().size());
+	}
+
+	@Test
+	void canalOficial_esSiemprePublicoYNoSePuedeEliminar() throws Exception {
+		Usuario owner = crearUsuario("owner", RolUsuario.USER);
+		PerfilPersonaje pOwner = crearPersonaje(owner, "Aragorn");
+		Canal canal = crearCanalOficial(pOwner, "Taberna Oficial");
+		agregarMiembro(canal, pOwner, RolCanal.OWNER);
+		String tokenOwner = tokenSesion(owner, pOwner);
+
+		mockMvc.perform(put("/canales/" + canal.getIdCanal())
+						.header("Authorization", "Bearer " + tokenOwner)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"nombre\":\"Taberna Oficial\",\"descripcion\":\"x\",\"privado\":true}"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error").value(containsString("oficial")));
+
+		mockMvc.perform(delete("/canales/" + canal.getIdCanal())
+						.header("Authorization", "Bearer " + tokenOwner)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"password\":\"Password123\"}"))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.error").value(containsString("oficial")));
+
+		assertTrue(canalRepo.existsById(canal.getIdCanal()));
+	}
+
+	@Test
+	void modNoPuedeMarcarCanalOficial() throws Exception {
+		Usuario mod = crearUsuario("mod", RolUsuario.MOD);
+		Usuario owner = crearUsuario("owner", RolUsuario.USER);
+		PerfilPersonaje pOwner = crearPersonaje(owner, "Aragorn");
+		Canal canal = crearCanal(pOwner);
+		agregarMiembro(canal, pOwner, RolCanal.OWNER);
+
+		mockMvc.perform(post("/moderacion/canales/" + canal.getIdCanal() + "/oficial")
+						.header("Authorization", "Bearer " + token(mod)))
+				.andExpect(status().isForbidden());
+
+		assertEquals(TipoCanal.USER_CREATED,
+				canalRepo.findById(canal.getIdCanal()).orElseThrow().getTipo());
 	}
 }

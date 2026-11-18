@@ -9,6 +9,8 @@ import com.playrole.chat.dto.MiembroCanalDTO;
 import com.playrole.chat.enums.RolCanal;
 import com.playrole.chat.service.CanalService;
 import com.playrole.exception.AccessDeniedException;
+import com.playrole.model.Usuario;
+import com.playrole.utils.AuthUtils;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +33,7 @@ public class CanalController {
     @GetMapping
     public ResponseEntity<List<CanalDTO>> listarCanales(Authentication authentication) {
         Integer personajeId = obtenerPersonajeId(authentication);
-        return ResponseEntity.ok(canalService.listarCanalesDisponibles(personajeId));
+        return ResponseEntity.ok(canalService.listarCanalesDisponibles(personajeId, esStaff(authentication)));
     }
 
     @GetMapping("/unidos")
@@ -43,13 +45,13 @@ public class CanalController {
     @GetMapping("/disponibles")
     public ResponseEntity<List<CanalDTO>> listarCanalesDisponibles(Authentication authentication) {
         Integer personajeId = obtenerPersonajeId(authentication);
-        return ResponseEntity.ok(canalService.listarCanalesPublicosNoUnidos(personajeId));
+        return ResponseEntity.ok(canalService.listarCanalesPublicosNoUnidos(personajeId, esStaff(authentication)));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<CanalDTO> obtenerCanal(@PathVariable Integer id, Authentication authentication) {
         Integer personajeId = obtenerPersonajeId(authentication);
-        return ResponseEntity.ok(canalService.obtenerCanal(id, personajeId));
+        return ResponseEntity.ok(canalService.obtenerCanal(id, personajeId, esStaff(authentication)));
     }
 
     @PostMapping
@@ -72,7 +74,8 @@ public class CanalController {
     public ResponseEntity<Map<String, String>> unirse(@PathVariable Integer id,
                                                        Authentication authentication) {
         Integer personajeId = obtenerPersonajeId(authentication);
-        canalService.unirseACanal(id, personajeId);
+        Usuario usuario = AuthUtils.obtenerUsuario(authentication);
+        canalService.unirseACanal(id, personajeId, esStaff(authentication), usuario);
         return ResponseEntity.ok(Map.of("mensaje", "Te has unido al canal"));
     }
 
@@ -221,5 +224,9 @@ public class CanalController {
             return "ADMIN".equals(cp.getUsuarioRole());
         }
         return false;
+    }
+
+    private boolean esStaff(Authentication authentication) {
+        return authentication != null && AuthUtils.esModerador(authentication);
     }
 }

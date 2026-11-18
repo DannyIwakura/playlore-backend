@@ -14,6 +14,15 @@ public interface CanalRepository extends JpaRepository<Canal, Integer> {
            "ORDER BY c.fechaCreacion DESC")
     List<Canal> findVisibles(@Param("ahora") Date ahora);
 
+    /**
+     * Listado publico: excluye los privados. El staff usa findVisibles porque
+     * puede ver los privados desde la lista sin invitacion.
+     */
+    @Query("SELECT c FROM Canal c WHERE c.visible = true AND c.privado = false " +
+           "AND (c.suspendido = false OR (c.suspendidoHasta IS NOT NULL AND c.suspendidoHasta <= :ahora)) " +
+           "ORDER BY c.fechaCreacion DESC")
+    List<Canal> findVisiblesPublicos(@Param("ahora") Date ahora);
+
     @Query("SELECT c FROM Canal c JOIN MiembroCanal m ON m.canal.idCanal = c.idCanal " +
            "WHERE m.personaje.idPersonaje = :personajeId AND c.visible = true " +
            "AND (c.suspendido = false OR (c.suspendidoHasta IS NOT NULL AND c.suspendidoHasta <= :ahora)) " +
@@ -27,6 +36,17 @@ public interface CanalRepository extends JpaRepository<Canal, Integer> {
            "ORDER BY c.fechaCreacion DESC")
     List<Canal> findCanalesPublicosNoUnidos(@Param("personajeId") Integer personajeId,
                                             @Param("ahora") Date ahora);
+
+    /**
+     * Listado para staff: incluye tambien los privados a los que aun no se ha
+     * unido, para que pueda entrar desde la lista sin invitacion.
+     */
+    @Query("SELECT c FROM Canal c WHERE c.visible = true " +
+           "AND (c.suspendido = false OR (c.suspendidoHasta IS NOT NULL AND c.suspendidoHasta <= :ahora)) " +
+           "AND c.idCanal NOT IN (SELECT m.canal.idCanal FROM MiembroCanal m WHERE m.personaje.idPersonaje = :personajeId) " +
+           "ORDER BY c.fechaCreacion DESC")
+    List<Canal> findCanalesNoUnidos(@Param("personajeId") Integer personajeId,
+                                    @Param("ahora") Date ahora);
 
     long countByCreadorIdPersonaje(Integer creadorId);
 

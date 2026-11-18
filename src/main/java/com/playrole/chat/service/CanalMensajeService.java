@@ -8,6 +8,7 @@ import com.playrole.chat.model.MiembroCanal;
 import com.playrole.chat.repository.CanalRepository;
 import com.playrole.chat.repository.MensajeCanalRepository;
 import com.playrole.chat.repository.MiembroCanalRepository;
+import com.playrole.enums.RolUsuario;
 import com.playrole.exception.AccessDeniedException;
 import com.playrole.exception.BadRequestException;
 import com.playrole.exception.ResourceNotFoundException;
@@ -169,11 +170,19 @@ public class CanalMensajeService {
                 .findByCanalIdCanalAndPersonajeIdPersonaje(canalId, personajeId)
                 .orElseThrow(() -> new ResourceNotFoundException("El personaje no es miembro del canal"));
 
+        // El staff no puede quedar silenciado, tampoco por registros antiguos.
+        if (esStaff(miembro.getPersonaje())) return;
+
         Date hasta = miembro.getSilenciadoHasta();
         if (hasta != null && hasta.after(new Date())) {
             throw new AccessDeniedException("Estás silenciado en este canal hasta "
                     + new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(hasta));
         }
+    }
+
+    private boolean esStaff(PerfilPersonaje personaje) {
+        RolUsuario rol = personaje.getUserId() != null ? personaje.getUserId().getRol() : null;
+        return rol == RolUsuario.ADMIN || rol == RolUsuario.MOD;
     }
 
     private void verificarAntiFlood(Integer personajeId) {
