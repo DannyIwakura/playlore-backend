@@ -1,9 +1,11 @@
 package com.playrole.chat.repository;
 
+import com.playrole.chat.enums.RolCanal;
 import com.playrole.chat.model.Canal;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
@@ -47,6 +49,15 @@ public interface CanalRepository extends JpaRepository<Canal, Integer> {
            "ORDER BY c.fechaCreacion DESC")
     List<Canal> findCanalesNoUnidos(@Param("personajeId") Integer personajeId,
                                     @Param("ahora") Date ahora);
+
+    @Query("SELECT c FROM Canal c JOIN MiembroCanal m ON m.canal.idCanal = c.idCanal " +
+           "WHERE m.personaje.idPersonaje = :personajeId AND c.privado = true AND c.visible = true " +
+           "AND m.rol IN :roles " +
+           "AND (c.suspendido = false OR (c.suspendidoHasta IS NOT NULL AND c.suspendidoHasta <= :ahora)) " +
+           "ORDER BY c.nombre ASC")
+    List<Canal> findCanalesPrivadosGestionables(@Param("personajeId") Integer personajeId,
+                                                @Param("roles") Collection<RolCanal> roles,
+                                                @Param("ahora") Date ahora);
 
     long countByCreadorIdPersonaje(Integer creadorId);
 

@@ -5,9 +5,11 @@ import com.playrole.chat.dto.BaneadoCanalDTO;
 import com.playrole.chat.dto.CanalDTO;
 import com.playrole.chat.dto.CrearCanalDTO;
 import com.playrole.chat.dto.EditarCanalDTO;
+import com.playrole.chat.dto.InvitacionCanalDTO;
 import com.playrole.chat.dto.MiembroCanalDTO;
 import com.playrole.chat.enums.RolCanal;
 import com.playrole.chat.service.CanalService;
+import com.playrole.chat.service.InvitacionCanalService;
 import com.playrole.exception.AccessDeniedException;
 import com.playrole.model.Usuario;
 import com.playrole.utils.AuthUtils;
@@ -25,9 +27,12 @@ import java.util.Map;
 public class CanalController {
 
     private final CanalService canalService;
+    private final InvitacionCanalService invitacionCanalService;
 
-    public CanalController(CanalService canalService) {
+    public CanalController(CanalService canalService,
+                           InvitacionCanalService invitacionCanalService) {
         this.canalService = canalService;
+        this.invitacionCanalService = invitacionCanalService;
     }
 
     @GetMapping
@@ -87,12 +92,38 @@ public class CanalController {
         return ResponseEntity.ok(Map.of("mensaje", "Has salido del canal"));
     }
 
+    @GetMapping("/invitables")
+    public ResponseEntity<List<CanalDTO>> listarCanalesInvitables(Authentication authentication) {
+        Integer personajeId = obtenerPersonajeId(authentication);
+        return ResponseEntity.ok(canalService.listarCanalesPrivadosGestionables(personajeId));
+    }
+
+    @GetMapping("/invitaciones")
+    public ResponseEntity<List<InvitacionCanalDTO>> listarInvitaciones(Authentication authentication) {
+        Integer personajeId = obtenerPersonajeId(authentication);
+        return ResponseEntity.ok(invitacionCanalService.listarPendientes(personajeId));
+    }
+
+    @PostMapping("/invitaciones/{invitacionId}/aceptar")
+    public ResponseEntity<InvitacionCanalDTO> aceptarInvitacion(@PathVariable Integer invitacionId,
+                                                                 Authentication authentication) {
+        Integer personajeId = obtenerPersonajeId(authentication);
+        return ResponseEntity.ok(invitacionCanalService.aceptar(invitacionId, personajeId));
+    }
+
+    @PostMapping("/invitaciones/{invitacionId}/rechazar")
+    public ResponseEntity<InvitacionCanalDTO> rechazarInvitacion(@PathVariable Integer invitacionId,
+                                                                  Authentication authentication) {
+        Integer personajeId = obtenerPersonajeId(authentication);
+        return ResponseEntity.ok(invitacionCanalService.rechazar(invitacionId, personajeId));
+    }
+
     @PostMapping("/{id}/invitar")
     public ResponseEntity<Map<String, String>> invitar(@PathVariable Integer id,
                                                         @RequestBody Map<String, Integer> body,
                                                         Authentication authentication) {
         Integer personajeId = obtenerPersonajeId(authentication);
-        canalService.invitarMiembro(id, body.get("personajeId"), personajeId);
+        invitacionCanalService.invitar(id, body.get("personajeId"), personajeId);
         return ResponseEntity.ok(Map.of("mensaje", "Invitación enviada"));
     }
 

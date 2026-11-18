@@ -16,6 +16,7 @@ public class MensajePrivadoPersonajeDTO {
     private Date fechaEnvio;
     private boolean leido;
     private boolean esMio;
+    private InvitacionCanalDTO invitacion;
 
     public static MensajePrivadoPersonajeDTO fromEntity(MensajePrivadoPersonaje msg, Integer currentPersonajeId) {
         MensajePrivadoPersonajeDTO dto = new MensajePrivadoPersonajeDTO();
@@ -30,6 +31,9 @@ public class MensajePrivadoPersonajeDTO {
         dto.setFechaEnvio(msg.getFechaEnvio());
         dto.setLeido(msg.isLeido());
         dto.setEsMio(msg.getEmisor().getIdPersonaje().equals(currentPersonajeId));
+        if (msg.getInvitacion() != null) {
+            dto.setInvitacion(InvitacionCanalDTO.fromEntity(msg.getInvitacion()));
+        }
         return dto;
     }
 
@@ -65,4 +69,7 @@ public class MensajePrivadoPersonajeDTO {
 
     public boolean isEsMio() { return esMio; }
     public void setEsMio(boolean esMio) { this.esMio = esMio; }
+
+    public InvitacionCanalDTO getInvitacion() { return invitacion; }
+    public void setInvitacion(InvitacionCanalDTO invitacion) { this.invitacion = invitacion; }
 }

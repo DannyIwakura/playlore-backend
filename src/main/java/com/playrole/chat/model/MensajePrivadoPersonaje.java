@@ -32,6 +32,14 @@ public class MensajePrivadoPersonaje implements Serializable {
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaEnvio = new Date();
 
+    /**
+     * Solo las invitaciones a canales lo rellenan. Permite pintar la tarjeta
+     * con su estado sin depender del texto del mensaje.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "invitacion_id", referencedColumnName = "id_invitacion")
+    private InvitacionCanal invitacion;
+
     @Column(nullable = false)
     private boolean leido = false;
 
@@ -60,6 +68,9 @@ public class MensajePrivadoPersonaje implements Serializable {
 
     public boolean isLeido() { return leido; }
     public void setLeido(boolean leido) { this.leido = leido; }
+
+    public InvitacionCanal getInvitacion() { return invitacion; }
+    public void setInvitacion(InvitacionCanal invitacion) { this.invitacion = invitacion; }
 
     public boolean isEliminadoEmisor() { return eliminadoEmisor; }
     public void setEliminadoEmisor(boolean eliminadoEmisor) { this.eliminadoEmisor = eliminadoEmisor; }

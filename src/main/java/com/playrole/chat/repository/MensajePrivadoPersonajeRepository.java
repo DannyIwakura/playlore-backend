@@ -39,4 +39,9 @@ public interface MensajePrivadoPersonajeRepository extends JpaRepository<Mensaje
     @Transactional
     @Query("DELETE FROM MensajePrivadoPersonaje m WHERE m.emisor.idPersonaje = :personajeId OR m.receptor.idPersonaje = :personajeId")
     void deleteByPersonajeId(@Param("personajeId") Integer personajeId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM MensajePrivadoPersonaje m WHERE m.invitacion.idInvitacion IN :invitacionIds")
+    void deleteByInvitacionIds(@Param("invitacionIds") java.util.Collection<Integer> invitacionIds);
 }

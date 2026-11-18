@@ -32,14 +32,18 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.playrole.chat.auth.SessionJwtUtils;
+import com.playrole.chat.enums.EstadoInvitacion;
 import com.playrole.chat.enums.RolCanal;
 import com.playrole.chat.enums.TipoCanal;
 import com.playrole.chat.model.BaneoCanal;
 import com.playrole.chat.model.Canal;
+import com.playrole.chat.model.InvitacionCanal;
+import com.playrole.chat.model.MensajePrivadoPersonaje;
 import com.playrole.chat.model.MiembroCanal;
 import com.playrole.chat.model.SesionPersonaje;
 import com.playrole.chat.repository.BaneoCanalRepository;
 import com.playrole.chat.repository.CanalRepository;
+import com.playrole.chat.repository.InvitacionCanalRepository;
 import com.playrole.chat.repository.MensajeCanalRepository;
 import com.playrole.chat.repository.MensajePrivadoPersonajeRepository;
 import com.playrole.chat.repository.MiembroCanalRepository;
@@ -91,6 +95,9 @@ class CanalChatIntegracionTest {
 	private MensajePrivadoPersonajeRepository mensajePrivadoRepo;
 
 	@Autowired
+	private InvitacionCanalRepository invitacionCanalRepo;
+
+	@Autowired
 	private MensajePrivadoPersonajeService dmService;
 
 	@Autowired
@@ -109,6 +116,7 @@ class CanalChatIntegracionTest {
 	void limpiarBase() {
 		registroModeracionRepo.deleteAll();
 		mensajePrivadoRepo.deleteAll();
+		invitacionCanalRepo.deleteAll();
 		mensajeCanalRepo.deleteAll();
 		sesionRepo.deleteAll();
 		baneoCanalRepo.deleteAll();
@@ -582,6 +590,175 @@ class CanalChatIntegracionTest {
 
 		assertFalse(miembroRepo.existsByCanalIdCanalAndPersonajeIdPersonaje(
 				canal.getIdCanal(), pInvitado.getIdPersonaje()));
+	}
+
+	private InvitacionCanal invitar(Canal canal, PerfilPersonaje invitado,
+									String tokenSolicitante) throws Exception {
+		mockMvc.perform(post("/canales/" + canal.getIdCanal() + "/invitar")
+						.header("Authorization", "Bearer " + tokenSolicitante)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"personajeId\":" + invitado.getIdPersonaje() + "}"))
+				.andExpect(status().isOk());
+
+		return invitacionCanalRepo
+				.findFirstByCanalIdCanalAndInvitadoIdPersonajeAndEstado(
+						canal.getIdCanal(), invitado.getIdPersonaje(), EstadoInvitacion.PENDIENTE)
+				.orElseThrow();
+	}
+
+	@Test
+	void invitarCreaInvitacionYMensajePrivadoSinUnirAlPersonaje() throws Exception {
+		Usuario owner = crearUsuario("owner", RolUsuario.USER);
+		Usuario invitado = crearUsuario("invitado", RolUsuario.USER);
+		PerfilPersonaje pOwner = crearPersonaje(owner, "Aragorn");
+		PerfilPersonaje pInvitado = crearPersonaje(invitado, "Boromir");
+		Canal canal = crearCanalPrivado(pOwner, "Sala Secreta");
+		agregarMiembro(canal, pOwner, RolCanal.OWNER);
+
+		InvitacionCanal invitacion = invitar(canal, pInvitado, tokenSesion(owner, pOwner));
+
+		assertEquals(EstadoInvitacion.PENDIENTE, invitacion.getEstado());
+		assertEquals(pOwner.getIdPersonaje(), invitacion.getInvitador().getIdPersonaje());
+		assertFalse(miembroRepo.existsByCanalIdCanalAndPersonajeIdPersonaje(
+				canal.getIdCanal(), pInvitado.getIdPersonaje()));
+
+		List<MensajePrivadoPersonaje> mensajes = mensajePrivadoRepo.findAll();
+		assertEquals(1, mensajes.size());
+		assertEquals(pInvitado.getIdPersonaje(), mensajes.get(0).getReceptor().getIdPersonaje());
+		assertNotNull(mensajes.get(0).getInvitacion());
+		assertEquals(invitacion.getIdInvitacion(), mensajes.get(0).getInvitacion().getIdInvitacion());
+	}
+
+	@Test
+	void invitadoAceptaYEntraComoMiembroDelCanalPrivado() throws Exception {
+		Usuario owner = crearUsuario("owner", RolUsuario.USER);
+		Usuario invitado = crearUsuario("invitado", RolUsuario.USER);
+		PerfilPersonaje pOwner = crearPersonaje(owner, "Aragorn");
+		PerfilPersonaje pInvitado = crearPersonaje(invitado, "Boromir");
+		Canal canal = crearCanalPrivado(pOwner, "Sala Secreta");
+		agregarMiembro(canal, pOwner, RolCanal.OWNER);
+
+		InvitacionCanal invitacion = invitar(canal, pInvitado, tokenSesion(owner, pOwner));
+
+		mockMvc.perform(post("/canales/invitaciones/" + invitacion.getIdInvitacion() + "/aceptar")
+						.header("Authorization", "Bearer " + tokenSesion(invitado, pInvitado)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.estado").value("ACEPTADA"));
+
+		MiembroCanal miembro = miembroRepo
+				.findByCanalIdCanalAndPersonajeIdPersonaje(canal.getIdCanal(), pInvitado.getIdPersonaje())
+				.orElseThrow();
+		assertEquals(RolCanal.MEMBER, miembro.getRol());
+		assertTrue(miembro.isInvitado());
+		assertEquals(EstadoInvitacion.ACEPTADA, invitacionCanalRepo
+				.findById(invitacion.getIdInvitacion()).orElseThrow().getEstado());
+	}
+
+	@Test
+	void invitadoRechazaYNoEntraAlCanal() throws Exception {
+		Usuario owner = crearUsuario("owner", RolUsuario.USER);
+		Usuario invitado = crearUsuario("invitado", RolUsuario.USER);
+		PerfilPersonaje pOwner = crearPersonaje(owner, "Aragorn");
+		PerfilPersonaje pInvitado = crearPersonaje(invitado, "Boromir");
+		Canal canal = crearCanalPrivado(pOwner, "Sala Secreta");
+		agregarMiembro(canal, pOwner, RolCanal.OWNER);
+
+		InvitacionCanal invitacion = invitar(canal, pInvitado, tokenSesion(owner, pOwner));
+
+		mockMvc.perform(post("/canales/invitaciones/" + invitacion.getIdInvitacion() + "/rechazar")
+						.header("Authorization", "Bearer " + tokenSesion(invitado, pInvitado)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.estado").value("RECHAZADA"));
+
+		assertFalse(miembroRepo.existsByCanalIdCanalAndPersonajeIdPersonaje(
+				canal.getIdCanal(), pInvitado.getIdPersonaje()));
+		assertEquals(EstadoInvitacion.RECHAZADA, invitacionCanalRepo
+				.findById(invitacion.getIdInvitacion()).orElseThrow().getEstado());
+	}
+
+	@Test
+	void soloElInvitadoPuedeAceptarLaInvitacion() throws Exception {
+		Usuario owner = crearUsuario("owner", RolUsuario.USER);
+		Usuario invitado = crearUsuario("invitado", RolUsuario.USER);
+		Usuario otro = crearUsuario("otro", RolUsuario.USER);
+		PerfilPersonaje pOwner = crearPersonaje(owner, "Aragorn");
+		PerfilPersonaje pInvitado = crearPersonaje(invitado, "Boromir");
+		PerfilPersonaje pOtro = crearPersonaje(otro, "Legolas");
+		Canal canal = crearCanalPrivado(pOwner, "Sala Secreta");
+		agregarMiembro(canal, pOwner, RolCanal.OWNER);
+
+		InvitacionCanal invitacion = invitar(canal, pInvitado, tokenSesion(owner, pOwner));
+
+		mockMvc.perform(post("/canales/invitaciones/" + invitacion.getIdInvitacion() + "/aceptar")
+						.header("Authorization", "Bearer " + tokenSesion(otro, pOtro)))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.error").value(containsString("no es tuya")));
+
+		assertFalse(miembroRepo.existsByCanalIdCanalAndPersonajeIdPersonaje(
+				canal.getIdCanal(), pOtro.getIdPersonaje()));
+	}
+
+	@Test
+	void listarCanalesInvitablesSoloDevuelvePrivadosGestionados() throws Exception {
+		Usuario owner = crearUsuario("owner", RolUsuario.USER);
+		PerfilPersonaje pOwner = crearPersonaje(owner, "Aragorn");
+		crearCanalPrivado(pOwner, "Sala Secreta");
+		crearCanal(pOwner);
+		agregarMiembro(canalRepo.findByCreadorIdPersonaje(pOwner.getIdPersonaje()).stream()
+				.filter(c -> c.isPrivado()).findFirst().orElseThrow(), pOwner, RolCanal.OWNER);
+
+		mockMvc.perform(get("/canales/invitables")
+						.header("Authorization", "Bearer " + tokenSesion(owner, pOwner)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.length()").value(1))
+				.andExpect(jsonPath("$[0].nombre").value("Sala Secreta"));
+	}
+
+	@Test
+	void listarInvitacionesPendientesSoloDevuelveLasPropias() throws Exception {
+		Usuario owner = crearUsuario("owner", RolUsuario.USER);
+		Usuario invitado = crearUsuario("invitado", RolUsuario.USER);
+		Usuario otro = crearUsuario("otro", RolUsuario.USER);
+		PerfilPersonaje pOwner = crearPersonaje(owner, "Aragorn");
+		PerfilPersonaje pInvitado = crearPersonaje(invitado, "Boromir");
+		PerfilPersonaje pOtro = crearPersonaje(otro, "Legolas");
+		Canal canal = crearCanalPrivado(pOwner, "Sala Secreta");
+		agregarMiembro(canal, pOwner, RolCanal.OWNER);
+		invitar(canal, pInvitado, tokenSesion(owner, pOwner));
+
+		mockMvc.perform(get("/canales/invitaciones")
+						.header("Authorization", "Bearer " + tokenSesion(invitado, pInvitado)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.length()").value(1))
+				.andExpect(jsonPath("$[0].canalNombre").value("Sala Secreta"))
+				.andExpect(jsonPath("$[0].invitadorNombre").value("Aragorn"))
+				.andExpect(jsonPath("$[0].estado").value("PENDIENTE"));
+
+		mockMvc.perform(get("/canales/invitaciones")
+						.header("Authorization", "Bearer " + tokenSesion(otro, pOtro)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.length()").value(0));
+	}
+
+	@Test
+	void eliminarCanalBorraInvitacionesYSusMensajesPrivados() throws Exception {
+		Usuario owner = crearUsuario("owner", RolUsuario.USER);
+		Usuario invitado = crearUsuario("invitado", RolUsuario.USER);
+		PerfilPersonaje pOwner = crearPersonaje(owner, "Aragorn");
+		PerfilPersonaje pInvitado = crearPersonaje(invitado, "Boromir");
+		Canal canal = crearCanalPrivado(pOwner, "Sala Secreta");
+		agregarMiembro(canal, pOwner, RolCanal.OWNER);
+		String tokenOwner = tokenSesion(owner, pOwner);
+		invitar(canal, pInvitado, tokenOwner);
+
+		mockMvc.perform(delete("/canales/" + canal.getIdCanal())
+						.header("Authorization", "Bearer " + tokenOwner)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"password\":\"Password123\"}"))
+				.andExpect(status().isOk());
+
+		assertTrue(invitacionCanalRepo.findAll().isEmpty());
+		assertTrue(mensajePrivadoRepo.findAll().isEmpty());
 	}
 
 	@Test

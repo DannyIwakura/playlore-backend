@@ -47,9 +47,11 @@ import com.playrole.repository.PersonajeCategoriaRepositoryInterface;
 import com.playrole.repository.SolicitudAmistadRespositoryInterface;
 import com.playrole.repository.UsuarioRepositoryInterface;
 import com.playrole.chat.model.Canal;
+import com.playrole.chat.model.InvitacionCanal;
 import com.playrole.chat.model.MiembroCanal;
 import com.playrole.chat.repository.BaneoCanalRepository;
 import com.playrole.chat.repository.CanalRepository;
+import com.playrole.chat.repository.InvitacionCanalRepository;
 import com.playrole.chat.repository.MensajeCanalRepository;
 import com.playrole.chat.repository.MensajePrivadoPersonajeRepository;
 import com.playrole.chat.repository.MiembroCanalRepository;
@@ -90,6 +92,8 @@ public class UsuarioServiceImpl implements IUsuarioService {
     private MensajeCanalRepository mensajeRepositorio;
     @Autowired
     private MensajePrivadoPersonajeRepository mensajePrivadoRepositorio;
+    @Autowired
+    private InvitacionCanalRepository invitacionCanalRepositorio;
     @Autowired
     private SesionPersonajeRepository sesionRepositorio;
     
@@ -341,6 +345,9 @@ public class UsuarioServiceImpl implements IUsuarioService {
         // Mensajes privados
         mensajePrivadoRepositorio.deleteByPersonajeId(pid);
 
+        // Invitaciones a canales enviadas o recibidas por el personaje
+        invitacionCanalRepositorio.deleteByPersonajeId(pid);
+
         // Imágenes de la galería (filas + archivos)
         imagenRepositorio.findByIdPersonaje_IdPersonajeOrderByOrdenAscFechaSubidaAsc(pid)
                 .forEach(img -> eliminarArchivoImagen(img.getUrl()));
@@ -364,11 +371,28 @@ public class UsuarioServiceImpl implements IUsuarioService {
         if (canal.getImagenUrl() != null) {
             eliminarArchivoImagen(canal.getImagenUrl());
         }
+        eliminarInvitacionesDeCanal(canal.getIdCanal());
         baneoCanalRepositorio.deleteByCanalId(canal.getIdCanal());
         mensajeRepositorio.deleteByCanalId(canal.getIdCanal());
         List<MiembroCanal> miembros = miembroRepositorio.findByCanalIdCanal(canal.getIdCanal());
         miembroRepositorio.deleteAll(miembros);
         canalRepositorio.delete(canal);
+    }
+
+    /**
+     * Borra las invitaciones del canal y los mensajes privados que las
+     * transportan antes de eliminar el canal.
+     */
+    private void eliminarInvitacionesDeCanal(Integer canalId) {
+        List<InvitacionCanal> invitaciones = invitacionCanalRepositorio.findByCanalIdCanal(canalId);
+        if (invitaciones.isEmpty()) {
+            return;
+        }
+        List<Integer> ids = invitaciones.stream()
+                .map(InvitacionCanal::getIdInvitacion)
+                .toList();
+        mensajePrivadoRepositorio.deleteByInvitacionIds(ids);
+        invitacionCanalRepositorio.deleteAll(invitaciones);
     }
 
     private void eliminarArchivoImagen(String imageUrl) {

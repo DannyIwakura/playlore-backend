@@ -62,6 +62,7 @@ public class CanalService {
     private final SimpMessagingTemplate messagingTemplate;
     private final PasswordEncoder passwordEncoder;
     private final AuditoriaModeracionService auditoriaService;
+    private final InvitacionCanalService invitacionService;
 
     public CanalService(CanalRepository canalRepository,
                         MiembroCanalRepository miembroRepository,
@@ -72,7 +73,8 @@ public class CanalService {
                         PresenceService presenceService,
                         SimpMessagingTemplate messagingTemplate,
                         PasswordEncoder passwordEncoder,
-                        AuditoriaModeracionService auditoriaService) {
+                        AuditoriaModeracionService auditoriaService,
+                        InvitacionCanalService invitacionService) {
         this.canalRepository = canalRepository;
         this.miembroRepository = miembroRepository;
         this.baneoRepository = baneoRepository;
@@ -83,6 +85,7 @@ public class CanalService {
         this.messagingTemplate = messagingTemplate;
         this.passwordEncoder = passwordEncoder;
         this.auditoriaService = auditoriaService;
+        this.invitacionService = invitacionService;
     }
 
     public List<CanalDTO> listarCanalesDisponibles(Integer personajeId, boolean esStaff) {
@@ -102,6 +105,18 @@ public class CanalService {
                 ? canalRepository.findCanalesNoUnidos(personajeId, new Date())
                 : canalRepository.findCanalesPublicosNoUnidos(personajeId, new Date());
         return construirDTOs(canales, personajeId, false);
+    }
+
+    /**
+     * Canales privados en los que el personaje puede gestionar miembros
+     * (dueno, admin o mod del canal). Es la lista que se ofrece al invitar.
+     */
+    public List<CanalDTO> listarCanalesPrivadosGestionables(Integer personajeId) {
+        List<Canal> canales = canalRepository.findCanalesPrivadosGestionables(
+                personajeId,
+                List.of(RolCanal.OWNER, RolCanal.ADMIN, RolCanal.MOD),
+                new Date());
+        return construirDTOs(canales, personajeId, true);
     }
 
     private List<CanalDTO> construirDTOs(List<Canal> canales, Integer personajeId, boolean incluirMiRol) {
@@ -257,30 +272,6 @@ public class CanalService {
         }
 
         miembroRepository.delete(miembro);
-    }
-
-    @Transactional
-    public void invitarMiembro(Integer canalId, Integer invitadoId, Integer solicitanteId) {
-        permissionService.verificarPermiso(canalId, solicitanteId, PermisoCanal.GESTIONAR_MIEMBROS);
-
-        PerfilPersonaje invitado = personajeRepository.findById(invitadoId)
-                .orElseThrow(() -> new ResourceNotFoundException("Personaje no encontrado"));
-
-        if (miembroRepository.existsByCanalIdCanalAndPersonajeIdPersonaje(canalId, invitadoId)) {
-            throw new BadRequestException("El personaje ya es miembro del canal");
-        }
-
-        if (baneoRepository.existsActivoByCanalAndPersonaje(canalId, invitadoId)) {
-            throw new AccessDeniedException("El personaje está baneado de este canal");
-        }
-
-        MiembroCanal miembro = new MiembroCanal();
-        miembro.setCanal(canalRepository.findById(canalId).orElseThrow());
-        miembro.setPersonaje(invitado);
-        miembro.setRol(RolCanal.MEMBER);
-        miembro.setInvitado(true);
-        miembro.setFechaUnion(new Date());
-        miembroRepository.save(miembro);
     }
 
     @Transactional
@@ -549,6 +540,10 @@ public class CanalService {
         if (canal.getImagenUrl() != null) {
             eliminarArchivoImagen(canal.getImagenUrl());
         }
+
+        // Las invitaciones y sus mensajes privados apuntan al canal: se borran
+        // antes para no dejar claves foraneas colgando.
+        invitacionService.eliminarInvitacionesDeCanal(canalId);
 
         baneoRepository.deleteByCanalId(canalId);
         mensajeRepository.deleteByCanalId(canalId);

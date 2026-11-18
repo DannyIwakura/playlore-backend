@@ -105,6 +105,7 @@ public class MensajePrivadoPersonajeService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
     public List<MensajePrivadoPersonajeDTO> listarConversaciones(Integer personajeId) {
         return mensajeRepository.findConversaciones(personajeId).stream()
                 .map(m -> MensajePrivadoPersonajeDTO.fromEntity(m, personajeId))
