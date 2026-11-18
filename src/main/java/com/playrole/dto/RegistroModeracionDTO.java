@@ -15,6 +15,8 @@ public class RegistroModeracionDTO {
     private String objetivoUsuarioNombre;
     private Integer objetivoPersonajeId;
     private String objetivoPersonajeNombre;
+    private Integer objetivoCanalId;
+    private String objetivoCanalNombre;
     private String motivo;
     private String detalle;
     private Date fecha;
@@ -29,6 +31,8 @@ public class RegistroModeracionDTO {
         dto.setObjetivoUsuarioNombre(r.getObjetivoUsuarioNombre());
         dto.setObjetivoPersonajeId(r.getObjetivoPersonajeId());
         dto.setObjetivoPersonajeNombre(r.getObjetivoPersonajeNombre());
+        dto.setObjetivoCanalId(r.getObjetivoCanalId());
+        dto.setObjetivoCanalNombre(r.getObjetivoCanalNombre());
         dto.setMotivo(r.getMotivo());
         dto.setDetalle(r.getDetalle());
         dto.setFecha(r.getFecha());
@@ -58,6 +62,12 @@ public class RegistroModeracionDTO {
 
     public String getObjetivoPersonajeNombre() { return objetivoPersonajeNombre; }
     public void setObjetivoPersonajeNombre(String objetivoPersonajeNombre) { this.objetivoPersonajeNombre = objetivoPersonajeNombre; }
+
+    public Integer getObjetivoCanalId() { return objetivoCanalId; }
+    public void setObjetivoCanalId(Integer objetivoCanalId) { this.objetivoCanalId = objetivoCanalId; }
+
+    public String getObjetivoCanalNombre() { return objetivoCanalNombre; }
+    public void setObjetivoCanalNombre(String objetivoCanalNombre) { this.objetivoCanalNombre = objetivoCanalNombre; }
 
     public String getMotivo() { return motivo; }
     public void setMotivo(String motivo) { this.motivo = motivo; }

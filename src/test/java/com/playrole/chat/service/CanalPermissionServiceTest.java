@@ -15,18 +15,26 @@ import org.junit.jupiter.api.Test;
 
 import com.playrole.chat.enums.PermisoCanal;
 import com.playrole.chat.enums.RolCanal;
+import com.playrole.chat.model.Canal;
+import com.playrole.chat.repository.CanalRepository;
 import com.playrole.chat.repository.MiembroCanalRepository;
 import com.playrole.exception.AccessDeniedException;
 
 class CanalPermissionServiceTest {
 
     private MiembroCanalRepository miembroRepository;
+    private CanalRepository canalRepository;
     private CanalPermissionService service;
 
     @BeforeEach
     void setUp() {
         miembroRepository = mock(MiembroCanalRepository.class);
-        service = new CanalPermissionService(miembroRepository);
+        canalRepository = mock(CanalRepository.class);
+        service = new CanalPermissionService(miembroRepository, canalRepository);
+
+        Canal canal = new Canal();
+        canal.setIdCanal(1);
+        when(canalRepository.findById(1)).thenReturn(Optional.of(canal));
     }
 
     private void stubRol(RolCanal rol) {
@@ -112,5 +120,30 @@ class CanalPermissionServiceTest {
         stubRol(RolCanal.ADMIN);
 
         assertEquals(Optional.of(RolCanal.ADMIN), service.obtenerRol(1, 10));
+    }
+
+    @Test
+    void verificarPermiso_canalSuspendido_lanzaAccessDeniedAunqueSeaOwner() {
+        stubRol(RolCanal.OWNER);
+        Canal suspendido = new Canal();
+        suspendido.setIdCanal(1);
+        suspendido.setSuspendido(true);
+        suspendido.setSuspendidoHasta(new java.util.Date(System.currentTimeMillis() + 60_000));
+        when(canalRepository.findById(1)).thenReturn(Optional.of(suspendido));
+
+        assertThrows(AccessDeniedException.class,
+                () -> service.verificarPermiso(1, 10, PermisoCanal.LEER_MENSAJES));
+    }
+
+    @Test
+    void verificarPermiso_suspensionVencida_noBloquea() {
+        stubRol(RolCanal.OWNER);
+        Canal vencido = new Canal();
+        vencido.setIdCanal(1);
+        vencido.setSuspendido(true);
+        vencido.setSuspendidoHasta(new java.util.Date(System.currentTimeMillis() - 60_000));
+        when(canalRepository.findById(1)).thenReturn(Optional.of(vencido));
+
+        service.verificarPermiso(1, 10, PermisoCanal.LEER_MENSAJES);
     }
 }

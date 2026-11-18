@@ -2,8 +2,11 @@ package com.playrole.chat.service;
 
 import com.playrole.chat.enums.PermisoCanal;
 import com.playrole.chat.enums.RolCanal;
+import com.playrole.chat.model.Canal;
+import com.playrole.chat.repository.CanalRepository;
 import com.playrole.chat.repository.MiembroCanalRepository;
 import com.playrole.exception.AccessDeniedException;
+import com.playrole.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import java.util.EnumSet;
 import java.util.Map;
@@ -31,9 +34,12 @@ public class CanalPermissionService {
                     PermisoCanal.EDITAR_MENSAJES_PROPIOS, PermisoCanal.ELIMINAR_MENSAJES_PROPIOS));
 
     private final MiembroCanalRepository miembroRepository;
+    private final CanalRepository canalRepository;
 
-    public CanalPermissionService(MiembroCanalRepository miembroRepository) {
+    public CanalPermissionService(MiembroCanalRepository miembroRepository,
+                                  CanalRepository canalRepository) {
         this.miembroRepository = miembroRepository;
+        this.canalRepository = canalRepository;
     }
 
     public boolean tienePermiso(Integer canalId, Integer personajeId, PermisoCanal permiso) {
@@ -42,7 +48,19 @@ public class CanalPermissionService {
                   .orElse(false);
     }
 
+    public void verificarCanalActivo(Integer canalId) {
+        Canal canal = canalRepository.findById(canalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Canal no encontrado"));
+        if (canal.isSuspendidoActivo()) {
+            throw new AccessDeniedException("Este canal está suspendido por moderación"
+                    + (canal.getSuspendidoHasta() != null
+                        ? " hasta " + canal.getSuspendidoHasta()
+                        : ""));
+        }
+    }
+
     public void verificarPermiso(Integer canalId, Integer personajeId, PermisoCanal permiso) {
+        verificarCanalActivo(canalId);
         if (!tienePermiso(canalId, personajeId, permiso)) {
             throw new AccessDeniedException("No tienes permiso para realizar esta acción en el canal");
         }

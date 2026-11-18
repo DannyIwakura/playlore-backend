@@ -50,6 +50,26 @@ public class Canal implements Serializable {
     @JoinColumn(name = "creado_por_usuario", referencedColumnName = "user_id")
     private Usuario creadoPorUsuario;
 
+    @Column(name = "suspendido", nullable = false)
+    private boolean suspendido = false;
+
+    @Column(name = "suspendido_hasta")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date suspendidoHasta;
+
+    @Column(name = "fecha_suspension")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date fechaSuspension;
+
+    @Column(name = "suspendido_por_id")
+    private Integer suspendidoPorId;
+
+    @Column(name = "suspendido_por_nombre", length = 255)
+    private String suspendidoPorNombre;
+
+    @Column(name = "motivo_suspension", length = 255)
+    private String motivoSuspension;
+
     public Canal() {}
 
     public Canal(Integer idCanal) {
@@ -85,6 +105,33 @@ public class Canal implements Serializable {
 
     public Usuario getCreadoPorUsuario() { return creadoPorUsuario; }
     public void setCreadoPorUsuario(Usuario creadoPorUsuario) { this.creadoPorUsuario = creadoPorUsuario; }
+
+    public boolean isSuspendido() { return suspendido; }
+    public void setSuspendido(boolean suspendido) { this.suspendido = suspendido; }
+
+    public Date getSuspendidoHasta() { return suspendidoHasta; }
+    public void setSuspendidoHasta(Date suspendidoHasta) { this.suspendidoHasta = suspendidoHasta; }
+
+    public Date getFechaSuspension() { return fechaSuspension; }
+    public void setFechaSuspension(Date fechaSuspension) { this.fechaSuspension = fechaSuspension; }
+
+    public Integer getSuspendidoPorId() { return suspendidoPorId; }
+    public void setSuspendidoPorId(Integer suspendidoPorId) { this.suspendidoPorId = suspendidoPorId; }
+
+    public String getSuspendidoPorNombre() { return suspendidoPorNombre; }
+    public void setSuspendidoPorNombre(String suspendidoPorNombre) { this.suspendidoPorNombre = suspendidoPorNombre; }
+
+    public String getMotivoSuspension() { return motivoSuspension; }
+    public void setMotivoSuspension(String motivoSuspension) { this.motivoSuspension = motivoSuspension; }
+
+    /**
+     * Una suspension es efectiva mientras siga marcada y no haya vencido.
+     * El scheduler limpia las vencidas, pero las consultas y los permisos
+     * usan esta comprobacion para no depender del desfase de la tarea.
+     */
+    public boolean isSuspendidoActivo() {
+        return suspendido && (suspendidoHasta == null || suspendidoHasta.after(new Date()));
+    }
 
     @Override
     public int hashCode() {

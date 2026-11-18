@@ -321,4 +321,50 @@ class CanalChatIntegracionTest {
 		assertThrows(BadRequestException.class,
 				() -> dmService.enviarMensaje(pa.getIdPersonaje(), pa.getIdPersonaje(), "a mi mismo"));
 	}
+
+	@Test
+	void canalSuspendido_seOcultaYBloqueaAcciones_hastaQueVence() throws Exception {
+		Usuario owner = crearUsuario("owner", RolUsuario.USER);
+		Usuario miembro = crearUsuario("member", RolUsuario.USER);
+		PerfilPersonaje pOwner = crearPersonaje(owner, "Aragorn");
+		PerfilPersonaje pMiembro = crearPersonaje(miembro, "Boromir");
+		Canal canal = crearCanal(pOwner);
+		agregarMiembro(canal, pOwner, RolCanal.OWNER);
+		agregarMiembro(canal, pMiembro, RolCanal.MEMBER);
+		String tokenMiembro = tokenSesion(miembro, pMiembro);
+
+		canal.setSuspendido(true);
+		canal.setSuspendidoHasta(new Date(System.currentTimeMillis() + 60_000));
+		canal.setMotivoSuspension("Contenido ilegal");
+		canalRepo.save(canal);
+
+		mockMvc.perform(get("/canales")
+						.header("Authorization", "Bearer " + tokenMiembro))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$").isEmpty());
+
+		mockMvc.perform(get("/canales/unidos")
+						.header("Authorization", "Bearer " + tokenMiembro))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$").isEmpty());
+
+		mockMvc.perform(get("/canales/" + canal.getIdCanal())
+						.header("Authorization", "Bearer " + tokenMiembro))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.error").value(containsString("suspendido")));
+
+		mockMvc.perform(post("/canales/" + canal.getIdCanal() + "/mensajes")
+						.header("Authorization", "Bearer " + tokenMiembro)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"contenido\":\"hola\"}"))
+				.andExpect(status().isForbidden());
+
+		canal.setSuspendidoHasta(new Date(System.currentTimeMillis() - 60_000));
+		canalRepo.save(canal);
+
+		mockMvc.perform(get("/canales/" + canal.getIdCanal())
+						.header("Authorization", "Bearer " + tokenMiembro))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.id").value(canal.getIdCanal()));
+	}
 }

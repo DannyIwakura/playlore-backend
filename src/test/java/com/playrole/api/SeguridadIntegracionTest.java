@@ -24,6 +24,8 @@ import com.playrole.enums.EstadoPersonaje;
 import com.playrole.enums.EstadoSolicitud;
 import com.playrole.enums.RolUsuario;
 import com.playrole.enums.TipoCategoria;
+import com.playrole.chat.enums.TipoCanal;
+import com.playrole.chat.model.Canal;
 import com.playrole.model.Categoria;
 import com.playrole.model.PerfilPersonaje;
 import com.playrole.model.SolicitudAmistad;
@@ -147,6 +149,15 @@ class SeguridadIntegracionTest {
 		c.setNombre(nombre);
 		c.setTipo(TipoCategoria.FANDOM);
 		return categoriaRepo.save(c);
+	}
+
+	private Canal crearCanal(String nombre, PerfilPersonaje creador) {
+		Canal c = new Canal();
+		c.setNombre(nombre);
+		c.setTipo(TipoCanal.USER_CREATED);
+		c.setCreador(creador);
+		c.setFechaCreacion(new Date());
+		return canalRepo.save(c);
 	}
 
 	@Test
@@ -386,5 +397,80 @@ class SeguridadIntegracionTest {
 				.andExpect(jsonPath("$[0].accion").value("BANEO_CUENTA"))
 				.andExpect(jsonPath("$[0].objetivoUsuarioNombre").value("objetivo"))
 				.andExpect(jsonPath("$[0].moderadorNombre").value("admin"));
+	}
+
+	@Test
+	void moderacionCanales_usuarioNormal_devuelve403() throws Exception {
+		Usuario alice = crearUsuario("alice", RolUsuario.USER);
+
+		mockMvc.perform(get("/moderacion/canales")
+						.header("Authorization", "Bearer " + token(alice)))
+				.andExpect(status().isForbidden());
+	}
+
+	@Test
+	void moderacionCanales_modSuspendeYRestaura_adminElimina() throws Exception {
+		Usuario duenio = crearUsuario("duenio", RolUsuario.USER);
+		Usuario mod = crearUsuario("moderador", RolUsuario.MOD);
+		Usuario admin = crearUsuario("admin", RolUsuario.ADMIN);
+		PerfilPersonaje personaje = crearPersonaje(duenio);
+		Canal canal = crearCanal("Canal denunciado", personaje);
+
+		mockMvc.perform(post("/moderacion/canales/" + canal.getIdCanal() + "/suspender")
+						.header("Authorization", "Bearer " + token(mod))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"duracion\":\"24H\", \"motivo\":\"Contenido ilegal\"}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.suspendidoActivo").value(true));
+
+		Canal suspendido = canalRepo.findById(canal.getIdCanal()).orElseThrow();
+		assertEquals(true, suspendido.isSuspendidoActivo());
+		assertEquals("Contenido ilegal", suspendido.getMotivoSuspension());
+
+		mockMvc.perform(delete("/moderacion/canales/" + canal.getIdCanal())
+						.header("Authorization", "Bearer " + token(mod))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"motivo\":\"Contenido ilegal\"}"))
+				.andExpect(status().isForbidden());
+
+		mockMvc.perform(post("/moderacion/canales/" + canal.getIdCanal() + "/restaurar")
+						.header("Authorization", "Bearer " + token(mod))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"motivo\":\"Revisado\"}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.suspendido").value(false));
+
+		Canal restaurado = canalRepo.findById(canal.getIdCanal()).orElseThrow();
+		assertEquals(false, restaurado.isSuspendido());
+
+		mockMvc.perform(delete("/moderacion/canales/" + canal.getIdCanal())
+						.header("Authorization", "Bearer " + token(admin))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"motivo\":\"Contenido ilegal\"}"))
+				.andExpect(status().isOk());
+
+		assertEquals(0, canalRepo.count());
+
+		mockMvc.perform(get("/moderacion/auditoria")
+						.header("Authorization", "Bearer " + token(admin)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[0].accion").value("CANAL_ELIMINADO"))
+				.andExpect(jsonPath("$[0].objetivoCanalNombre").value("Canal denunciado"))
+				.andExpect(jsonPath("$[0].moderadorNombre").value("admin"));
+	}
+
+	@Test
+	void moderacionCanales_suspenderSinMotivo_devuelve400() throws Exception {
+		Usuario duenio = crearUsuario("duenio", RolUsuario.USER);
+		Usuario mod = crearUsuario("moderador", RolUsuario.MOD);
+		PerfilPersonaje personaje = crearPersonaje(duenio);
+		Canal canal = crearCanal("Canal denunciado", personaje);
+
+		mockMvc.perform(post("/moderacion/canales/" + canal.getIdCanal() + "/suspender")
+						.header("Authorization", "Bearer " + token(mod))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"duracion\":\"24H\"}"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error").value("El motivo es obligatorio"));
 	}
 }

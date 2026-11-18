@@ -79,17 +79,17 @@ public class CanalService {
     }
 
     public List<CanalDTO> listarCanalesDisponibles(Integer personajeId) {
-        List<Canal> canales = canalRepository.findByVisibleTrueOrderByFechaCreacionDesc();
+        List<Canal> canales = canalRepository.findVisibles(new Date());
         return construirDTOs(canales, personajeId, true);
     }
 
     public List<CanalDTO> listarCanalesUnidos(Integer personajeId) {
-        List<Canal> canales = canalRepository.findCanalesDePersonaje(personajeId);
+        List<Canal> canales = canalRepository.findCanalesDePersonaje(personajeId, new Date());
         return construirDTOs(canales, personajeId, true);
     }
 
     public List<CanalDTO> listarCanalesPublicosNoUnidos(Integer personajeId) {
-        List<Canal> canales = canalRepository.findCanalesPublicosNoUnidos(personajeId);
+        List<Canal> canales = canalRepository.findCanalesPublicosNoUnidos(personajeId, new Date());
         return construirDTOs(canales, personajeId, false);
     }
 
@@ -122,6 +122,10 @@ public class CanalService {
     public CanalDTO obtenerCanal(Integer canalId, Integer personajeId) {
         Canal canal = canalRepository.findById(canalId)
                 .orElseThrow(() -> new ResourceNotFoundException("Canal no encontrado"));
+
+        if (canal.isSuspendidoActivo()) {
+            throw new AccessDeniedException("Este canal está suspendido por moderación");
+        }
 
         CanalDTO dto = CanalDTO.fromEntity(canal);
         dto.setMiembroCount((int) miembroRepository.countByCanalId(canalId));
@@ -186,6 +190,10 @@ public class CanalService {
     public void unirseACanal(Integer canalId, Integer personajeId) {
         Canal canal = canalRepository.findById(canalId)
                 .orElseThrow(() -> new ResourceNotFoundException("Canal no encontrado"));
+
+        if (canal.isSuspendidoActivo()) {
+            throw new AccessDeniedException("Este canal está suspendido por moderación");
+        }
 
         if (canal.isPrivado() && canal.getTipo() == TipoCanal.USER_CREATED) {
             throw new AccessDeniedException("Este canal es privado. Necesitas una invitación.");
@@ -448,6 +456,22 @@ public class CanalService {
             throw new BadRequestException("La contraseña no es correcta");
         }
 
+        List<Integer> miembroIds = borrarCanalFisico(canal);
+
+        for (Integer miembroId : miembroIds) {
+            messagingTemplate.convertAndSend(
+                    "/topic/privado." + miembroId,
+                    (Object) Map.of("tipo", "CANAL_ELIMINADO", "canalId", canalId));
+        }
+    }
+
+    /**
+     * Borrado fisico compartido por el dueño y por moderacion. Quien llame
+     * debe haber validado antes los permisos y la contraseña (si aplica).
+     * Devuelve los ids de los personajes que eran miembros para notificarles.
+     */
+    public List<Integer> borrarCanalFisico(Canal canal) {
+        Integer canalId = canal.getIdCanal();
         List<MiembroCanal> miembros = miembroRepository.findByCanalIdCanal(canalId);
         List<Integer> miembroIds = miembros.stream()
                 .map(m -> m.getPersonaje().getIdPersonaje())
@@ -462,11 +486,7 @@ public class CanalService {
         miembroRepository.deleteAll(miembros);
         canalRepository.delete(canal);
 
-        for (Integer miembroId : miembroIds) {
-            messagingTemplate.convertAndSend(
-                    "/topic/privado." + miembroId,
-                    (Object) Map.of("tipo", "CANAL_ELIMINADO", "canalId", canalId));
-        }
+        return miembroIds;
     }
 
     @Transactional
