@@ -57,13 +57,22 @@ public class CharacterChatController {
         return ResponseEntity.ok(Map.of("count", count));
     }
 
+    @PostMapping("/conversaciones/{otroPersonajeId}/cerrar")
+    public ResponseEntity<Map<String, String>> cerrarConversacion(
+            @PathVariable Integer otroPersonajeId,
+            Authentication authentication) {
+        Integer personajeId = obtenerPersonajeId(authentication);
+        mensajeService.cerrarConversacion(personajeId, otroPersonajeId);
+        return ResponseEntity.ok(Map.of("mensaje", "Conversación cerrada"));
+    }
+
+    /** Alias conservado por compatibilidad: ya no borra mensajes, solo cierra. */
+    @Deprecated
     @DeleteMapping("/conversaciones/{otroPersonajeId}")
     public ResponseEntity<Map<String, String>> eliminarConversacion(
             @PathVariable Integer otroPersonajeId,
             Authentication authentication) {
-        Integer personajeId = obtenerPersonajeId(authentication);
-        mensajeService.eliminarConversacion(personajeId, otroPersonajeId);
-        return ResponseEntity.ok(Map.of("mensaje", "Conversación eliminada"));
+        return cerrarConversacion(otroPersonajeId, authentication);
     }
 
     private Integer obtenerPersonajeId(Authentication authentication) {

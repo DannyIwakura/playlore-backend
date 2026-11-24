@@ -1,7 +1,9 @@
 package com.playrole.chat.service;
 
 import com.playrole.chat.dto.MensajePrivadoPersonajeDTO;
+import com.playrole.chat.model.ConversacionCerrada;
 import com.playrole.chat.model.MensajePrivadoPersonaje;
+import com.playrole.chat.repository.ConversacionCerradaRepository;
 import com.playrole.chat.repository.MensajePrivadoPersonajeRepository;
 import com.playrole.exception.AccessDeniedException;
 import com.playrole.exception.BadRequestException;
@@ -18,8 +20,10 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayDeque;
 import java.util.Date;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -32,15 +36,18 @@ public class MensajePrivadoPersonajeService {
 
     private final Map<Integer, Deque<Long>> enviosRecientes = new ConcurrentHashMap<>();
     private final MensajePrivadoPersonajeRepository mensajeRepository;
+    private final ConversacionCerradaRepository conversacionCerradaRepository;
     private final PerfilPersonajeRepositoryInterface personajeRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final BaneoGlobalRepository baneoGlobalRepository;
 
     public MensajePrivadoPersonajeService(MensajePrivadoPersonajeRepository mensajeRepository,
+                                           ConversacionCerradaRepository conversacionCerradaRepository,
                                            PerfilPersonajeRepositoryInterface personajeRepository,
                                            SimpMessagingTemplate messagingTemplate,
                                            BaneoGlobalRepository baneoGlobalRepository) {
         this.mensajeRepository = mensajeRepository;
+        this.conversacionCerradaRepository = conversacionCerradaRepository;
         this.personajeRepository = personajeRepository;
         this.messagingTemplate = messagingTemplate;
         this.baneoGlobalRepository = baneoGlobalRepository;
@@ -82,6 +89,9 @@ public class MensajePrivadoPersonajeService {
         mensaje.setLeido(false);
 
         mensaje = mensajeRepository.save(mensaje);
+        // Escribir (o recibir) un mensaje reabre la conversacion: la marca de
+        // cerrada se borra para ambos lados y vuelve al historial completo.
+        reabrirSiEstabaCerrada(emisorId, receptorId);
 
         MensajePrivadoPersonajeDTO dto = MensajePrivadoPersonajeDTO.fromEntity(mensaje, emisorId);
 
@@ -107,7 +117,10 @@ public class MensajePrivadoPersonajeService {
 
     @Transactional
     public List<MensajePrivadoPersonajeDTO> listarConversaciones(Integer personajeId) {
+        Set<Integer> cerradas = new HashSet<>(
+                conversacionCerradaRepository.findOtroPersonajeIdsByPersonajeId(personajeId));
         return mensajeRepository.findConversaciones(personajeId).stream()
+                .filter(m -> !cerradas.contains(otroPersonajeId(m, personajeId)))
                 .map(m -> MensajePrivadoPersonajeDTO.fromEntity(m, personajeId))
                 .collect(Collectors.toList());
     }
@@ -116,21 +129,67 @@ public class MensajePrivadoPersonajeService {
         return mensajeRepository.countNoLeidos(personajeId);
     }
 
+    /**
+     * Cierra una conversacion solo para quien la cierra. Los mensajes NO se
+     * tocan: siguen en BD y se pueden volver a leer al escribir de nuevo.
+     */
     @Transactional
-    public void eliminarConversacion(Integer personajeId, Integer otroPersonajeId) {
-        List<MensajePrivadoPersonaje> mensajes = mensajeRepository.findConversacionEntre(personajeId, otroPersonajeId);
-        for (MensajePrivadoPersonaje mensaje : mensajes) {
-            if (mensaje.getEmisor().getIdPersonaje().equals(personajeId)) {
-                mensaje.setEliminadoEmisor(true);
-            } else {
-                mensaje.setEliminadoReceptor(true);
-            }
-            mensajeRepository.save(mensaje);
+    public void cerrarConversacion(Integer personajeId, Integer otroPersonajeId) {
+        if (personajeId.equals(otroPersonajeId)) {
+            throw new BadRequestException("No puedes cerrar una conversación contigo mismo");
+        }
+        if (!personajeRepository.existsById(otroPersonajeId)) {
+            throw new ResourceNotFoundException("Personaje no encontrado");
+        }
+        // Compatibilidad: si la conversacion se habia "eliminado" con la version
+        // anterior, dejamos sus mensajes visibles para este personaje.
+        limpiarFlagsLegacy(personajeId, otroPersonajeId, false);
+        if (!conversacionCerradaRepository.existsByPersonajeIdAndOtroPersonajeId(personajeId, otroPersonajeId)) {
+            conversacionCerradaRepository.save(new ConversacionCerrada(personajeId, otroPersonajeId));
         }
     }
 
+    private void reabrirSiEstabaCerrada(Integer emisorId, Integer receptorId) {
+        boolean teniaCerrada =
+                conversacionCerradaRepository.existsByPersonajeIdAndOtroPersonajeId(emisorId, receptorId) ||
+                conversacionCerradaRepository.existsByPersonajeIdAndOtroPersonajeId(receptorId, emisorId);
+        if (!teniaCerrada && !mensajeRepository.existsFlagsEliminadoEntre(emisorId, receptorId)) return;
+
+        conversacionCerradaRepository.deleteByPersonajeIdAndOtroPersonajeId(emisorId, receptorId);
+        conversacionCerradaRepository.deleteByPersonajeIdAndOtroPersonajeId(receptorId, emisorId);
+        limpiarFlagsLegacy(emisorId, receptorId, true);
+    }
+
+    /** @param ambosLados true reabre tambien los flags del otro personaje. */
+    private void limpiarFlagsLegacy(Integer personajeId, Integer otroPersonajeId, boolean ambosLados) {
+        for (MensajePrivadoPersonaje m : mensajeRepository.findTodosEntre(personajeId, otroPersonajeId)) {
+            boolean cambio = false;
+            if (m.isEliminadoEmisor() &&
+                    (ambosLados || m.getEmisor().getIdPersonaje().equals(personajeId))) {
+                m.setEliminadoEmisor(false);
+                cambio = true;
+            }
+            if (m.isEliminadoReceptor() &&
+                    (ambosLados || m.getReceptor().getIdPersonaje().equals(personajeId))) {
+                m.setEliminadoReceptor(false);
+                cambio = true;
+            }
+            if (cambio) mensajeRepository.save(m);
+        }
+    }
+
+    private Integer otroPersonajeId(MensajePrivadoPersonaje mensaje, Integer personajeId) {
+        return mensaje.getEmisor().getIdPersonaje().equals(personajeId)
+                ? mensaje.getReceptor().getIdPersonaje()
+                : mensaje.getEmisor().getIdPersonaje();
+    }
+
     public List<Integer> obtenerContactos(Integer personajeId) {
-        return mensajeRepository.findContactIds(personajeId);
+        Set<Integer> cerradas = new HashSet<>(
+                conversacionCerradaRepository.findOtroPersonajeIdsByPersonajeId(personajeId));
+        return mensajeRepository.findContactIds(personajeId).stream()
+                .filter(id -> !cerradas.contains(id))
+                .collect(Collectors.toList());
     }
 
     private void verificarAntiFlood(Integer personajeId) {

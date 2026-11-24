@@ -43,6 +43,7 @@ import com.playrole.chat.model.MiembroCanal;
 import com.playrole.chat.model.SesionPersonaje;
 import com.playrole.chat.repository.BaneoCanalRepository;
 import com.playrole.chat.repository.CanalRepository;
+import com.playrole.chat.repository.ConversacionCerradaRepository;
 import com.playrole.chat.repository.InvitacionCanalRepository;
 import com.playrole.chat.repository.MensajeCanalRepository;
 import com.playrole.chat.repository.MensajePrivadoPersonajeRepository;
@@ -95,6 +96,9 @@ class CanalChatIntegracionTest {
 	private MensajePrivadoPersonajeRepository mensajePrivadoRepo;
 
 	@Autowired
+	private ConversacionCerradaRepository conversacionCerradaRepo;
+
+	@Autowired
 	private InvitacionCanalRepository invitacionCanalRepo;
 
 	@Autowired
@@ -115,6 +119,7 @@ class CanalChatIntegracionTest {
 	@BeforeEach
 	void limpiarBase() {
 		registroModeracionRepo.deleteAll();
+		conversacionCerradaRepo.deleteAll();
 		mensajePrivadoRepo.deleteAll();
 		invitacionCanalRepo.deleteAll();
 		mensajeCanalRepo.deleteAll();
@@ -375,6 +380,101 @@ class CanalChatIntegracionTest {
 
 		assertThrows(BadRequestException.class,
 				() -> dmService.enviarMensaje(pa.getIdPersonaje(), pa.getIdPersonaje(), "a mi mismo"));
+	}
+
+	@Test
+	void cerrarConversacion_ocultaSoloParaQuienCierra_yConservaLosMensajes() {
+		Usuario a = crearUsuario("usera", RolUsuario.USER);
+		Usuario b = crearUsuario("userb", RolUsuario.USER);
+		PerfilPersonaje pa = crearPersonaje(a, "Aragorn");
+		PerfilPersonaje pb = crearPersonaje(b, "Boromir");
+		Integer idA = pa.getIdPersonaje();
+		Integer idB = pb.getIdPersonaje();
+
+		dmService.enviarMensaje(idA, idB, "Uno");
+		dmService.enviarMensaje(idA, idB, "Dos");
+		dmService.cerrarConversacion(idA, idB);
+
+		assertTrue(dmService.listarConversaciones(idA).isEmpty());
+		assertEquals(2, dmService.listarConversaciones(idB).size());
+		// Los mensajes siguen ahi: al abrir la conversacion se recuperan.
+		assertEquals(2, dmService.obtenerConversacion(idA, idB, idA).size());
+		assertEquals(1, conversacionCerradaRepo.count());
+	}
+
+	@Test
+	void cerrarConversacion_esIdempotente_yNoCuentaNoLeidosDeLaConversacionCerrada() {
+		Usuario a = crearUsuario("usera", RolUsuario.USER);
+		Usuario b = crearUsuario("userb", RolUsuario.USER);
+		PerfilPersonaje pa = crearPersonaje(a, "Aragorn");
+		PerfilPersonaje pb = crearPersonaje(b, "Boromir");
+		Integer idA = pa.getIdPersonaje();
+		Integer idB = pb.getIdPersonaje();
+
+		dmService.enviarMensaje(idB, idA, "Sin leer");
+		assertEquals(1, dmService.contarNoLeidos(idA));
+
+		dmService.cerrarConversacion(idA, idB);
+		dmService.cerrarConversacion(idA, idB);
+
+		assertEquals(1, conversacionCerradaRepo.count());
+		assertEquals(0, dmService.contarNoLeidos(idA));
+	}
+
+	@Test
+	void escribirDeNuevo_reabreLaConversacionConTodoElHistorial() {
+		Usuario a = crearUsuario("usera", RolUsuario.USER);
+		Usuario b = crearUsuario("userb", RolUsuario.USER);
+		PerfilPersonaje pa = crearPersonaje(a, "Aragorn");
+		PerfilPersonaje pb = crearPersonaje(b, "Boromir");
+		Integer idA = pa.getIdPersonaje();
+		Integer idB = pb.getIdPersonaje();
+
+		dmService.enviarMensaje(idA, idB, "Antes de cerrar");
+		dmService.cerrarConversacion(idA, idB);
+		dmService.enviarMensaje(idA, idB, "Al reabrir");
+
+		assertEquals(2, dmService.listarConversaciones(idA).size());
+		assertEquals(2, dmService.listarConversaciones(idB).size());
+		assertEquals(0, conversacionCerradaRepo.count());
+		assertEquals(2, dmService.obtenerConversacion(idA, idB, idA).size());
+	}
+
+	@Test
+	void mensajeRecibido_reabreLaConversacionCerradaDelReceptor() {
+		Usuario a = crearUsuario("usera", RolUsuario.USER);
+		Usuario b = crearUsuario("userb", RolUsuario.USER);
+		PerfilPersonaje pa = crearPersonaje(a, "Aragorn");
+		PerfilPersonaje pb = crearPersonaje(b, "Boromir");
+		Integer idA = pa.getIdPersonaje();
+		Integer idB = pb.getIdPersonaje();
+
+		dmService.enviarMensaje(idB, idA, "Uno");
+		dmService.cerrarConversacion(idA, idB);
+		assertTrue(dmService.listarConversaciones(idA).isEmpty());
+
+		dmService.enviarMensaje(idB, idA, "Dos");
+
+		assertEquals(2, dmService.listarConversaciones(idA).size());
+		assertEquals(0, conversacionCerradaRepo.count());
+		// El mensaje pendiente de antes del cierre tambien vuelve a contar.
+		assertEquals(2, dmService.contarNoLeidos(idA));
+	}
+
+	@Test
+	void endpointCerrarConversacion_devuelve200() throws Exception {
+		Usuario a = crearUsuario("usera", RolUsuario.USER);
+		Usuario b = crearUsuario("userb", RolUsuario.USER);
+		PerfilPersonaje pa = crearPersonaje(a, "Aragorn");
+		PerfilPersonaje pb = crearPersonaje(b, "Boromir");
+		String tokenA = tokenSesion(a, pa);
+
+		mockMvc.perform(post("/chat/privado/conversaciones/" + pb.getIdPersonaje() + "/cerrar")
+						.header("Authorization", "Bearer " + tokenA))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.mensaje").value("Conversación cerrada"));
+
+		assertEquals(1, conversacionCerradaRepo.count());
 	}
 
 	@Test

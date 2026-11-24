@@ -53,6 +53,7 @@ import com.playrole.chat.repository.BaneoCanalRepository;
 import com.playrole.chat.repository.CanalRepository;
 import com.playrole.chat.repository.InvitacionCanalRepository;
 import com.playrole.chat.repository.MensajeCanalRepository;
+import com.playrole.chat.repository.ConversacionCerradaRepository;
 import com.playrole.chat.repository.MensajePrivadoPersonajeRepository;
 import com.playrole.chat.repository.MiembroCanalRepository;
 import com.playrole.chat.repository.SesionPersonajeRepository;
@@ -92,6 +93,8 @@ public class UsuarioServiceImpl implements IUsuarioService {
     private MensajeCanalRepository mensajeRepositorio;
     @Autowired
     private MensajePrivadoPersonajeRepository mensajePrivadoRepositorio;
+    @Autowired
+    private ConversacionCerradaRepository conversacionCerradaRepositorio;
     @Autowired
     private InvitacionCanalRepository invitacionCanalRepositorio;
     @Autowired
@@ -344,6 +347,7 @@ public class UsuarioServiceImpl implements IUsuarioService {
 
         // Mensajes privados
         mensajePrivadoRepositorio.deleteByPersonajeId(pid);
+        conversacionCerradaRepositorio.deleteByPersonajeIdOrOtroPersonajeId(pid, pid);
 
         // Invitaciones a canales enviadas o recibidas por el personaje
         invitacionCanalRepositorio.deleteByPersonajeId(pid);

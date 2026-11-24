@@ -25,7 +25,9 @@ public interface MensajePrivadoPersonajeRepository extends JpaRepository<Mensaje
             @Param("personajeId2") Integer personajeId2);
 
     @Query("SELECT COUNT(m) FROM MensajePrivadoPersonaje m WHERE " +
-           "m.receptor.idPersonaje = :personajeId AND m.leido = false AND m.eliminadoReceptor = false")
+           "m.receptor.idPersonaje = :personajeId AND m.leido = false AND m.eliminadoReceptor = false AND " +
+           "NOT EXISTS (SELECT c FROM ConversacionCerrada c WHERE c.personajeId = :personajeId " +
+           "            AND c.otroPersonajeId = m.emisor.idPersonaje)")
     long countNoLeidos(@Param("personajeId") Integer personajeId);
 
     @Query("SELECT DISTINCT " +
@@ -34,6 +36,19 @@ public interface MensajePrivadoPersonajeRepository extends JpaRepository<Mensaje
            "(m.emisor.idPersonaje = :personajeId AND m.eliminadoEmisor = false) OR " +
            "(m.receptor.idPersonaje = :personajeId AND m.eliminadoReceptor = false)")
     List<Integer> findContactIds(@Param("personajeId") Integer personajeId);
+
+    /** Todos los mensajes de la pareja, incluidos los ocultos por el antiguo borrado. */
+    @Query("SELECT m FROM MensajePrivadoPersonaje m WHERE " +
+           "(m.emisor.idPersonaje = :p1 AND m.receptor.idPersonaje = :p2) OR " +
+           "(m.emisor.idPersonaje = :p2 AND m.receptor.idPersonaje = :p1)")
+    List<MensajePrivadoPersonaje> findTodosEntre(@Param("p1") Integer p1, @Param("p2") Integer p2);
+
+    /** Comprueba si queda algun flag heredado del antiguo "eliminar conversacion". */
+    @Query("SELECT CASE WHEN COUNT(m) > 0 THEN true ELSE false END FROM MensajePrivadoPersonaje m WHERE " +
+           "((m.emisor.idPersonaje = :p1 AND m.receptor.idPersonaje = :p2) OR " +
+           " (m.emisor.idPersonaje = :p2 AND m.receptor.idPersonaje = :p1)) AND " +
+           "(m.eliminadoEmisor = true OR m.eliminadoReceptor = true)")
+    boolean existsFlagsEliminadoEntre(@Param("p1") Integer p1, @Param("p2") Integer p2);
 
     @Modifying
     @Transactional
