@@ -132,12 +132,12 @@ public class MensajePrivadoPersonajeService {
     /**
      * Cierra una conversacion solo para quien la cierra. Los mensajes NO se
      * tocan: siguen en BD y se pueden volver a leer al escribir de nuevo.
+     * Se permite cerrar la conversacion con uno mismo (p. ej. al abrir un MP
+     * desde un anuncio propio): no se pueden enviar mensajes, pero la marca
+     * de cerrada debe poder retirarse de la lista igual que cualquier otra.
      */
     @Transactional
     public void cerrarConversacion(Integer personajeId, Integer otroPersonajeId) {
-        if (personajeId.equals(otroPersonajeId)) {
-            throw new BadRequestException("No puedes cerrar una conversación contigo mismo");
-        }
         if (!personajeRepository.existsById(otroPersonajeId)) {
             throw new ResourceNotFoundException("Personaje no encontrado");
         }

@@ -14,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.playrole.dto.CategoriaDTO;
+import com.playrole.service.AnuncioService;
 import com.playrole.service.ICategoriaService;
 import com.playrole.service.IPersonajeCategoriaService;
 
@@ -26,11 +27,14 @@ public class CategoriaController {
 
 	private final ICategoriaService categoriaService;
 	private final IPersonajeCategoriaService personajeCategoriaService;
+	private final AnuncioService anuncioService;
 
     public CategoriaController(ICategoriaService categoriaService,
-    		IPersonajeCategoriaService personajeCategoriaService) {
+            IPersonajeCategoriaService personajeCategoriaService,
+            AnuncioService anuncioService) {
         this.categoriaService = categoriaService;
         this.personajeCategoriaService = personajeCategoriaService;
+        this.anuncioService = anuncioService;
     }
 
     @GetMapping
@@ -66,6 +70,12 @@ public class CategoriaController {
             throw new ResponseStatusException(
                 HttpStatus.CONFLICT,
                 "No se puede eliminar la categoría porque está asociada a personajes"
+            );
+        }
+        if (anuncioService.existeCategoriaEnAnuncios(id)) {
+            throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "No se puede eliminar la categoría porque está asociada a anuncios"
             );
         }
 

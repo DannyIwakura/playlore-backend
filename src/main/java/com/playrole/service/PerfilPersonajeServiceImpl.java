@@ -32,6 +32,8 @@ import com.playrole.exception.InvalidImageException;
 import com.playrole.exception.InvalidImageTypeException;
 import com.playrole.model.PerfilPersonaje;
 import com.playrole.model.Usuario;
+import com.playrole.repository.AnuncioCategoriaRepository;
+import com.playrole.repository.AnuncioRepository;
 import com.playrole.repository.PerfilPersonajeRepositoryInterface;
 import com.playrole.repository.UsuarioRepositoryInterface;
 import com.playrole.specification.PerfilPersonajeSpec;
@@ -44,6 +46,12 @@ public class PerfilPersonajeServiceImpl implements IPerfilPersonajeService {
 
 	@Autowired
     private PerfilPersonajeRepositoryInterface perfilPersonajeRepository;
+
+    @Autowired
+    private AnuncioRepository anuncioRepository;
+
+    @Autowired
+    private AnuncioCategoriaRepository anuncioCategoriaRepository;
 
     @Autowired
     private UsuarioRepositoryInterface usuarioRepository;
@@ -237,6 +245,9 @@ public class PerfilPersonajeServiceImpl implements IPerfilPersonajeService {
 
     @Override
     public void eliminarPersonaje(Integer idPersonaje) {
+        // Los anuncios (y sus categorías) se borran antes que el personaje.
+        anuncioCategoriaRepository.deleteByPersonajeId(idPersonaje);
+        anuncioRepository.deleteByPersonajeId(idPersonaje);
     	perfilPersonajeRepository.deleteByIdDirect(idPersonaje);
     }
     

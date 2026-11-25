@@ -13,6 +13,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+import jakarta.persistence.EntityManager;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -49,6 +51,7 @@ class UsuarioServiceImplTest {
         ReflectionTestUtils.setField(service, "baneoGlobalRepositorio", mock(BaneoGlobalRepository.class));
         ReflectionTestUtils.setField(service, "sesionRepositorio", mock(SesionPersonajeRepository.class));
         ReflectionTestUtils.setField(service, "solicitudRepositorio", mock(SolicitudAmistadRespositoryInterface.class));
+        ReflectionTestUtils.setField(service, "entityManager", mock(EntityManager.class));
     }
 
     private Usuario usuario(int id) {

@@ -39,6 +39,8 @@ import com.playrole.exception.InvalidImageTypeException;
 import com.playrole.model.ImagenPersonaje;
 import com.playrole.model.PerfilPersonaje;
 import com.playrole.model.Usuario;
+import com.playrole.repository.AnuncioCategoriaRepository;
+import com.playrole.repository.AnuncioRepository;
 import com.playrole.repository.BaneoGlobalRepository;
 import com.playrole.repository.DenunciaRepository;
 import com.playrole.repository.ImagenPersonajeRepositoryInterface;
@@ -59,6 +61,8 @@ import com.playrole.chat.repository.MiembroCanalRepository;
 import com.playrole.chat.repository.SesionPersonajeRepository;
 
 import jakarta.annotation.PostConstruct;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 
@@ -73,12 +77,18 @@ public class UsuarioServiceImpl implements IUsuarioService {
     private SolicitudAmistadRespositoryInterface solicitudRepositorio;
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @PersistenceContext
+    private EntityManager entityManager;
     @Autowired
     private PerfilPersonajeRepositoryInterface personajeRepositorio;
     @Autowired
     private ImagenPersonajeRepositoryInterface imagenRepositorio;
     @Autowired
     private PersonajeCategoriaRepositoryInterface personajeCategoriaRepositorio;
+    @Autowired
+    private AnuncioRepository anuncioRepositorio;
+    @Autowired
+    private AnuncioCategoriaRepository anuncioCategoriaRepositorio;
     @Autowired
     private DenunciaRepository denunciaRepositorio;
     @Autowired
@@ -328,6 +338,12 @@ public class UsuarioServiceImpl implements IUsuarioService {
             eliminarContenidoPersonaje(personaje);
         }
 
+        // Los borrados en lote no descartan las entidades gestionadas: sin este
+        // flush/clear, al marcar el usuario como eliminado Hibernate detecta
+        // personajes en memoria que aún referencian una entidad "transient".
+        entityManager.flush();
+        entityManager.clear();
+
         usuarioRepositorio.deleteById(id);
     }
 
@@ -356,6 +372,10 @@ public class UsuarioServiceImpl implements IUsuarioService {
         imagenRepositorio.findByIdPersonaje_IdPersonajeOrderByOrdenAscFechaSubidaAsc(pid)
                 .forEach(img -> eliminarArchivoImagen(img.getUrl()));
         imagenRepositorio.deleteByPersonajeId(pid);
+
+        // Anuncios RP: primero sus categorías y después los anuncios (orden por FKs)
+        anuncioCategoriaRepositorio.deleteByPersonajeId(pid);
+        anuncioRepositorio.deleteByPersonajeId(pid);
 
         // Relaciones con categorías
         personajeCategoriaRepositorio.deleteByPersonajeId(pid);

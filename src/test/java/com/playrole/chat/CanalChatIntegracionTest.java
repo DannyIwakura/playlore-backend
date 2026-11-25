@@ -403,6 +403,22 @@ class CanalChatIntegracionTest {
 	}
 
 	@Test
+	void cerrarConversacion_conUnoMismo_seGuardaLaMarca() throws Exception {
+		Usuario a = crearUsuario("usera", RolUsuario.USER);
+		PerfilPersonaje pa = crearPersonaje(a, "Aragorn");
+		Integer idA = pa.getIdPersonaje();
+		String tokenA = tokenSesion(a, pa);
+
+		mockMvc.perform(post("/chat/privado/conversaciones/" + idA + "/cerrar")
+						.header("Authorization", "Bearer " + tokenA))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.mensaje").value("Conversación cerrada"));
+
+		assertEquals(1, conversacionCerradaRepo.count());
+		assertTrue(conversacionCerradaRepo.existsByPersonajeIdAndOtroPersonajeId(idA, idA));
+	}
+
+	@Test
 	void cerrarConversacion_esIdempotente_yNoCuentaNoLeidosDeLaConversacionCerrada() {
 		Usuario a = crearUsuario("usera", RolUsuario.USER);
 		Usuario b = crearUsuario("userb", RolUsuario.USER);
