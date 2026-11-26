@@ -294,6 +294,27 @@ class CanalModeracionServiceTest {
                 m.getRol() == RolCanal.OWNER && m.getPersonaje() == responsable));
         verify(auditoriaService).registrar(eq(AccionModeracion.CANAL_OFICIAL_CREADO), eq(admin),
                 any(Canal.class), eq("Canal oficial creado"), anyString());
+        verify(canalService, never()).guardarImagenCanal(any(Canal.class), any());
+    }
+
+    @Test
+    void crearOficial_conImagen_delegaEnCanalService() throws Exception {
+        Usuario admin = admin(1);
+        PerfilPersonaje responsable = personaje(10, "Aragorn");
+        when(personajeRepository.findById(10)).thenReturn(Optional.of(responsable));
+
+        CrearCanalOficialDTO dto = new CrearCanalOficialDTO();
+        dto.setNombre("Taberna Oficial");
+        dto.setDescripcion("Punto de encuentro");
+        dto.setPersonajeResponsableId(10);
+
+        org.springframework.mock.web.MockMultipartFile imagen = new org.springframework.mock.web.MockMultipartFile(
+                "imagenFile", "foto.png", "image/png", new byte[] {1, 2, 3});
+        when(canalService.guardarImagenCanal(any(Canal.class), eq(imagen))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.crearOficial(dto, imagen, admin);
+
+        verify(canalService).guardarImagenCanal(any(Canal.class), eq(imagen));
     }
 
     @Test
