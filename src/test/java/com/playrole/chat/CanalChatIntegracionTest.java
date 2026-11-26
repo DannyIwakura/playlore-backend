@@ -16,9 +16,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
+
+import javax.imageio.ImageIO;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -910,6 +914,32 @@ class CanalChatIntegracionTest {
 	}
 
 	@Test
+	void adminCreaCanalOficialConImagen_procesaYGuarda() throws Exception {
+		Usuario admin = crearUsuario("admin", RolUsuario.ADMIN);
+		Usuario responsable = crearUsuario("responsable", RolUsuario.USER);
+		PerfilPersonaje pResponsable = crearPersonaje(responsable, "Aragorn");
+		String tokenAdmin = token(admin);
+
+		String json = "{\"nombre\":\"Taberna Oficial\",\"descripcion\":\"Punto de encuentro\","
+				+ "\"personajeResponsableId\":" + pResponsable.getIdPersonaje() + "}";
+		MockMultipartFile datos = new MockMultipartFile(
+				"datos", "", MediaType.APPLICATION_JSON_VALUE, json.getBytes(StandardCharsets.UTF_8));
+		MockMultipartFile imagen = new MockMultipartFile(
+				"imagenFile", "foto.png", MediaType.IMAGE_PNG_VALUE, pngBytes(800, 300));
+
+		mockMvc.perform(multipart("/moderacion/canales/oficiales")
+						.file(datos)
+						.file(imagen)
+						.header("Authorization", "Bearer " + tokenAdmin))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.tipo").value("OFFICIAL"))
+				.andExpect(jsonPath("$.imagenUrl").value(org.hamcrest.Matchers.startsWith("/uploads/canales/")));
+
+		Canal canal = canalRepo.findAll().get(0);
+		assertNotNull(canal.getImagenUrl());
+	}
+
+	@Test
 	void adminMarcaYDesmarcaOficial_forzandoPublico() throws Exception {
 		Usuario admin = crearUsuario("admin", RolUsuario.ADMIN);
 		Usuario owner = crearUsuario("owner", RolUsuario.USER);
@@ -979,5 +1009,34 @@ class CanalChatIntegracionTest {
 
 		assertEquals(TipoCanal.USER_CREATED,
 				canalRepo.findById(canal.getIdCanal()).orElseThrow().getTipo());
+	}
+
+	@Test
+	void ownerActualizaImagenCanal_conImagenGrande_normaliza() throws Exception {
+		Usuario owner = crearUsuario("owner", RolUsuario.USER);
+		PerfilPersonaje pOwner = crearPersonaje(owner, "Aragorn");
+		Canal canal = crearCanal(pOwner);
+		agregarMiembro(canal, pOwner, RolCanal.OWNER);
+		String tokenOwner = tokenSesion(owner, pOwner);
+
+		MockMultipartFile imagen = new MockMultipartFile(
+				"imagenFile", "foto.png", MediaType.IMAGE_PNG_VALUE, pngBytes(900, 300));
+
+		mockMvc.perform(multipart("/canales/" + canal.getIdCanal() + "/imagen")
+						.file(imagen)
+						.with(req -> { req.setMethod("PUT"); return req; })
+						.header("Authorization", "Bearer " + tokenOwner))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.imagenUrl").value(org.hamcrest.Matchers.startsWith("/uploads/canales/")));
+
+		Canal actualizado = canalRepo.findById(canal.getIdCanal()).orElseThrow();
+		assertNotNull(actualizado.getImagenUrl());
+	}
+
+	private static byte[] pngBytes(int width, int height) throws Exception {
+		BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		ImageIO.write(img, "png", baos);
+		return baos.toByteArray();
 	}
 }

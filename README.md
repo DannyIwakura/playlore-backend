@@ -40,6 +40,13 @@ El backend se conectará a MySQL en `localhost:3306/playlore_db` con usuario `ro
 
 ---
 
+## Subida de imágenes
+
+- Los avatares (usuario/personaje), imagen de canal/oficial y galería de personaje se normalizan en backend con `ImageProcessingService`.
+- Se valida firma real (`ImageFileValidator`), tipo permitido y se rechaza contenido corrupto/no procesable.
+- Límites actuales: usuario 200x200/200 KB, personaje y canal 400x400/300 KB, galería 1920x1920/1 MB (aspecto libre).
+- Si la imagen válida excede dimensiones/peso, se auto-redimensiona/comprime; si no cabe bajo el tope, se devuelve error claro.
+
 ## Variables de entorno
 
 Copia `.env.example` como `.env` y rellena los valores. En perfil `dev` todos tienen valores por defecto razonables.
