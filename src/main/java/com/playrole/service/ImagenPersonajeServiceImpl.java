@@ -18,33 +18,30 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.playrole.dto.ImagenPersonajeDTO;
-import com.playrole.exception.InvalidImageException;
-import com.playrole.exception.InvalidImageTypeException;
 import com.playrole.model.ImagenPersonaje;
 import com.playrole.model.PerfilPersonaje;
 import com.playrole.repository.ImagenPersonajeRepositoryInterface;
 import com.playrole.repository.PerfilPersonajeRepositoryInterface;
+import com.playrole.service.image.ImageProcessingService;
+import com.playrole.service.image.ImageVariant;
+import com.playrole.service.image.ProcessedImage;
 
 @Service
 public class ImagenPersonajeServiceImpl implements IImagenPersonajeService {
 
     private static final int MAX_IMAGENES = 30;
-    private static final int MAX_WIDTH = 1920;
-    private static final int MAX_HEIGHT = 1920;
-
-    private static final java.util.Set<String> CONTENT_TYPES_PERMITIDOS =
-            java.util.Set.of("image/jpeg", "image/png", "image/webp", "image/gif");
-    private static final java.util.Set<String> TIPOS_REALES_PERMITIDOS =
-            java.util.Set.of("jpeg", "png", "webp", "gif");
 
     private final ImagenPersonajeRepositoryInterface imagenRepository;
     private final PerfilPersonajeRepositoryInterface personajeRepository;
+    private final ImageProcessingService imageProcessingService;
 
     public ImagenPersonajeServiceImpl(
             ImagenPersonajeRepositoryInterface imagenRepository,
-            PerfilPersonajeRepositoryInterface personajeRepository) {
+            PerfilPersonajeRepositoryInterface personajeRepository,
+            ImageProcessingService imageProcessingService) {
         this.imagenRepository = imagenRepository;
         this.personajeRepository = personajeRepository;
+        this.imageProcessingService = imageProcessingService;
     }
 
     @Override
@@ -75,22 +72,14 @@ public class ImagenPersonajeServiceImpl implements IImagenPersonajeService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debes seleccionar una imagen");
         }
 
-        validarTipoImagen(imagenFile);
-        validarDimensiones(imagenFile);
-
         try {
-            Path uploadPath = Paths.get(
-                    System.getProperty("user.dir"),
-                    "uploads",
-                    "galeria");
+            ProcessedImage processed = imageProcessingService.process(imagenFile, ImageVariant.CHARACTER_GALLERY, "imagenFile");
+            Path uploadPath = Paths.get(System.getProperty("user.dir"), "uploads", "galeria");
+            Files.createDirectories(uploadPath);
 
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
-
-            String filename = UUID.randomUUID() + "_" + imagenFile.getOriginalFilename();
+            String filename = UUID.randomUUID() + "." + processed.extension();
             Path destination = uploadPath.resolve(filename);
-            imagenFile.transferTo(destination.toFile());
+            Files.write(destination, processed.bytes());
 
             String url = "/uploads/galeria/" + filename;
 
@@ -104,6 +93,8 @@ public class ImagenPersonajeServiceImpl implements IImagenPersonajeService {
             ImagenPersonaje guardado = imagenRepository.save(entity);
             return ImagenPersonajeDTO.fromEntity(guardado);
 
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException("Error al subir la imagen", e);
         }
@@ -134,36 +125,5 @@ public class ImagenPersonajeServiceImpl implements IImagenPersonajeService {
         imagenRepository.deleteByIdDirect(idImagen);
     }
 
-    private void validarDimensiones(MultipartFile file) {
-        try {
-            BufferedImage image = ImageIO.read(file.getInputStream());
-            if (image == null) {
-                throw new IllegalArgumentException("El archivo no es una imagen válida");
-            }
-            int width = image.getWidth();
-            int height = image.getHeight();
-            if (width > MAX_WIDTH || height > MAX_HEIGHT) {
-                throw new InvalidImageException(
-                        "imagenFile",
-                        "La imagen no puede superar " + MAX_WIDTH + "x" + MAX_HEIGHT + " píxeles");
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Error al leer la imagen", e);
-        }
-    }
 
-    private void validarTipoImagen(MultipartFile file) {
-        String contentType = file.getContentType();
-        if (contentType == null || !CONTENT_TYPES_PERMITIDOS.contains(contentType)) {
-            throw new InvalidImageTypeException(
-                    "imagenFile",
-                    "Formato no permitido. Solo JPG, PNG, WEBP y GIF");
-        }
-        String tipoReal = com.playrole.utils.ImageFileValidator.detectarTipoReal(file);
-        if (tipoReal == null || !TIPOS_REALES_PERMITIDOS.contains(tipoReal)) {
-            throw new InvalidImageTypeException(
-                    "imagenFile",
-                    "El archivo no es una imagen válida");
-        }
-    }
 }

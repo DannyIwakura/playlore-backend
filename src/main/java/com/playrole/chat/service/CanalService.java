@@ -26,7 +26,9 @@ import com.playrole.model.PerfilPersonaje;
 import com.playrole.model.Usuario;
 import com.playrole.repository.PerfilPersonajeRepositoryInterface;
 import com.playrole.service.AuditoriaModeracionService;
-import com.playrole.utils.ImageFileValidator;
+import com.playrole.service.image.ImageProcessingService;
+import com.playrole.service.image.ImageVariant;
+import com.playrole.service.image.ProcessedImage;
 import com.playrole.utils.ModeracionUtils;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
@@ -63,6 +65,7 @@ public class CanalService {
     private final PasswordEncoder passwordEncoder;
     private final AuditoriaModeracionService auditoriaService;
     private final InvitacionCanalService invitacionService;
+    private final ImageProcessingService imageProcessingService;
 
     public CanalService(CanalRepository canalRepository,
                         MiembroCanalRepository miembroRepository,
@@ -74,7 +77,8 @@ public class CanalService {
                         SimpMessagingTemplate messagingTemplate,
                         PasswordEncoder passwordEncoder,
                         AuditoriaModeracionService auditoriaService,
-                        InvitacionCanalService invitacionService) {
+                        InvitacionCanalService invitacionService,
+                        ImageProcessingService imageProcessingService) {
         this.canalRepository = canalRepository;
         this.miembroRepository = miembroRepository;
         this.baneoRepository = baneoRepository;
@@ -86,6 +90,7 @@ public class CanalService {
         this.passwordEncoder = passwordEncoder;
         this.auditoriaService = auditoriaService;
         this.invitacionService = invitacionService;
+        this.imageProcessingService = imageProcessingService;
     }
 
     public List<CanalDTO> listarCanalesDisponibles(Integer personajeId, boolean esStaff) {
@@ -578,25 +583,27 @@ public class CanalService {
      */
     @Transactional
     public Canal guardarImagenCanal(Canal canal, MultipartFile imagenFile) {
-        validarTipoImagen(imagenFile);
-        validarDimensiones(imagenFile);
-
-        if (canal.getImagenUrl() != null) {
-            eliminarArchivoImagen(canal.getImagenUrl());
+        if (imagenFile == null || imagenFile.isEmpty()) {
+            throw new BadRequestException("No se ha proporcionado una imagen");
         }
 
+        ProcessedImage processed = imageProcessingService.process(imagenFile, ImageVariant.CHANNEL_IMAGE, "imagenFile");
+
+        String anterior = canal.getImagenUrl();
         try {
             Path uploadPath = Paths.get(System.getProperty("user.dir"), "uploads", "canales");
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
+            Files.createDirectories(uploadPath);
 
-            String filename = UUID.randomUUID() + "_" + imagenFile.getOriginalFilename();
+            String filename = UUID.randomUUID() + "." + processed.extension();
             Path destination = uploadPath.resolve(filename);
-            imagenFile.transferTo(destination.toFile());
+            Files.write(destination, processed.bytes());
 
             canal.setImagenUrl("/uploads/canales/" + filename);
-            return canalRepository.save(canal);
+            Canal guardado = canalRepository.save(canal);
+            if (anterior != null) {
+                eliminarArchivoImagen(anterior);
+            }
+            return guardado;
         } catch (IOException e) {
             throw new RuntimeException("Error al subir la imagen del canal", e);
         }
@@ -632,25 +639,5 @@ public class CanalService {
         }
     }
 
-    private void validarDimensiones(MultipartFile file) {
-        try {
-            BufferedImage image = ImageIO.read(file.getInputStream());
-            if (image == null) {
-                throw new BadRequestException("El archivo no es una imagen válida");
-            }
-            if (image.getWidth() > 400 || image.getHeight() > 400) {
-                throw new InvalidImageException("imagenFile", "La imagen no puede superar 400x400 píxeles");
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Error al leer la imagen", e);
-        }
-    }
 
-    private void validarTipoImagen(MultipartFile file) {
-        String tipoReal = ImageFileValidator.detectarTipoReal(file);
-        boolean valido = "jpeg".equals(tipoReal) || "png".equals(tipoReal) || "webp".equals(tipoReal);
-        if (!valido) {
-            throw new InvalidImageTypeException("imagenFile", "Formato no permitido. Solo JPG, PNG y WEBP");
-        }
-    }
 }

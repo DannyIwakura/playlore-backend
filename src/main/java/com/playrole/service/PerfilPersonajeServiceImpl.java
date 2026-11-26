@@ -37,6 +37,9 @@ import com.playrole.repository.AnuncioRepository;
 import com.playrole.repository.PerfilPersonajeRepositoryInterface;
 import com.playrole.repository.UsuarioRepositoryInterface;
 import com.playrole.specification.PerfilPersonajeSpec;
+import com.playrole.service.image.ImageProcessingService;
+import com.playrole.service.image.ImageVariant;
+import com.playrole.service.image.ProcessedImage;
 import com.playrole.utils.HtmlUtils;
 
 import jakarta.validation.Valid;
@@ -55,6 +58,9 @@ public class PerfilPersonajeServiceImpl implements IPerfilPersonajeService {
 
     @Autowired
     private UsuarioRepositoryInterface usuarioRepository;
+
+    @Autowired
+    private ImageProcessingService imageProcessingService;
     
     private static final String DEFAULT_AVATAR =
     	    com.playrole.utils.AppConstants.AVATAR_POR_DEFECTO;
@@ -120,36 +126,8 @@ public class PerfilPersonajeServiceImpl implements IPerfilPersonajeService {
         PerfilPersonaje personaje = dto.toEntity(usuario);
         
         if (avatarFile != null && !avatarFile.isEmpty()) {
-
-            validarDimensiones(avatarFile);
-            validarTipoImagen(avatarFile);
-
-            try {
-                Path uploadPath = Paths.get(
-                        System.getProperty("user.dir"),
-                        "uploads",
-                        "personajes"
-                );
-
-                if (!Files.exists(uploadPath)) {
-                    Files.createDirectories(uploadPath);
-                }
-
-                String filename = UUID.randomUUID() + "_" +
-                        avatarFile.getOriginalFilename();
-
-                Path destination = uploadPath.resolve(filename);
-
-                avatarFile.transferTo(destination.toFile());
-
-                String avatarUrl = "/uploads/personajes/" + filename;
-
-                personaje.setAvatar(avatarUrl);
-
-            } catch (Exception e) {
-                throw new RuntimeException("Error al subir el avatar", e);
-            }
-
+            ProcessedImage processed = imageProcessingService.process(avatarFile, ImageVariant.CHARACTER_AVATAR, "avatarFile");
+            personaje.setAvatar(guardarImagenProcesada(processed, "personajes"));
         } else {
             personaje.setAvatar(DEFAULT_AVATAR);
         }
@@ -190,34 +168,10 @@ public class PerfilPersonajeServiceImpl implements IPerfilPersonajeService {
         if (dto.getClase() != null) existente.setClase(dto.getClase());
         
         if (avatarFile != null && !avatarFile.isEmpty()) {
-
-            validarDimensiones(avatarFile);
-            validarTipoImagen(avatarFile);
-
-            try {
-                Path uploadPath = Paths.get(
-                        System.getProperty("user.dir"),
-                        "uploads",
-                        "personajes"
-                );
-
-                if (!Files.exists(uploadPath)) {
-                    Files.createDirectories(uploadPath);
-                }
-
-                String filename = UUID.randomUUID() + "_" + avatarFile.getOriginalFilename();
-
-                Path destination = uploadPath.resolve(filename);
-
-                avatarFile.transferTo(destination.toFile());
-
-                String avatarUrl = "/uploads/personajes/" + filename;
-
-                existente.setAvatar(avatarUrl);
-
-            } catch (Exception e) {
-                throw new RuntimeException("Error al subir el avatar", e);
-            }
+            String anterior = existente.getAvatar();
+            ProcessedImage processed = imageProcessingService.process(avatarFile, ImageVariant.CHARACTER_AVATAR, "avatarFile");
+            existente.setAvatar(guardarImagenProcesada(processed, "personajes"));
+            eliminarAvatarAnterior(anterior);
         }
 
         // Siempre actualizamos la fecha de modificación
@@ -251,48 +205,29 @@ public class PerfilPersonajeServiceImpl implements IPerfilPersonajeService {
     	perfilPersonajeRepository.deleteByIdDirect(idPersonaje);
     }
     
-  //metodo para validad dimensiones para el avatar
-    private void validarDimensiones(MultipartFile file) {
-
+    private String guardarImagenProcesada(ProcessedImage processed, String carpeta) {
         try {
-            BufferedImage image = ImageIO.read(file.getInputStream());
-
-            if (image == null) {
-                throw new IllegalArgumentException("El archivo no es una imagen válida");
-            }
-
-            int width = image.getWidth();
-            int height = image.getHeight();
-
-            if (width > 400 || height > 400) {
-                throw new InvalidImageException(
-                	    "avatarFile",
-                	    "El avatar no puede superar 400x400 píxeles"
-                	);
-            }
-
+            Path uploadPath = Paths.get(System.getProperty("user.dir"), "uploads", carpeta);
+            Files.createDirectories(uploadPath);
+            String filename = UUID.randomUUID() + "." + processed.extension();
+            Path destination = uploadPath.resolve(filename);
+            Files.write(destination, processed.bytes());
+            return "/uploads/" + carpeta + "/" + filename;
         } catch (IOException e) {
-            throw new RuntimeException("Error al leer la imagen", e);
+            throw new RuntimeException("Error al guardar la imagen", e);
         }
     }
-    
-    private void validarTipoImagen(MultipartFile file) {
 
-        String contentType = file.getContentType();
-
-        if (contentType == null || !Set.of("image/jpeg", "image/png", "image/webp").contains(contentType)) {
-            throw new InvalidImageTypeException(
-            	    "avatarFile",
-            	    "Formato no permitido. Solo JPG, PNG y WEBP"
-            	);
+    private void eliminarAvatarAnterior(String anterior) {
+        if (anterior == null || anterior.equals(DEFAULT_AVATAR) || !anterior.startsWith("/uploads/")) {
+            return;
         }
-
-        String tipoReal = com.playrole.utils.ImageFileValidator.detectarTipoReal(file);
-        if (tipoReal == null || !Set.of("jpeg", "png", "webp").contains(tipoReal)) {
-            throw new InvalidImageTypeException(
-            	    "avatarFile",
-            	    "El archivo no es una imagen válida"
-            	);
+        try {
+            String relative = anterior.substring("/uploads/".length());
+            Path filePath = Paths.get(System.getProperty("user.dir"), "uploads", relative);
+            Files.deleteIfExists(filePath);
+        } catch (IOException e) {
+            // No bloqueamos la actualización si falla la limpieza del archivo anterior.
         }
     }
 }

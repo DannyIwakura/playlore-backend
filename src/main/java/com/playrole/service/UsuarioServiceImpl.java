@@ -59,6 +59,9 @@ import com.playrole.chat.repository.ConversacionCerradaRepository;
 import com.playrole.chat.repository.MensajePrivadoPersonajeRepository;
 import com.playrole.chat.repository.MiembroCanalRepository;
 import com.playrole.chat.repository.SesionPersonajeRepository;
+import com.playrole.service.image.ImageProcessingService;
+import com.playrole.service.image.ImageVariant;
+import com.playrole.service.image.ProcessedImage;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityManager;
@@ -109,6 +112,8 @@ public class UsuarioServiceImpl implements IUsuarioService {
     private InvitacionCanalRepository invitacionCanalRepositorio;
     @Autowired
     private SesionPersonajeRepository sesionRepositorio;
+    @Autowired
+    private ImageProcessingService imageProcessingService;
     
     private static final String DEFAULT_AVATAR =
     	    com.playrole.utils.AppConstants.AVATAR_POR_DEFECTO;
@@ -151,40 +156,8 @@ public class UsuarioServiceImpl implements IUsuarioService {
         
         //subimos el avatar del usuario
         if (avatarFile != null && !avatarFile.isEmpty()) {
-        	
-            validarDimensiones(avatarFile);
-            validarTipoImagen(avatarFile);
-        	try {
-        		
-        	    Path uploadPath = Paths.get(
-        	            System.getProperty("user.dir"),
-        	            "uploads",
-        	            "avatars"
-        	    );
-
-        	    // crear carpeta si no existe (SOLO PATH)
-        	    if (!Files.exists(uploadPath)) {
-        	        Files.createDirectories(uploadPath);
-        	    }
-
-        	    // nombre único
-        	    String filename = UUID.randomUUID() + "_" +
-        	            avatarFile.getOriginalFilename();
-        	    
-        	    // destino correcto
-        	    Path destination = uploadPath.resolve(filename);
-
-        	    avatarFile.transferTo(destination.toFile());
-
-        	    // URL pública
-        	    String avatarUrl = "/uploads/avatars/" + filename;
-        	    usuario.setAvatar(avatarUrl);
-
-        	} catch (Exception e) {
-        	    log.error("Error al subir el avatar", e);
-        	    throw new RuntimeException("Error al subir el avatar", e);
-        	}
-
+            ProcessedImage processed = imageProcessingService.process(avatarFile, ImageVariant.USER_AVATAR, "avatarFile");
+            usuario.setAvatar(guardarImagenProcesada(processed, "avatars"));
         } else {
             //si el usuario no sube un avatar le ponemos el por defecto
             usuario.setAvatar(DEFAULT_AVATAR);
@@ -224,34 +197,10 @@ public class UsuarioServiceImpl implements IUsuarioService {
 
         // Actualizamos el avatar si se proporciona uno nuevo
         if (avatarFile != null && !avatarFile.isEmpty()) {
-
-            validarDimensiones(avatarFile);
-            validarTipoImagen(avatarFile);
-
-            try {
-                Path uploadPath = Paths.get(
-                        System.getProperty("user.dir"),
-                        "uploads",
-                        "avatars"
-                );
-
-                if (!Files.exists(uploadPath)) {
-                    Files.createDirectories(uploadPath);
-                }
-
-                String filename = UUID.randomUUID() + "_" +
-                        avatarFile.getOriginalFilename();
-
-                Path destination = uploadPath.resolve(filename);
-                avatarFile.transferTo(destination.toFile());
-
-                String avatarUrl = "/uploads/avatars/" + filename;
-                usuarioExistente.setAvatar(avatarUrl);
-
-            } catch (Exception e) {
-                log.error("Error al subir el avatar", e);
-                throw new RuntimeException("Error al subir el avatar", e);
-            }
+            String anterior = usuarioExistente.getAvatar();
+            ProcessedImage processed = imageProcessingService.process(avatarFile, ImageVariant.USER_AVATAR, "avatarFile");
+            usuarioExistente.setAvatar(guardarImagenProcesada(processed, "avatars"));
+            eliminarAvatarAnterior(anterior, DEFAULT_AVATAR);
         }
         // Si no se proporciona avatar nuevo, se conserva el que ya tiene
 
@@ -419,6 +368,27 @@ public class UsuarioServiceImpl implements IUsuarioService {
         invitacionCanalRepositorio.deleteAll(invitaciones);
     }
 
+    private String guardarImagenProcesada(ProcessedImage processed, String carpeta) {
+        try {
+            Path uploadPath = Paths.get(System.getProperty("user.dir"), "uploads", carpeta);
+            Files.createDirectories(uploadPath);
+            String filename = UUID.randomUUID() + "." + processed.extension();
+            Path destination = uploadPath.resolve(filename);
+            Files.write(destination, processed.bytes());
+            return "/uploads/" + carpeta + "/" + filename;
+        } catch (IOException e) {
+            log.error("Error al guardar la imagen procesada", e);
+            throw new RuntimeException("Error al guardar la imagen", e);
+        }
+    }
+
+    private void eliminarAvatarAnterior(String anterior, String porDefecto) {
+        if (anterior == null || anterior.equals(porDefecto) || !anterior.startsWith("/uploads/")) {
+            return;
+        }
+        eliminarArchivoImagen(anterior);
+    }
+
     private void eliminarArchivoImagen(String imageUrl) {
         if (imageUrl == null || !imageUrl.startsWith("/uploads/")) {
             return;
@@ -428,53 +398,7 @@ public class UsuarioServiceImpl implements IUsuarioService {
             Path filePath = Paths.get(System.getProperty("user.dir"), "uploads", relative);
             Files.deleteIfExists(filePath);
         } catch (IOException e) {
-            org.slf4j.LoggerFactory.getLogger(UsuarioServiceImpl.class)
-                    .warn("No se pudo eliminar archivo de imagen: {}", e.getMessage());
-        }
-    }
-    
-    //metodo para validad dimensiones para el avatar
-    private void validarDimensiones(MultipartFile file) {
-
-        try {
-            BufferedImage image = ImageIO.read(file.getInputStream());
-
-            if (image == null) {
-                throw new IllegalArgumentException("El archivo no es una imagen válida");
-            }
-
-            int width = image.getWidth();
-            int height = image.getHeight();
-
-            if (width > 200 || height > 200) {
-                throw new InvalidImageException(
-                	    "avatarFile",
-                	    "El avatar no puede superar 200x200 píxeles"
-                	);
-            }
-
-        } catch (IOException e) {
-            throw new RuntimeException("Error al leer la imagen", e);
-        }
-    }
-    
-    private void validarTipoImagen(MultipartFile file) {
-
-        String contentType = file.getContentType();
-
-        if (contentType == null || !Set.of("image/jpeg", "image/png", "image/webp").contains(contentType)) {
-            throw new InvalidImageTypeException(
-            	    "avatarFile",
-            	    "Formato no permitido. Solo JPG, PNG y WEBP"
-            	);
-        }
-
-        String tipoReal = com.playrole.utils.ImageFileValidator.detectarTipoReal(file);
-        if (tipoReal == null || !Set.of("jpeg", "png", "webp").contains(tipoReal)) {
-            throw new InvalidImageTypeException(
-            	    "avatarFile",
-            	    "El archivo no es una imagen válida"
-            	);
+            log.warn("No se pudo eliminar archivo de imagen: {}", e.getMessage());
         }
     }
 }

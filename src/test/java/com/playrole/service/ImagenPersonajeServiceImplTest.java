@@ -33,6 +33,7 @@ import com.playrole.model.PerfilPersonaje;
 import com.playrole.model.Usuario;
 import com.playrole.repository.ImagenPersonajeRepositoryInterface;
 import com.playrole.repository.PerfilPersonajeRepositoryInterface;
+import com.playrole.service.image.ImageProcessingService;
 
 class ImagenPersonajeServiceImplTest {
 
@@ -48,7 +49,7 @@ class ImagenPersonajeServiceImplTest {
     void setUp() {
         imagenRepository = mock(ImagenPersonajeRepositoryInterface.class);
         personajeRepository = mock(PerfilPersonajeRepositoryInterface.class);
-        service = new ImagenPersonajeServiceImpl(imagenRepository, personajeRepository);
+        service = new ImagenPersonajeServiceImpl(imagenRepository, personajeRepository, new ImageProcessingService());
         userDirOriginal = System.getProperty("user.dir");
         System.setProperty("user.dir", tempDir.toString());
     }
@@ -136,11 +137,27 @@ class ImagenPersonajeServiceImplTest {
     }
 
     @Test
-    void subirImagen_dimensionesExcesivas_lanzaInvalidImage() throws Exception {
+    void subirImagen_dimensionesExcesivas_seNormalizaYGuarda() throws Exception {
         when(personajeRepository.findById(5)).thenReturn(Optional.of(personajeDelUsuario(1)));
         when(imagenRepository.countByIdPersonaje_IdPersonaje(5)).thenReturn(0L);
+        when(imagenRepository.save(any(ImagenPersonaje.class)))
+                .thenAnswer(inv -> {
+                    ImagenPersonaje img = inv.getArgument(0);
+                    img.setIdImagen(1);
+                    return img;
+                });
 
-        assertThrows(InvalidImageException.class, () -> service.subirImagen(5, png(2000, 100), 1));
+        var res = service.subirImagen(5, png(2000, 100), 1);
+
+        assertEquals(1, res.getIdImagen());
+        assertTrue(res.getUrl().startsWith("/uploads/galeria/"));
+        verify(imagenRepository).save(any(ImagenPersonaje.class));
+
+        String filename = res.getUrl().replace("/uploads/galeria/", "");
+        Path guardado = Paths.get(tempDir.toString(), "uploads", "galeria", filename);
+        BufferedImage imagen = ImageIO.read(guardado.toFile());
+        assertEquals(1920, imagen.getWidth());
+        assertEquals(96, imagen.getHeight());
     }
 
     @Test
