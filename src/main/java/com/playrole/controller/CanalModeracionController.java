@@ -3,6 +3,7 @@ package com.playrole.controller;
 import com.playrole.dto.CanalModeracionDTO;
 import com.playrole.dto.CrearCanalOficialDTO;
 import com.playrole.dto.EliminarCanalModeracionDTO;
+import com.playrole.dto.PersonajeResponsableDTO;
 import com.playrole.dto.RestaurarCanalDTO;
 import com.playrole.dto.SuspenderCanalDTO;
 import com.playrole.model.Usuario;
@@ -42,6 +43,12 @@ public class CanalModeracionController {
     @GetMapping("/{id}")
     public ResponseEntity<CanalModeracionDTO> obtener(@PathVariable Integer id) {
         return ResponseEntity.ok(canalModeracionService.obtener(id));
+    }
+
+    @GetMapping("/oficiales/responsables")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<PersonajeResponsableDTO>> buscarResponsables(@RequestParam(defaultValue = "") String q) {
+        return ResponseEntity.ok(canalModeracionService.buscarResponsables(q));
     }
 
     @PostMapping("/{id}/suspender")

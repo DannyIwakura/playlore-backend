@@ -10,6 +10,7 @@ import com.playrole.chat.service.CanalService;
 import com.playrole.dto.CanalModeracionDTO;
 import com.playrole.dto.CrearCanalOficialDTO;
 import com.playrole.dto.EliminarCanalModeracionDTO;
+import com.playrole.dto.PersonajeResponsableDTO;
 import com.playrole.dto.RestaurarCanalDTO;
 import com.playrole.dto.SuspenderCanalDTO;
 import com.playrole.enums.AccionModeracion;
@@ -23,6 +24,7 @@ import com.playrole.utils.ModeracionUtils;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -84,6 +86,16 @@ public class CanalModeracionService {
     public CanalModeracionDTO obtener(Integer canalId) {
         Canal canal = buscarCanal(canalId);
         return CanalModeracionDTO.fromEntity(canal, miembroRepository.countByCanalId(canalId));
+    }
+
+    public List<PersonajeResponsableDTO> buscarResponsables(String q) {
+        String query = q != null ? q.trim() : "";
+        if (query.length() < 2) {
+            return List.of();
+        }
+        return personajeRepository.buscarPersonajesDeStaff(query, PageRequest.of(0, 20)).stream()
+                .map(PersonajeResponsableDTO::fromEntity)
+                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -168,6 +180,9 @@ public class CanalModeracionService {
 
         PerfilPersonaje responsable = personajeRepository.findById(dto.getPersonajeResponsableId())
                 .orElseThrow(() -> new ResourceNotFoundException("Personaje responsable no encontrado"));
+        if (!esStaff(responsable)) {
+            throw new BadRequestException("El personaje responsable debe pertenecer a una cuenta ADMIN o MOD");
+        }
 
         Canal canal = new Canal();
         canal.setNombre(nombre);
@@ -272,6 +287,12 @@ public class CanalModeracionService {
         canal.setSuspendidoPorId(null);
         canal.setSuspendidoPorNombre(null);
         canal.setMotivoSuspension(null);
+    }
+
+    private boolean esStaff(PerfilPersonaje personaje) {
+        return personaje != null && personaje.getUserId() != null
+                && (personaje.getUserId().getRol() == com.playrole.enums.RolUsuario.ADMIN
+                || personaje.getUserId().getRol() == com.playrole.enums.RolUsuario.MOD);
     }
 
     private String validarMotivo(String motivo) {

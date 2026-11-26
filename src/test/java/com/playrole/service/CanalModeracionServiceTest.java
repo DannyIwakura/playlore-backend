@@ -269,9 +269,17 @@ class CanalModeracionServiceTest {
     }
 
     private PerfilPersonaje personaje(int id, String nombre) {
+        return personaje(id, nombre, RolUsuario.ADMIN);
+    }
+
+    private PerfilPersonaje personaje(int id, String nombre, RolUsuario rol) {
+        Usuario u = new Usuario(900 + id);
+        u.setNombre("Cuenta " + nombre);
+        u.setRol(rol);
         PerfilPersonaje p = new PerfilPersonaje();
         p.setIdPersonaje(id);
         p.setNombre(nombre);
+        p.setUserId(u);
         return p;
     }
 
@@ -325,6 +333,26 @@ class CanalModeracionServiceTest {
 
         assertThrows(BadRequestException.class, () -> service.crearOficial(dto, null, admin(1)));
         verify(miembroRepository, never()).save(any());
+    }
+
+    @Test
+    void crearOficial_responsableNoStaff_lanzaBadRequest() {
+        PerfilPersonaje responsable = personaje(10, "Aragorn", RolUsuario.USER);
+        when(personajeRepository.findById(10)).thenReturn(Optional.of(responsable));
+
+        CrearCanalOficialDTO dto = new CrearCanalOficialDTO();
+        dto.setNombre("Taberna Oficial");
+        dto.setPersonajeResponsableId(10);
+
+        assertThrows(BadRequestException.class, () -> service.crearOficial(dto, null, admin(1)));
+        verify(miembroRepository, never()).save(any());
+        verify(auditoriaService, never()).registrar(any(), any(), any(Canal.class), any(), any());
+    }
+
+    @Test
+    void buscarResponsables_menosDeDosChars_devuelveVacio() {
+        assertTrue(service.buscarResponsables("a").isEmpty());
+        verify(personajeRepository, never()).buscarPersonajesDeStaff(anyString(), any());
     }
 
     @Test

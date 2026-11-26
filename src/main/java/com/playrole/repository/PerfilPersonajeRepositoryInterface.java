@@ -30,6 +30,13 @@ JpaSpecificationExecutor<PerfilPersonaje> {
 	       "WHERE p.idPersonaje IN :personajeIds")
 	List<RolUsuarioPorPersonaje> findRolesUsuarioPorPersonajes(@Param("personajeIds") Collection<Integer> personajeIds);
 
+	@Query("SELECT p FROM PerfilPersonaje p JOIN FETCH p.userId u " +
+	       "WHERE u.rol IN (com.playrole.enums.RolUsuario.ADMIN, com.playrole.enums.RolUsuario.MOD) " +
+	       "AND (:q IS NULL OR :q = '' OR LOWER(p.nombre) LIKE LOWER(CONCAT('%', :q, '%')) " +
+	       "     OR LOWER(u.nombre) LIKE LOWER(CONCAT('%', :q, '%'))) " +
+	       "ORDER BY p.nombre ASC")
+	List<PerfilPersonaje> buscarPersonajesDeStaff(@Param("q") String q, Pageable pageable);
+
 	interface RolUsuarioPorPersonaje {
 		Integer getPersonajeId();
 

@@ -884,7 +884,7 @@ class CanalChatIntegracionTest {
 	@Test
 	void adminCreaCanalOficialConResponsableYAudita() throws Exception {
 		Usuario admin = crearUsuario("admin", RolUsuario.ADMIN);
-		Usuario responsable = crearUsuario("responsable", RolUsuario.USER);
+		Usuario responsable = crearUsuario("responsable", RolUsuario.MOD);
 		PerfilPersonaje pResponsable = crearPersonaje(responsable, "Aragorn");
 		String tokenAdmin = token(admin);
 
@@ -916,7 +916,7 @@ class CanalChatIntegracionTest {
 	@Test
 	void adminCreaCanalOficialConImagen_procesaYGuarda() throws Exception {
 		Usuario admin = crearUsuario("admin", RolUsuario.ADMIN);
-		Usuario responsable = crearUsuario("responsable", RolUsuario.USER);
+		Usuario responsable = crearUsuario("responsable", RolUsuario.ADMIN);
 		PerfilPersonaje pResponsable = crearPersonaje(responsable, "Aragorn");
 		String tokenAdmin = token(admin);
 
@@ -1009,6 +1009,42 @@ class CanalChatIntegracionTest {
 
 		assertEquals(TipoCanal.USER_CREATED,
 				canalRepo.findById(canal.getIdCanal()).orElseThrow().getTipo());
+	}
+
+	@Test
+	void adminNoPuedeCrearCanalOficialConResponsableNoStaff() throws Exception {
+		Usuario admin = crearUsuario("admin", RolUsuario.ADMIN);
+		Usuario responsable = crearUsuario("responsable", RolUsuario.USER);
+		PerfilPersonaje pResponsable = crearPersonaje(responsable, "Aragorn");
+
+		String json = "{\"nombre\":\"Taberna Oficial\",\"descripcion\":\"Punto de encuentro\","
+				+ "\"personajeResponsableId\":" + pResponsable.getIdPersonaje() + "}";
+		MockMultipartFile datos = new MockMultipartFile(
+				"datos", "", MediaType.APPLICATION_JSON_VALUE, json.getBytes(StandardCharsets.UTF_8));
+
+		mockMvc.perform(multipart("/moderacion/canales/oficiales")
+						.file(datos)
+						.header("Authorization", "Bearer " + token(admin)))
+				.andExpect(status().isBadRequest());
+		assertTrue(canalRepo.findAll().isEmpty());
+	}
+
+	@Test
+	void buscarResponsablesSoloDevuelvePersonajesDeStaff() throws Exception {
+		Usuario admin = crearUsuario("admin", RolUsuario.ADMIN);
+		Usuario mod = crearUsuario("mod", RolUsuario.MOD);
+		Usuario user = crearUsuario("user", RolUsuario.USER);
+		crearPersonaje(admin, "AragornAdmin");
+		crearPersonaje(mod, "AragornMod");
+		crearPersonaje(user, "AragornUser");
+
+		mockMvc.perform(get("/moderacion/canales/oficiales/responsables")
+						.param("q", "Aragorn")
+						.header("Authorization", "Bearer " + token(admin)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.length()").value(2))
+				.andExpect(jsonPath("$[0].nombre").exists())
+				.andExpect(jsonPath("$[1].nombre").exists());
 	}
 
 	@Test
