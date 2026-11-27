@@ -1,7 +1,6 @@
 package com.playrole.utils;
 
 import java.nio.charset.StandardCharsets;
-import java.security.Key;
 import java.util.Date;
 
 import javax.crypto.SecretKey;
@@ -11,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import com.playrole.security.CustomUserDetails;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -41,45 +41,37 @@ public class JwtUtils {
     public String generarToken(CustomUserDetails userDetails) {
 
         return Jwts.builder()
-                .setSubject(userDetails.getUsuario().getNombre())
+                .subject(userDetails.getUsuario().getNombre())
                 .claim("id", userDetails.getUsuario().getUserId())
                 .claim("role", userDetails.getUsuario().getRol().name())
                 .claim("avatar", userDetails.getUsuario().getAvatar())
-                .setIssuedAt(new Date())
-                .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
+                .issuedAt(new Date())
+                .expiration(new Date((new Date()).getTime() + jwtExpirationMs))
                 .signWith(key)
                 .compact();
     }
-    
-    public String obtenerUsername(String token) {
 
-        return Jwts.parserBuilder()
-                .setSigningKey(key)
+    private Claims obtenerClaims(String token) {
+        return Jwts.parser()
+                .verifyWith(key)
                 .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
+                .parseSignedClaims(token)
+                .getPayload();
+    }
+
+    public String obtenerUsername(String token) {
+        return obtenerClaims(token).getSubject();
     }
     
     public String obtenerAvatar(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .get("avatar", String.class);
+        return obtenerClaims(token).get("avatar", String.class);
     }
 
     // Los tokens de sesión de personaje llevan el claim personajeId y
     // los procesa CharacterSessionFilter, no el filtro de usuario.
     public boolean esTokenSesionPersonaje(String token) {
         try {
-            return Jwts.parserBuilder()
-                    .setSigningKey(key)
-                    .build()
-                    .parseClaimsJws(token)
-                    .getBody()
-                    .containsKey("personajeId");
+            return obtenerClaims(token).containsKey("personajeId");
         } catch (JwtException e) {
             return false;
         }
@@ -88,7 +80,7 @@ public class JwtUtils {
     public boolean validarToken(String token) {
 
         try {
-            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            obtenerClaims(token);
             return true;
         } catch (JwtException e) {
             return false;
