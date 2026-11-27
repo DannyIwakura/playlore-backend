@@ -35,21 +35,21 @@ public class SessionJwtUtils {
     public String generarToken(Integer usuarioId, Integer personajeId, String personajeNombre,
                                 String personajeAvatar, String role) {
         return Jwts.builder()
-                .setSubject(personajeId.toString())
+                .subject(personajeId.toString())
                 .claim("userId", usuarioId)
                 .claim("personajeId", personajeId)
                 .claim("personajeNombre", personajeNombre)
                 .claim("personajeAvatar", personajeAvatar)
                 .claim("role", role)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
                 .signWith(key)
                 .compact();
     }
 
     public boolean validarToken(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            obtenerClaims(token);
             return true;
         } catch (JwtException e) {
             return false;
@@ -57,11 +57,11 @@ public class SessionJwtUtils {
     }
 
     public Claims obtenerClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(key)
+        return Jwts.parser()
+                .verifyWith(key)
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
     }
 
     public Integer obtenerPersonajeId(String token) {

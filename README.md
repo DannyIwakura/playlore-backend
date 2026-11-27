@@ -1,6 +1,6 @@
 # PlayRole Backend — Spring Boot API
 
-API REST de PlayLore/PlayRole. Spring Boot 4.0.3, Java 21, Maven.
+API REST de PlayLore/PlayRole. Spring Boot 4.2.0, Java 21, Maven.
 
 ---
 
